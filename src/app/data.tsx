@@ -160,13 +160,24 @@ export default function DataScreen() {
         Alert.alert(t('errors.generic'), t('data.loanReminderPermission'));
         return;
       }
-      setLoanScheduleReminders(db, scheduleId, enabled);
-      await syncLoanScheduleReminders(db, {
-        title: t('recurring.reminderTitle'),
-        body: (name) => t('recurring.reminderBody', { name }),
-      });
+      try {
+        setLoanScheduleReminders(db, scheduleId, enabled);
+      } catch (error) {
+        console.error('Failed to save loan reminder setting', error);
+        Alert.alert(t('errors.generic'), t('data.loanReminderToggleError'));
+        return;
+      }
+      try {
+        await syncLoanScheduleReminders(db, {
+          title: t('recurring.reminderTitle'),
+          body: (name) => t('recurring.reminderBody', { name }),
+        });
+      } catch (error) {
+        console.error('Failed to refresh loan payment reminders', error);
+        Alert.alert(t('errors.generic'), t('data.loanReminderResyncError'));
+      }
     } catch (error) {
-      console.error('Failed to update loan payment reminders', error);
+      console.error('Failed to update loan payment reminder permission', error);
       Alert.alert(t('errors.generic'), t('data.loanReminderToggleError'));
     } finally {
       setBusy(false);
@@ -183,11 +194,22 @@ export default function DataScreen() {
           void (async () => {
             setBusy(true);
             try {
-              deleteLoanSchedule(db, scheduleId);
-              await syncLoanScheduleReminders(db, {
-                title: t('recurring.reminderTitle'),
-                body: (name) => t('recurring.reminderBody', { name }),
-              });
+              try {
+                deleteLoanSchedule(db, scheduleId);
+              } catch (error) {
+                console.error('Failed to delete loan repayment schedule', error);
+                Alert.alert(t('errors.generic'), t('data.loanDeleteError'));
+                return;
+              }
+              try {
+                await syncLoanScheduleReminders(db, {
+                  title: t('recurring.reminderTitle'),
+                  body: (name) => t('recurring.reminderBody', { name }),
+                });
+              } catch (error) {
+                console.error('Failed to refresh reminders after loan schedule deletion', error);
+                Alert.alert(t('errors.generic'), t('data.loanDeleteReminderError'));
+              }
             } catch (error) {
               console.error('Failed to delete loan repayment schedule', error);
               Alert.alert(t('errors.generic'), t('data.loanDeleteError'));
@@ -515,6 +537,23 @@ export default function DataScreen() {
                       currency={schedule.currency}
                       type="expense"
                     />
+                    <AppText variant="caption" color="textMuted">
+                      {t('data.loanInterest')}: {new Intl.NumberFormat(locale, {
+                        style: 'currency',
+                        currency: schedule.currency,
+                      }).format(next.interestMinor / 100)}
+                      {' · '}
+                      {t('data.loanPrincipal')}: {new Intl.NumberFormat(locale, {
+                        style: 'currency',
+                        currency: schedule.currency,
+                      }).format(next.principalMinor / 100)}
+                      {next.insuranceMinor > 0
+                        ? ` · ${t('data.loanInsurance')}: ${new Intl.NumberFormat(locale, {
+                            style: 'currency',
+                            currency: schedule.currency,
+                          }).format(next.insuranceMinor / 100)}`
+                        : ''}
+                    </AppText>
                   </>
                 ) : (
                   <AppText variant="caption" color="textMuted">

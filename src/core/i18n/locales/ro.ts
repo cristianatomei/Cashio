@@ -162,10 +162,14 @@ export const ro = {
     loanSavedTitle: 'Scadențare salvate',
     loanReminderStatus: 'Remindere pentru rate',
     loanReminderToggleError: 'Setarea reminderelor nu a putut fi actualizată.',
+    loanReminderResyncError:
+      'Setarea a fost salvată, dar notificările programate nu au putut fi reîmprospătate.',
     loanDelete: 'Șterge scadențarul',
     loanDeleteTitle: 'Ștergi scadențarul?',
     loanDeleteWarning: 'Scadențarul și reminderele sale vor fi șterse definitiv.',
     loanDeleteError: 'Scadențarul nu a putut fi șters.',
+    loanDeleteReminderError:
+      'Scadențarul a fost șters, dar reminderele nu au putut fi reîmprospătate.',
     loanNoUpcoming: 'Nu mai sunt rate viitoare.',
   },
   captured: {
