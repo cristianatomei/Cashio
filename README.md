@@ -2,18 +2,28 @@
 
 Aplicație mobilă (Expo / React Native, Android-first) pentru urmărirea cheltuielilor. Ideea: cheltuielile se captează automat din notificările băncilor (ING, Revolut, Salt Bank), fără introducere manuală și fără abonament. Datele rămân local, în SQLite.
 
-## Stare curentă
+## Punct de reluare — 11.10.2026
+
+Dezvoltarea este pusă în pauză până la următoarea sesiune. Pentru întrebările „unde am rămas?” sau „ce mai avem de făcut?”, începe cu secțiunea **Punct de reluare** din [PLAN.md](PLAN.md); aceasta conține prioritățile și limitările, nu doar lista funcționalităților.
+
+- **Ultima verificare, 11.10.2026:** `typecheck` și `lint` trec; 26 de suite / 142 de teste trec. Erorile raportate în verificările anterioare nu se mai reproduc în această rulare.
+- **Ultima funcționalitate adăugată:** import local de scadențare PDF ING (nevoi personale / ipotecar), previzualizare, salvare și remindere individuale. Codul există, dar extracția PDFBox și livrarea notificărilor nu sunt încă validate pe telefon.
+- **Schema actuală:** 7 migrări; v5 adaugă scadențarele, v6 permite tranzacții fără cont, v7 adaugă repartizarea unei tranzacții între categorii.
+- **Ce facem întâi la reluare:** Node 22, verificările proiectului, rebuild Android și testarea celor două scadențare reale. Nu considera testele unitare dovadă că importul nativ funcționează.
+- **Nu este încă implementat:** exportul ratelor în calendarul telefonului, integrarea completă a scadențarelor în obligații/estimări, widgetul Android și APK-ul release validat.
+
+## Stare pe faze
 
 | Fază | Conținut | Stare |
 |---|---|---|
-| 0 | Scaffold Expo SDK 57, expo-router, SQLite + Drizzle, migrări, lint/test | Gata (typecheck, lint, teste trec) |
+| 0 | Scaffold Expo SDK 57, expo-router, SQLite + Drizzle, migrări, lint/test | Implementat; verificările curente trec |
 | 1 | Modul nativ Android care citește notificările + ecran cu lista lor | Gata, testat pe emulator |
 | A | Design system, i18n (ro/en), tab-uri, schema v2, date inițiale | Gata, rulează pe emulator |
 | B | Adăugare manuală, listă tranzacții, conturi, categorii/grupuri, comercianți, tag-uri, transferuri, solduri | Scris, **de verificat** (vezi „Instalare pentru faza B”) |
 | C | Parsere, tipul tranzacției, aliasuri comercianți, „De clasificat”, deduplicare | Verificat parțial pe Samsung; plata ING → Revolut a necesitat corectare manuală ca transfer; parserul trebuie ajustat |
-| D | Statistici și grafice, Acasă | De făcut |
-| E | Obligații recurente, asociere plăți, estimare luna următoare, bugete și facturi | Parțial implementat, **de verificat pe emulator**; bugete, facturi și remindere rămân |
-| F | Multi-valută, import CSV, backup, widget, build release APK | De făcut |
+| D | Statistici și grafice, Acasă | Implementat; de verificat vizual pe telefon |
+| E | Obligații recurente, asociere plăți, estimare, bugete cu rollover și alerte, remindere | Implementat; de verificat pe telefon, inclusiv permisiunile și avansarea scadenței |
+| F | Multi-valută, import CSV/PDF ING, backup, widget, build release APK | Cursuri, CSV, backup și flux PDF implementate; validarea nativă PDF, widgetul și release-ul rămân |
 
 Planul complet (decizii, schema, biblioteci, verificare) e în [PLAN.md](PLAN.md).
 
@@ -22,7 +32,7 @@ Planul complet (decizii, schema, biblioteci, verificare) e în [PLAN.md](PLAN.md
 - Expo SDK 57, React Native 0.86, TypeScript strict
 - expo-router (rute în `src/app/`)
 - expo-sqlite + Drizzle ORM (baza locală `cashio.db`)
-- Modul nativ local în Kotlin (`modules/notification-listener`)
+- Module native locale Kotlin: `modules/notification-listener` și `modules/loan-pdf` (PdfBox-Android)
 - Jest (`jest-expo`), ESLint, Prettier
 
 ## Structura proiectului
@@ -30,7 +40,8 @@ Planul complet (decizii, schema, biblioteci, verificare) e în [PLAN.md](PLAN.md
 ```
 src/
   app/                     rute expo-router: index (redirect), (tabs)/ (home, transactions, add, stats, more),
-                           add-transaction (formular, și editare cu ?id=), captured, recurring, manage/ (accounts, categories, merchants, tags)
+                           add-transaction (formular, și editare cu ?id=), captured, recurring, budgets, data, settings,
+                           manage/ (accounts, categories, merchants, tags)
   core/
     db/                    schema.ts (Drizzle), migrations.ts, defaults.ts + seed.ts (date inițiale), index.ts (useDb)
     domain/                tipuri comune (transaction.ts)
@@ -39,54 +50,37 @@ src/
     utils/                 money.ts, dates.ts, calculator.ts (+ teste)
   features/                fiecare modul: domain/ (TypeScript pur), data/ (repository-uri, interogări live), ui/, index.ts
     accounts/  categories/  merchants/  tags/  transactions/  capture/  recurring/
+    stats/  budgets/  backup/  loans/  parsing/
 modules/
   notification-listener/   modul nativ Android (Kotlin) + index.ts
+  loan-pdf/                extracție text PDF locală pe Android (PdfBox-Android) + index.ts
 android/                   generat de `expo prebuild`; nu se editează manual
 ```
 
 Alias-uri TypeScript: `@/*` → `src/*`, `@modules/*` → `modules/*`. Modulele se importă între ele doar prin `index.ts`.
 
-## Instalare pentru faza A
+## Instalare și date existente
 
-Faza A folosește pachete noi. Instalează-le o dată (terminal normal, Node 22 activ):
+Activează Node 22 conform secțiunii „Mediu de lucru”, apoi folosește `npm.cmd ci` pentru o instalare curată pe baza lockfile-ului. Nu reinstala dependențele la fiecare reluare dacă sunt deja disponibile.
 
-```powershell
-npx.cmd expo install expo-localization expo-system-ui @expo/vector-icons expo-haptics
-npm.cmd install i18next react-i18next
-Remove-Item App.tsx, index.ts   # rămășițe ale șablonului, intră în conflict cu expo-router
-npm.cmd run typecheck; npm.cmd run lint; npm.cmd test -- --watchAll=false
-```
+Modulele locale de captare și PDF necesită un development build Android; Expo Go nu le include. După modificări native trebuie reconstruită aplicația. Directoarele native generate nu se editează manual.
 
-`expo-system-ui` și `expo-localization` sunt cod nativ, deci urmează rebuild: `npx.cmd expo run:android`. La prima rulare, migrarea 2 reface tabelele goale din v1 (`categories`, `merchant_aliases`, `transactions`) și creează datele inițiale (conturi, grupuri, categorii).
-
-## Instalare pentru faza B
-
-Faza B folosește selectorul nativ de dată și oră, deci cere un pachet nou și **rebuild nativ**:
-
-```powershell
-npx expo install @react-native-community/datetimepicker
-npm run typecheck; npm run lint; npm test -- --watchAll=false
-npx expo run:android
-```
-
-Datele inițiale s-au schimbat (categoriile tale din Oinkoin; Salt Bank este dezactivat în mod implicit). Ele se creează doar la prima rulare, deci, ca să le vezi pe un emulator care a rulat deja faza A, șterge datele aplicației:
-
-```powershell
-& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" shell pm clear com.cashio.app
-```
-
-După asta trebuie să acorzi din nou accesul la notificari. Pe telefonul real nu e nevoie, dacă nu ai instalat încă aplicația.
+Datele inițiale se creează la prima inițializare. Migrările ulterioare trebuie să păstreze datele existente. **Nu șterge datele aplicației de pe telefon pentru a testa o migrare.** Testarea unui reset se face numai pe un emulator de test, cu acord explicit și după backup dacă datele trebuie păstrate.
 
 ## Ce conține aplicația acum
 
-- **Setări (Mai mult → Setări):** temă Sistem / Deschis / Întunecat, salvată local și aplicată inclusiv elementelor native și barei de stare. Accentele aplicației sunt verde petrol; culorile deja personalizate pentru conturi/categorii nu sunt modificate.
-- **Acasă:** sold total, rezumatul lunii (venituri, cheltuieli, balanță), conturi cu sold real, ultimele 5 tranzacții.
+- **Setări (Mai mult → Setări):** temă Sistem / Deschis / Întunecat și limbă Română / English, persistente. Paleta aleasă este albastru ocean + turcoaz; culorile deja personalizate pentru conturi/categorii nu sunt modificate.
+- **Acasă:** sold total, rezumatul lunii, comparație cu luna trecută, conturi cu sold real, ultimele tranzacții și estimarea obligațiilor.
 - **Tranzacții:** lună cu săgetăi, rezumat, căutare (comerciant, categorie, etichetă, notă), filtre pe tip, grupare pe zile cu total pe zi; atingere = editare.
 - **Adaugare/editare (butonul +):** Cheltuială / Venit / Transfer, sumă cu calculator (+ − × ÷), categorie (grupuri cu iconițe), cont, comerciant (creat din căutare; completează categoria implicită), dată și oră, etichete (create din selector), notă.
 - **Transfer:** între conturi (retragere ATM = ING → Numerar); nu intră în cheltuieli.
+- **Tranzacții fără cont și repartizări:** codul permite tranzacții nealocate unui cont și împărțirea sumei între categorii. Aceste fluxuri și migrările v6/v7 trebuie verificate pe dispozitiv.
 - **Mai mult:** Conturi (sold inițial, monedă, culoare, icoană, arhivare), Categorii și grupuri, Comercianți, Etichete, Notificări captate (istoric cu stare deschisă/rezolvată/ignorată și acces la tranzacția legată), Recurente.
 - **Recurente:** obligații lunare/anuale cu interval, sumă estimată, cont, comerciant, categorie și următoarea scadență; tranzacțiile compatibile se asociază automat, iar următoarea scadență avansează. Estimarea de pe Acasă/Recurente adună obligațiile scadente luna următoare și media cheltuielilor variabile din ultimele 3 luni complete (separat pe monedă).
-- **Ce s-a luat din Oinkoin (varianta gratuită):** selector lună, venituri/cheltuieli/balanță, listă pe zile, 3 tipuri de înregistrări, tastatură cu calculator, categorii pe cheltuieli/venituri cu culoare și icoană, portofele (conturi), etichete, notă, căutare. Urmează: grafice și statistici (faza D), bugete, facturi și remindere (E), backup (F).
+- **Statistici:** distribuție pe grupuri/categorii, trend, top comercianți, intervale predefinite/personalizate și plăți recurente.
+- **Bugete:** limite lunare pe categorie/grup, rollover și notificări la 80%/100%.
+- **Date și backup:** cursuri valutare manuale datate, import CSV ING cu deduplicare, export/restaurare JSON cu validare și confirmare. Formatul CSV actual Home’Bank trebuie confirmat pe un export real.
+- **Istoric notificări:** triere separată de parsare, acces la tranzacția legată; în cod există și refresh prin gest și indicator pentru notificările deschise, de verificat pe telefon.
 - Categoriile „Retrageri cash” din Oinkoin sunt înlocuite aici de transferul către contul Numerar.
 
 ## Cum funcționează captarea
@@ -100,6 +94,28 @@ După asta trebuie să acorzi din nou accesul la notificari. Pe telefonul real n
 Baza de date: schema stă în `src/core/db/schema.ts`, iar migrările (doar de adăugat, niciodată editate) în `src/core/db/migrations.ts`. Versiunea e urmărită prin `PRAGMA user_version`. Orice schimbare de schemă se face în ambele fișiere. Sumele se stochează ca întregi, în bani (`amount_minor`).
 
 Migrarea 3 adaugă `review_status` la notificările istorice, separat de `processed_at`: faptul că parserul a verificat notificarea nu înseamnă că utilizatorul a rezolvat lead-ul.
+
+Migrarea 4 adaugă suma variabilă la recurente; v5 adaugă `loan_schedules`; v6 reconstruiește tranzacțiile pentru cont opțional; v7 adaugă `transaction_allocations`. Înainte de release, verifică actualizarea unei baze existente și restaurarea backupurilor acceptate de cod.
+
+## Scadențare ING PDF — implementat, de validat nativ
+
+În **Mai mult → Date și backup → Scadențare de credit**:
+
+1. Alegi un PDF ING cu text selectabil; extracția este locală, prin modulul Android `loan-pdf`.
+2. Vezi moneda, numărul ratelor și următoarele șase scadențe, cu plată, dobândă, principal și asigurare.
+3. Alegi denumirea, includerea asigurării și activarea reminderelor, apoi salvezi scadențarul.
+4. Lista salvată afișează următoarea rată; scadențarul este inclus în backup.
+
+Reminderele sunt notificări locale cu o zi înainte la 09:00. Se programează cele mai apropiate **50 de scadențe în total, pentru toate scadențarele**, nu 50 per credit. Lista se reîmprospătează la pornire și la revenirea în prim-plan; nu există reîmprospătare continuă garantată cu aplicația închisă.
+
+Limitări importante:
+
+- Nu există OCR sau suport PDF pe iOS; formatele ING nerecunoscute sunt respinse.
+- Parserul este testat pe texte sintetice. Ordinea coloanelor, diacriticele și toate ratele trebuie comparate cu PDF-urile reale după extracția PDFBox pe Android.
+- Ratele variabile sunt păstrate individual; importul **nu creează o obligație recurentă fixă** și nu este încă integrat complet în estimări/asocierea plăților.
+- Nu se creează evenimente în calendarul telefonului.
+- Editarea/ștergerea scadențarelor și controlul reminderelor după salvare rămân de completat. Acestea sunt necesare înainte de a considera modulul finalizat.
+- Nu publica PDF-uri, sume, solduri, identificatori sau extracții reale în repo/loguri. Extracțiile text temporare ale celor două documente furnizate au fost șterse; testele folosesc date sintetice.
 
 ## Mediu de lucru (Windows)
 
@@ -216,7 +232,7 @@ Istoricul din Mai mult → Notificări captate păstrează textul original pe di
 
 Din Mai mult → Recurente poți adăuga o obligație precum RCA, rovinietă, asigurarea de credit sau rata: sumă estimată, cont, comerciant/categorie, periodicitate lunară/anuală și următoarea scadență. Intervalul permite, de exemplu, fiecare 2 luni sau la fiecare 2 ani. O plată confirmată se leagă automat dacă suma și moneda coincid, contul și comerciantul/categoria se potrivesc, iar data e la cel mult 14 zile de scadență. Regulile nu postează tranzacții automat.
 
-Estimarea lunii următoare este suma obligațiilor scadente în acea lună plus media cheltuielilor confirmate din ultimele 3 luni complete; tranzacțiile cu sursa „recurent” sunt excluse din media variabilă. Bugete cu praguri, facturi independente și remindere locale nu sunt implementate încă.
+Estimarea lunii următoare este suma obligațiilor scadente în acea lună plus media cheltuielilor confirmate din ultimele 3 luni complete; plățile recurente sunt excluse din media variabilă. Bugetele cu rollover și praguri 80%/100%, lista „de plătit” și reminderele locale sunt implementate. Verificarea pe telefon rămâne necesară: permisiuni, notificări, asocierea plății și avansarea scadenței.
 
 ## Probleme întâlnite
 
@@ -243,9 +259,9 @@ Estimarea lunii următoare este suma obligațiilor scadente în acea lună plus 
 
 ## Pașii următori
 
-1. Continuă testarea pe telefon: transfer, plată normală, notificare autorizată/refuzată și istoricul din Notificări captate. Trimite 3–5 texte reale ING/Revolut, cu datele sensibile mascate.
-2. Corectează parserul pentru top-up Revolut: transferul ING → Revolut să nu apară ca plată către comerciant; verifică și posibile notificări duplicate Revolut/Google Wallet.
-3. Verifică Recurente pe telefon: adaugă obligații lunare/anuale și confirmă estimarea și mutarea scadenței după plata asociată.
-4. Adaugă în Setări alegerea persistentă **Sistemă / Luminoasă / Întunecată** și **Română / English**. Limba și tema urmează acum implicit setările telefonului; nu există selecție manuală.
-5. La polish, propune 2–3 palete moderne și compară-le pe ecranele aplicației. Utilizatorul nu preferă movul actual; alegerea culorilor se face după compararea pe telefon.
-6. Finalizează etapa E: bugete cu praguri 80%/100%, facturi independente și remindere locale. Apoi etapa D (statistici/grafice) și etapa F (multi-valută, import CSV, backup/restaurare, widget și APK release).
+Ordinea detaliată și criteriile de acceptare sunt în [PLAN.md — Punct de reluare](PLAN.md#punct-de-reluare--11102026).
+
+1. Node 22, verificări, rebuild Android și validarea celor două PDF-uri ING pe telefon, fără pierderi la migrare.
+2. Finalizarea modulului de scadențare: administrare, remindere, integrare în obligații/estimări; clarificarea calendarului telefonului.
+3. Verificări reale pentru captare/top-up, recurente, bugete, repartizări, CSV, backup și paletă.
+4. Widget Android, polish și build APK release. Profilurile `preview` și `production` din [eas.json](eas.json) sunt configurate pentru APK, dar configurarea profilurilor nu reprezintă un build release verificat.

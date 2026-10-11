@@ -2,6 +2,44 @@
 
 Aplicație Android-first (Expo), local-first, pentru urmărirea cheltuielilor cu captare automată din notificări. Fără backend, fără abonament.
 
+## Punct de reluare — 11.10.2026
+
+**Dezvoltarea este pusă în pauză la cererea utilizatorului.** La întrebarea „unde am rămas?” / „ce mai avem de făcut?”, citește această secțiune și [README.md](README.md), apoi verifică starea codului înainte de a implementa. Documentația distinge între cod existent și comportament verificat pe telefon.
+
+### Starea verificată
+
+- `npm.cmd run typecheck`: trecut.
+- `npm.cmd run lint`: trecut.
+- `npm.cmd test -- --runInBand`: 26 de suite, 142 de teste, toate trecute.
+- Aceste rezultate sunt din 11.10.2026; înlocuiesc rapoartele anterioare cu erori de captare/tranzacții. Nu reprezintă validare nativă sau vizuală.
+- Schema din cod are **7 migrări**: v5 scadențare PDF, v6 cont opțional la tranzacții, v7 repartizări între categorii. Directorul Android generat există în mediul curent; iOS nu există. Importul PDF nu a fost compilat și verificat pe dispozitiv în această sesiune.
+
+### Ce este deja implementat
+
+- Etapele 3/4/5 cerute anterior: statistici, bugete/recurente/estimare și o parte importantă din finalizare (multi-valută, CSV ING, backup, setări persistente).
+- Paleta aleasă: **albastru ocean + turcoaz**, nu mov; selecție Română/English și Sistem/Deschis/Întunecat.
+- Flux PDF ING în `src/app/data.tsx`, parser în `src/features/loans/domain/ingSchedule.ts`, stocare locală în `loan_schedules`, modul nativ `modules/loan-pdf` cu PdfBox-Android.
+- Preview: număr de rate, monedă, șase scadențe viitoare și componentele plată/dobândă/principal/asigurare; opțiune de includere a asigurării.
+- Remindere individuale cu o zi înainte la 09:00; maximum **50 de scadențe în total** între toate scadențarele, reîmprospătate la pornire/revenire în aplicație.
+- Cod pentru tranzacții fără cont, repartizări între categorii, refresh prin gest și indicator de notificări deschise; de validat manual.
+
+### Ordinea de lucru la reluare
+
+1. **Restabilește mediul și baseline-ul.** Activează Node 22 local cu `fnm`, fără schimbarea Node global; verifică worktree-ul și rulează typecheck/lint/teste. Păstrează datele și modificările existente; nu reseta telefonul pentru testarea migrărilor.
+2. **Validează importul ING pe Android.** Rebuild al development build-ului pentru modulul PDF; testează cele două scadențare reale (NP și ipotecar). Verifică toate datele, numărul ratelor, sumele, coloanele, asigurarea și ratele variabile față de PDF, nu doar faptul că parserul returnează ceva. Confirmă migrarea unei baze existente prin v5–v7 și persistența după restart.
+3. **Închide golurile modulului de scadențare.** În prezent nu există editare/ștergere și control al reminderelor după salvare. Adaugă administrarea cu anularea notificărilor, acces la detaliile ratelor salvate și recuperare după erori de programare. Testează permisiune refuzată, scadențar expirat, scadențe apropiate, mai multe credite și plafonul global de 50.
+4. **Finalizează integrarea cerută cu obligațiile/calendarul.** Scadențarele nu creează încă reguli recurente și nu intră complet în estimări/asocierea plăților. Păstrează suma fiecărei scadențe; nu transforma un grafic variabil într-o recurență fixă. Clarifică dacă „calendar” înseamnă lista internă de scadențe sau calendarul telefonului; exportul către calendarul telefonului nu există.
+5. **Verifică restul pe telefon.** Top-up ING → Revolut și deduplicare, autorizări/refuzuri, trierea/refresh-ul notificărilor, tranzacții fără cont și repartizări, matching recurent și avansarea scadenței, bugete/rollover/alerte, statistici, limbă/temă și paletă.
+6. **Validează importul și backupul.** CSV ING pe un export Home’Bank actual; backup/restaurare cu scadențare și repartizări, inclusiv versiunile vechi acceptate explicit de cod. Verifică și reprogramarea/anularea reminderelor după restaurare.
+7. **Finalizare.** Widget Android (soluție compatibilă de stabilit), polish și APK release cu EAS. `eas.json` are profiluri APK; autentificarea, configurarea/semnarea și buildul release validat rămân de făcut.
+
+### Limite și date private
+
+- PDF: numai Android, text selectabil; fără OCR. Parserul este testat pe date sintetice, nu pe textul PDFBox real. Antetele/diacriticele, ordinea coloanelor și rândurile parțial citite rămân puncte de verificat.
+- Reminderele sunt notificări locale, **nu evenimente în calendarul telefonului**; plafonul de 50 se reîmprospătează numai când aplicația rulează/revine în prim-plan.
+- Cele două extracții text temporare ale scadențarelor au fost șterse. Dacă sunt necesare din nou documentele reale, cere utilizatorului să le furnizeze local; nu salva date financiare sau identificatori în repo, teste, documentație ori loguri.
+- Nu marca modulul PDF, faza E sau release-ul drept finalizate doar pentru că verificările TypeScript/Jest trec.
+
 ## Decizii
 
 - Limbi: română (implicit) și engleză (i18n); selectorul persistent Română/English este implementat în Setări.
@@ -26,7 +64,7 @@ Tab-uri: Acasă, Tranzacții, (+) adăugare rapidă, Statistici, Mai mult. „De
 
 ## Design
 
-Paletă „Aurora": primar violet `#7C5CFF`, venit mint `#2DD4BF`, cheltuială coral `#FF6B6B`, avertisment chihlimbar `#FFB84D`. Închis: fundal `#0E1116`, suprafețe `#171B22`. Deschis: fundal `#F6F7FB`, suprafețe albe. Fiecare grup de categorii are culoare și icoană proprii. Cifrele folosesc variante tabulare. Paleta se ajustează după ce vezi ecranul Acasă pe telefon.
+Paletă albastru ocean + turcoaz: primar `#145DA0` în tema deschisă / `#60A5FA` în tema închisă; venit `#0FA99A` / `#2DD4BF`, cheltuială `#F0525A` / `#FF6B6B`. Închis: fundal `#0E1116`, suprafețe `#171B22`. Deschis: fundal `#F6F7FB`, suprafețe albe. Fiecare grup de categorii are culoare și icoană proprii. Cifrele folosesc variante tabulare. Alegerea utilizatorului este implementată; verificarea contrastului și aspectului pe telefon rămâne.
 
 ## Faze
 
@@ -49,13 +87,13 @@ Ordine: A, apoi B, apoi C și D (în paralel), apoi E (implementare parțială),
 - Notificare ING reală de top-up Revolut pentru 60 RON captată. Clasificată inițial ca plată necunoscută; corectată manual ca transfer ING → Revolut. Soldurile pe conturi s-au actualizat corect și totalul a rămas constant.
 - Următoarea verificare: parserul să recunoască top-up-ul ca transfer; apoi testarea notificărilor obișnuite și a fluxului Recurente pe telefon.
 
-## Schema v2 (migrarea 2)
+## Schema actuală (7 migrări)
 
-`accounts`, `category_groups`, `categories` (grup, icoană), `merchants` + `merchant_aliases`, `transactions` (cont, comerciant, notă, transfer, status draft/confirmat, recurent, curs valutar), `tags` + `transaction_tags`, `budgets`, `recurring_rules`, `loan_schedules` (migrarea v5), `exchange_rates`, `capture_rules`, `app_settings`. Sumele sunt întregi, în bani.
+`accounts`, `category_groups`, `categories` (grup, icoană), `merchants` + `merchant_aliases`, `transactions` (cont opțional din v6, comerciant, notă, transfer, status draft/confirmat, recurent, curs valutar), `transaction_allocations` (repartizări din v7), `tags` + `transaction_tags`, `budgets`, `recurring_rules`, `loan_schedules` (migrarea v5), `exchange_rates`, `capture_rules`, `app_settings`, `raw_notifications`. Sumele sunt întregi, în bani. Migrările se adaugă, nu se rescriu; v6 reconstruiește tabela tranzacțiilor și necesită testare pe o bază cu relații existente.
 
 ## Biblioteci
 
-`react-native-svg` + `react-native-gifted-charts` (grafice), `i18next` + `react-i18next` + `expo-localization`, `@expo/vector-icons`, `expo-haptics`, `react-native-reanimated` + `react-native-gesture-handler` + `@gorhom/bottom-sheet` (în B), `@shopify/flash-list` (liste lungi), `expo-notifications` (alerte locale), `expo-file-system` + `expo-sharing` + `expo-document-picker` (backup, CSV).
+Dependențele instalate sunt în `package.json`: `react-native-svg` (grafice), `i18next` + `react-i18next` + `expo-localization`, `@expo/vector-icons`, `expo-haptics`, selectorul nativ de dată/oră, `expo-notifications` (alerte locale), `expo-file-system` + `expo-sharing` + `expo-document-picker` (backup, CSV, selectarea PDF-ului). Modulele locale Kotlin asigură captarea și extracția PDF cu PdfBox-Android. Bibliotecile propuse inițial pentru grafice/bottom sheet/liste, dar absente din manifest, nu sunt cerințe de instalare.
 
 ## Verificare
 
@@ -66,5 +104,5 @@ Ordine: A, apoi B, apoi C și D (în paralel), apoi E (implementare parțială),
 
 ## Întrebări deschise
 
-- Widget Android: `expo-widgets` nu este încă validat pentru Android; de implementat ca modul Kotlin dacă nu apare o soluție Expo compatibilă.
+- Widget Android: nu este implementat. Cercetarea anterioară pentru SDK 57 a identificat `expo-widgets` ca soluție iOS, nu Android; reverifică documentația actuală înainte de a alege un modul Kotlin sau altă soluție compatibilă.
 - Import CSV ING: parserul acceptă atât antete simple, cât și structura istorică `Data,Detalii tranzactie,Debit,Credit`, date cu luna în română și rânduri suplimentare de detalii; formatul curent trebuie verificat pe un export Home’Bank real.
