@@ -8,5 +8,7 @@ export {
 export {
   parseStoredLoanSchedule,
   saveLoanSchedule,
+  setLoanScheduleReminders,
+  deleteLoanSchedule,
   type StoredLoanSchedule,
 } from './data/loanScheduleRepo';
