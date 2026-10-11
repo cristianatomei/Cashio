@@ -160,6 +160,13 @@ export const ro = {
     loanParseError: 'PDF-ul nu a putut fi citit ca un scadențar ING acceptat.',
     loanEmpty: 'Nu ai salvat încă niciun scadențar.',
     loanSavedTitle: 'Scadențare salvate',
+    loanReminderStatus: 'Remindere pentru rate',
+    loanReminderToggleError: 'Setarea reminderelor nu a putut fi actualizată.',
+    loanDelete: 'Șterge scadențarul',
+    loanDeleteTitle: 'Ștergi scadențarul?',
+    loanDeleteWarning: 'Scadențarul și reminderele sale vor fi șterse definitiv.',
+    loanDeleteError: 'Scadențarul nu a putut fi șters.',
+    loanNoUpcoming: 'Nu mai sunt rate viitoare.',
   },
   captured: {
     title: 'Notificări captate',

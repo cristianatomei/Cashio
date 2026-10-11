@@ -161,6 +161,13 @@ export const en: Resources = {
     loanParseError: 'The PDF could not be read as a supported ING repayment schedule.',
     loanEmpty: 'No repayment schedules saved yet.',
     loanSavedTitle: 'Saved schedules',
+    loanReminderStatus: 'Payment reminders',
+    loanReminderToggleError: 'The reminder setting could not be updated.',
+    loanDelete: 'Delete schedule',
+    loanDeleteTitle: 'Delete this schedule?',
+    loanDeleteWarning: 'The schedule and its reminders will be permanently deleted.',
+    loanDeleteError: 'The schedule could not be deleted.',
+    loanNoUpcoming: 'There are no upcoming instalments.',
   },
   captured: {
     title: 'Captured notifications',

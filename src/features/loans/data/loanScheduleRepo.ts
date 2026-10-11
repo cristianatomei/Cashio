@@ -1,6 +1,8 @@
 import type { AppDb } from '@/core/db';
 import * as schema from '@/core/db/schema';
+import { eq } from 'drizzle-orm';
 import type { LoanInstallment } from '../domain/ingSchedule';
+import { parseStoredLoanSchedule } from '../domain/storedSchedule';
 
 export { parseStoredLoanSchedule, type StoredLoanSchedule } from '../domain/storedSchedule';
 
@@ -52,4 +54,25 @@ export function saveLoanSchedule(db: AppDb, input: LoanScheduleInput): number {
     })
     .returning({ id: schema.loanSchedules.id })
     .get().id;
+}
+
+export function setLoanScheduleReminders(db: AppDb, scheduleId: number, enabled: boolean): void {
+  const schedule = db
+    .select()
+    .from(schema.loanSchedules)
+    .where(eq(schema.loanSchedules.id, scheduleId))
+    .get();
+  if (!schedule) throw new Error('The repayment schedule does not exist.');
+
+  const stored = parseStoredLoanSchedule(schedule.installmentsJson);
+  db.update(schema.loanSchedules)
+    .set({
+      installmentsJson: JSON.stringify({ ...stored, remindersEnabled: enabled }),
+    })
+    .where(eq(schema.loanSchedules.id, scheduleId))
+    .run();
+}
+
+export function deleteLoanSchedule(db: AppDb, scheduleId: number): void {
+  db.delete(schema.loanSchedules).where(eq(schema.loanSchedules.id, scheduleId)).run();
 }

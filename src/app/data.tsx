@@ -28,6 +28,8 @@ import {
   parseIngLoanSchedule,
   parseStoredLoanSchedule,
   saveLoanSchedule,
+  setLoanScheduleReminders,
+  deleteLoanSchedule,
   upcomingInstallments,
   type LoanSchedule,
 } from '@/features/loans';
@@ -143,6 +145,59 @@ export default function DataScreen() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const updateLoanReminders = async (scheduleId: number, enabled: boolean) => {
+    setBusy(true);
+    try {
+      if (
+        enabled &&
+        !(await requestLocalNotificationPermission(
+          'cashio_loan_schedule_reminders',
+          'Cashio loan payment reminders',
+        ))
+      ) {
+        Alert.alert(t('errors.generic'), t('data.loanReminderPermission'));
+        return;
+      }
+      setLoanScheduleReminders(db, scheduleId, enabled);
+      await syncLoanScheduleReminders(db, {
+        title: t('recurring.reminderTitle'),
+        body: (name) => t('recurring.reminderBody', { name }),
+      });
+    } catch (error) {
+      console.error('Failed to update loan payment reminders', error);
+      Alert.alert(t('errors.generic'), t('data.loanReminderToggleError'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmDeleteLoan = (scheduleId: number) => {
+    Alert.alert(t('data.loanDeleteTitle'), t('data.loanDeleteWarning'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('data.loanDelete'),
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            setBusy(true);
+            try {
+              deleteLoanSchedule(db, scheduleId);
+              await syncLoanScheduleReminders(db, {
+                title: t('recurring.reminderTitle'),
+                body: (name) => t('recurring.reminderBody', { name }),
+              });
+            } catch (error) {
+              console.error('Failed to delete loan repayment schedule', error);
+              Alert.alert(t('errors.generic'), t('data.loanDeleteError'));
+            } finally {
+              setBusy(false);
+            }
+          })();
+        },
+      },
+    ]);
   };
 
   const exportBackup = async () => {
@@ -439,13 +494,14 @@ export default function DataScreen() {
         <Card>
           {loanSchedules.map((schedule) => {
             const stored = parseStoredLoanSchedule(schedule.installmentsJson);
-            const next = upcomingInstallments(
+            const upcoming = upcomingInstallments(
               { currency: schedule.currency, installments: stored.installments },
               renderedAt,
-              1,
-            )[0];
+              6,
+            );
+            const next = upcoming[0];
             return (
-              <View key={schedule.id} style={{ gap: 4 }}>
+              <View key={schedule.id} style={{ gap: 8, paddingVertical: 8 }}>
                 <AppText variant="heading">{schedule.name}</AppText>
                 {next ? (
                   <>
@@ -462,12 +518,55 @@ export default function DataScreen() {
                   </>
                 ) : (
                   <AppText variant="caption" color="textMuted">
-                    {t('data.loanPreview', {
-                      count: stored.installments.length,
-                      currency: schedule.currency,
-                    })}
+                    {t('data.loanNoUpcoming')}
                   </AppText>
                 )}
+                {upcoming.slice(1).map((installment) => (
+                  <View key={installment.dueAt} style={{ gap: 2 }}>
+                    <AppText variant="caption">
+                      {t('data.loanDue', {
+                        date: new Date(installment.dueAt).toLocaleDateString(locale),
+                      })}
+                      {' · '}
+                      {t('data.loanPayment')}:{' '}
+                      {new Intl.NumberFormat(locale, {
+                        style: 'currency',
+                        currency: schedule.currency,
+                      }).format(installmentTotal(installment, stored.includeInsurance) / 100)}
+                    </AppText>
+                    <AppText variant="caption" color="textMuted">
+                      {t('data.loanInterest')}: {new Intl.NumberFormat(locale, {
+                        style: 'currency',
+                        currency: schedule.currency,
+                      }).format(installment.interestMinor / 100)}
+                      {' · '}
+                      {t('data.loanPrincipal')}: {new Intl.NumberFormat(locale, {
+                        style: 'currency',
+                        currency: schedule.currency,
+                      }).format(installment.principalMinor / 100)}
+                      {installment.insuranceMinor > 0
+                        ? ` · ${t('data.loanInsurance')}: ${new Intl.NumberFormat(locale, {
+                            style: 'currency',
+                            currency: schedule.currency,
+                          }).format(installment.insuranceMinor / 100)}`
+                        : ''}
+                    </AppText>
+                  </View>
+                ))}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <AppText style={{ flex: 1 }}>{t('data.loanReminderStatus')}</AppText>
+                  <Switch
+                    value={stored.remindersEnabled}
+                    onValueChange={(enabled) => void updateLoanReminders(schedule.id, enabled)}
+                    disabled={busy}
+                  />
+                </View>
+                <Button
+                  title={t('data.loanDelete')}
+                  variant="danger"
+                  onPress={() => confirmDeleteLoan(schedule.id)}
+                  disabled={busy}
+                />
               </View>
             );
           })}
