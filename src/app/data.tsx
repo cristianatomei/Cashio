@@ -31,6 +31,7 @@ import {
   setLoanScheduleReminders,
   deleteLoanSchedule,
   upcomingInstallments,
+  reconcileLoanPayments,
   type LoanSchedule,
 } from '@/features/loans';
 import { syncLoanScheduleReminders } from '@/features/loans/data/loanReminders';
@@ -53,6 +54,19 @@ export default function DataScreen() {
   const accounts = useAccounts();
   const { data: rates } = useLiveQuery(db.select().from(schema.exchangeRates));
   const { data: loanSchedules } = useLiveQuery(db.select().from(schema.loanSchedules));
+  const { data: loanTransactions } = useLiveQuery(
+    db
+      .select({
+        id: schema.transactions.id,
+        type: schema.transactions.type,
+        amountMinor: schema.transactions.amountMinor,
+        currency: schema.transactions.currency,
+        occurredAt: schema.transactions.occurredAt,
+        merchantRaw: schema.transactions.merchantRaw,
+        note: schema.transactions.note,
+      })
+      .from(schema.transactions),
+  );
   const [busy, setBusy] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
@@ -75,6 +89,18 @@ export default function DataScreen() {
   const effectiveAccountId = selectedAccountId ?? accounts[0]?.id ?? null;
   const selectedAccount = accounts.find((account) => account.id === effectiveAccountId);
   const locale = i18n.language === 'en' ? 'en-GB' : 'ro-RO';
+  const loanPaymentMatches = reconcileLoanPayments(
+    loanSchedules.map((schedule) => {
+      const stored = parseStoredLoanSchedule(schedule.installmentsJson);
+      return {
+        id: schedule.id,
+        currency: schedule.currency,
+        includeInsurance: stored.includeInsurance,
+        installments: stored.installments,
+      };
+    }),
+    loanTransactions,
+  );
 
   const chooseLoanPdf = async () => {
     if (Platform.OS !== 'android') {
@@ -516,6 +542,10 @@ export default function DataScreen() {
         <Card>
           {loanSchedules.map((schedule) => {
             const stored = parseStoredLoanSchedule(schedule.installmentsJson);
+            const paymentMatches = loanPaymentMatches
+              .filter((match) => match.scheduleId === schedule.id)
+              .sort((left, right) => right.dueAt - left.dueAt)
+              .slice(0, 6);
             const upcoming = upcomingInstallments(
               { currency: schedule.currency, installments: stored.installments },
               renderedAt,
@@ -592,6 +622,39 @@ export default function DataScreen() {
                     </AppText>
                   </View>
                 ))}
+                {paymentMatches.length > 0 ? (
+                  <View style={{ gap: 6 }}>
+                    <AppText variant="caption" color="textSecondary">
+                      {t('data.loanPaymentCheckTitle')}
+                    </AppText>
+                    {paymentMatches.map((match) => {
+                      const amount = (amountMinor: number) =>
+                        `${new Intl.NumberFormat(locale, {
+                          style: 'currency',
+                          currency: schedule.currency,
+                        }).format(amountMinor / 100)}`;
+                      const matched = match.actualMinor === match.expectedMinor;
+                      return (
+                        <AppText
+                          key={`${match.dueAt}-${match.transactionId}`}
+                          variant="caption"
+                          color={matched ? 'income' : 'expense'}
+                        >
+                          {matched
+                            ? t('data.loanPaymentMatched', {
+                                date: new Date(match.dueAt).toLocaleDateString(locale),
+                                amount: amount(match.actualMinor),
+                              })
+                            : t('data.loanPaymentConflict', {
+                                date: new Date(match.dueAt).toLocaleDateString(locale),
+                                expected: amount(match.expectedMinor),
+                                actual: amount(match.actualMinor),
+                              })}
+                        </AppText>
+                      );
+                    })}
+                  </View>
+                ) : null}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <AppText style={{ flex: 1 }}>{t('data.loanReminderStatus')}</AppText>
                   <Switch
