@@ -2,15 +2,39 @@
 
 Aplicație mobilă (Expo / React Native, Android-first) pentru urmărirea cheltuielilor. Ideea: cheltuielile se captează automat din notificările băncilor (ING, Revolut, Salt Bank), fără introducere manuală și fără abonament. Datele rămân local, în SQLite.
 
-## Punct de reluare — 11.10.2026
+## Punct de reluare — 19.10.2026
 
-Dezvoltarea este pusă în pauză până la următoarea sesiune. Pentru întrebările „unde am rămas?” sau „ce mai avem de făcut?”, începe cu secțiunea **Punct de reluare** din [PLAN.md](PLAN.md); aceasta conține prioritățile și limitările, nu doar lista funcționalităților.
+Utilizatorul dorește utilizare zilnică fără laptop/Metro și continuarea dezvoltării coordonate de pe telefon, prin GitHub. Începe cu această secțiune; [PLAN.md](PLAN.md) păstrează planul funcțional și limitările. Nu presupune că un build terminat este și instalat/testat.
 
-- **Ultima verificare, 11.10.2026:** `typecheck` și `lint` trec; 26 de suite / 142 de teste trec. Erorile raportate în verificările anterioare nu se mai reproduc în această rulare.
-- **Ultima funcționalitate adăugată:** import local de scadențare PDF ING (nevoi personale / ipotecar), previzualizare, salvare și remindere individuale. Codul există, dar extracția PDFBox și livrarea notificărilor nu sunt încă validate pe telefon.
+- **Ultima verificare, 19.10.2026:** `typecheck` și `lint` trec; 26 de suite / 142 de teste trec după integrarea PR-ului.
+- **PR #1 integrat în `master`:** [administrarea scadențarelor salvate](https://github.com/cristianatomei/Cashio/pull/1), inclusiv următoarele șase rate, activare/dezactivare remindere, ștergere cu confirmare și mesaje separate pentru erorile de salvare/reprogramare. Commit: `5da139295e92a12ee41ddd1df3f0f1ddbe5c690b`.
+- **APK autonom generat cu succes:** profil EAS `preview`, cu PR #1 inclus. [Build-ul de instalat](https://expo.dev/accounts/cristianatomeis-team/projects/cashio/builds/b3ab3d71-3710-47dd-b6da-6f7aef3ed919). Instalarea și pornirea fără Metro **nu au fost încă confirmate de utilizator**.
+- **Telefon verificat:** development build-ul vechi a fost recompilat și actualizat fără dezinstalare; Home se afișează cu datele existente, fără eroarea `ExpoPushTokenManager`.
+- **Backup verificat:** exportul JSON a trecut prin parserul real de restaurare al aplicației; există și o copie brută a bazelor SQLite, verificată cu `PRAGMA integrity_check`. Fișierele private rămân pe laptop, nu în GitHub.
 - **Schema actuală:** 7 migrări; v5 adaugă scadențarele, v6 permite tranzacții fără cont, v7 adaugă repartizarea unei tranzacții între categorii.
-- **Ce facem întâi la reluare:** Node 22, verificările proiectului, rebuild Android și testarea celor două scadențare reale. Nu considera testele unitare dovadă că importul nativ funcționează.
-- **Nu este încă implementat:** exportul ratelor în calendarul telefonului, integrarea completă a scadențarelor în obligații/estimări, widgetul Android și APK-ul release validat.
+- **Ce facem întâi la reluare:** confirmăm instalarea APK-ului, păstrarea/restaurarea datelor și pornirea fără laptop. Nu dezinstala aplicația existentă fără acord explicit și o cale de restaurare verificată.
+- **Rămân:** validarea PDFBox pe cele două PDF-uri ING reale și a reminderelor pe telefon, integrarea completă în obligații/estimări, calendarul telefonului și widgetul Android.
+
+### Ce s-a făcut în sesiunea din 19.10.2026
+
+1. S-au identificat cauzele pornirii dificile: terminalul folosea implicit Node 18 în loc de Node 22, iar aplicația instalată era un development build dependent de Metro. Expo Go nu include modulele native locale Cashio.
+2. Autentificarea Expo/EAS a fost făcută de utilizator. Proiectul local este legat în [app.json](app.json) de `@cristianatomeis-team/cashio`, ID `5d4d8267-dc8c-42c1-a3b1-be78066a59fc`; slug-ul este `cashio`, nu `Cashio`.
+3. La legare a fost creat accidental un proiect Expo suplimentar `Cashio` (cu majusculă). Configurația a fost corectată către proiectul original `cashio`. Nu folosi proiectul suplimentar pentru build-uri; eliminarea lui nu a fost făcută în această sesiune.
+4. Primul build, `2450c975-c599-4cf1-8985-20945f67684f`, nu conținea PR #1 și a fost **anulat**. Ambele commituri din PR au fost integrate prin fast-forward și trimise în `master`; GitHub confirmă PR-ul ca merged.
+5. Build-ul nou, `b3ab3d71-3710-47dd-b6da-6f7aef3ed919`, a terminat cu succes. Expo a creat o cheie Android nouă, reutilizată de acest build. Semnătura poate diferi de cea a development build-ului instalat; un conflict la instalare nu se rezolvă prin ștergerea imediată a aplicației.
+6. Pentru backup a fost pornit Metro pe portul **8082**, accesibil telefonului prin `adb reverse`. Varianta localhost de pe 8081 asculta pe IPv6; 8082 cu `--host lan` a fost verificat accesibil și prin IPv4.
+7. A apărut `Cannot find native module 'ExpoPushTokenManager'`, cu avertismente secundare despre exporturile rutelor. Cauza era aplicația nativă veche, nu lipsa exporturilor. S-a regenerat proiectul Android cu `expo prebuild`, apoi s-a compilat `app:assembleDebug` pentru `arm64-v8a` cu Node 22 și Java 17 din Android Studio. `adb install -r` a actualizat aplicația fără ștergerea datelor. Pornirea Home a fost verificată pe Samsung Galaxy S25 FE.
+8. Au fost salvate bazele SQLite înainte de intervenție, apoi exportul JSON. Fișierul `cashio-backup-1792427409798.json` este în Descărcări; copia suplimentară și arhiva brută sunt în subfolderul local `Cashio-backup-2026-10-19`. JSON-ul a fost validat cu `parseCashioBackup`, iar copia indicată de utilizator este identică. Testul temporar de validare a fost eliminat.
+9. Utilizatorul a primit pașii pentru transferul APK-ului și backup-ului printr-un folder Drive privat. **Încă nu există confirmarea instalării APK-ului, restaurării sau funcționării offline.**
+
+### Reluare de pe telefon / GitHub
+
+- Lucrează în [repository-ul GitHub](https://github.com/cristianatomei/Cashio), pornind din `master`, și propune modificările prin PR-uri.
+- Un PR deschis nu intră automat în APK. Verifică, integrează în `master`, apoi generează un build din versiunea actualizată.
+- APK-ul existent nu se actualizează singur la modificări pe GitHub. Pentru schimbări livrate utilizatorului trebuie generat și instalat un APK nou; EAS Update nu a fost configurat.
+- Păstrează `com.cashio.app`, asocierea EAS și cheia de semnare pentru actualizări compatibile. Nu genera altă cheie pentru fiecare build.
+- Mai întâi confirmă cu utilizatorul ce versiune are instalată și dacă mai are nevoie de restaurare. După instalare, testează deschiderea cu laptopul/Metro oprit, datele, accesul la notificări și reminderele.
+- Nu încărca în repository backup-uri, baze SQLite, PDF-uri personale, chei sau parole. Backup-ul JSON conține date financiare și nu este criptat de fluxul de export.
 
 ## Stare pe faze
 
@@ -19,11 +43,11 @@ Dezvoltarea este pusă în pauză până la următoarea sesiune. Pentru întreb�
 | 0 | Scaffold Expo SDK 57, expo-router, SQLite + Drizzle, migrări, lint/test | Implementat; verificările curente trec |
 | 1 | Modul nativ Android care citește notificările + ecran cu lista lor | Gata, testat pe emulator |
 | A | Design system, i18n (ro/en), tab-uri, schema v2, date inițiale | Gata, rulează pe emulator |
-| B | Adăugare manuală, listă tranzacții, conturi, categorii/grupuri, comercianți, tag-uri, transferuri, solduri | Scris, **de verificat** (vezi „Instalare pentru faza B”) |
+| B | Adăugare manuală, listă tranzacții, conturi, categorii/grupuri, comercianți, tag-uri, transferuri, solduri | Implementat, **de verificat pe telefon** |
 | C | Parsere, tipul tranzacției, aliasuri comercianți, „De clasificat”, deduplicare | Verificat parțial pe Samsung; plata ING → Revolut a necesitat corectare manuală ca transfer; parserul trebuie ajustat |
 | D | Statistici și grafice, Acasă | Implementat; de verificat vizual pe telefon |
 | E | Obligații recurente, asociere plăți, estimare, bugete cu rollover și alerte, remindere | Implementat; de verificat pe telefon, inclusiv permisiunile și avansarea scadenței |
-| F | Multi-valută, import CSV/PDF ING, backup, widget, build release APK | Cursuri, CSV, backup și flux PDF implementate; validarea nativă PDF, widgetul și release-ul rămân |
+| F | Multi-valută, import CSV/PDF ING, backup, widget, build release APK | APK autonom generat; export backup verificat; instalarea/restaurarea, PDF-ul real și widgetul rămân de validat/finalizat |
 
 Planul complet (decizii, schema, biblioteci, verificare) e în [PLAN.md](PLAN.md).
 
@@ -63,7 +87,7 @@ Alias-uri TypeScript: `@/*` → `src/*`, `@modules/*` → `modules/*`. Modulele 
 
 Activează Node 22 conform secțiunii „Mediu de lucru”, apoi folosește `npm.cmd ci` pentru o instalare curată pe baza lockfile-ului. Nu reinstala dependențele la fiecare reluare dacă sunt deja disponibile.
 
-Modulele locale de captare și PDF necesită un development build Android; Expo Go nu le include. După modificări native trebuie reconstruită aplicația. Directoarele native generate nu se editează manual.
+Modulele locale de captare și PDF necesită un build Android propriu (development sau release); Expo Go nu le include. După modificări native trebuie reconstruită aplicația. Directoarele native generate nu se editează manual.
 
 Datele inițiale se creează la prima inițializare. Migrările ulterioare trebuie să păstreze datele existente. **Nu șterge datele aplicației de pe telefon pentru a testa o migrare.** Testarea unui reset se face numai pe un emulator de test, cu acord explicit și după backup dacă datele trebuie păstrate.
 
@@ -80,6 +104,7 @@ Datele inițiale se creează la prima inițializare. Migrările ulterioare trebu
 - **Statistici:** distribuție pe grupuri/categorii, trend, top comercianți, intervale predefinite/personalizate și plăți recurente.
 - **Bugete:** limite lunare pe categorie/grup, rollover și notificări la 80%/100%.
 - **Date și backup:** cursuri valutare manuale datate, import CSV ING cu deduplicare, export/restaurare JSON cu validare și confirmare. Formatul CSV actual Home’Bank trebuie confirmat pe un export real.
+- **Scadențare salvate (Date și backup):** detaliile următoarelor șase rate (dobândă, principal și asigurare), activarea/dezactivarea reminderelor și ștergerea cu confirmare. Erorile de salvare și de reprogramare a reminderelor sunt afișate separat; verificarea pe telefon rămâne necesară.
 - **Istoric notificări:** triere separată de parsare, acces la tranzacția legată; în cod există și refresh prin gest și indicator pentru notificările deschise, de verificat pe telefon.
 - Categoriile „Retrageri cash” din Oinkoin sunt înlocuite aici de transferul către contul Numerar.
 
@@ -153,6 +178,30 @@ După modificări de cod **nativ** (Kotlin, manifest, `expo-module.config.json`)
 
 ## Rulare pe Android
 
+### Utilizare pe telefon fără laptop (APK autonom)
+
+Development build-ul instalat pentru programare depinde de Metro. Pentru utilizare
+zilnică fără laptop se folosește un APK release, cu JavaScript inclus în instalare.
+Proiectul EAS asociat este `@cristianatomeis-team/cashio`; profilul `preview` din
+`eas.json` genereaza un APK, nu un development client.
+
+Din folderul proiectului, dupa activarea Node 22:
+
+```powershell
+npx.cmd eas-cli@latest login
+npx.cmd eas-cli@latest build --platform android --profile preview
+```
+
+Descarca APK-ul din linkul build-ului si instaleaza-l pe telefon. Inainte de
+inlocuirea versiunii existente, exporta un backup din Date si backup. Actualizarea
+peste aplicatia existenta necesita acelasi identificator Android si aceeasi cheie
+de semnare. Daca Android refuza instalarea din cauza semnaturii, nu dezinstala
+aplicatia si nu sterge datele; verifica intai backup-ul si calea de migrare.
+
+Dupa instalare, verifica pornirea cu Metro oprit si telefonul deconectat de la PC.
+Modificarile ulterioare ale aplicatiei necesita generarea si instalarea unui APK
+nou; nu se mai aplica prin Fast Refresh.
+
 ### Emulator
 
 Emulatorul `Medium_Phone_API_33` e mutat pe `D:\android-avd` (pe `C:` nu era destul spațiu, iar partiția de date cere ~7,3 GB). Pe acest PC randarea pe placa video (Intel Iris Xe, Vulkan) face emulatorul să se prăbușească, deci se pornește cu randare software.
@@ -180,6 +229,31 @@ Variantă permanentă pentru `ANDROID_AVD_HOME`: `setx ANDROID_AVD_HOME "D:\andr
 1. Activează „Depanare USB" (Opțiuni dezvoltatori), conectează telefonul prin USB și acceptă promptul.
 2. Verifică: `& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" devices`
 3. Rulează `npx.cmd expo run:android`.
+
+### Task-uri VS Code salvate pentru acest PC
+
+În [.vscode/tasks.json](.vscode/tasks.json), prin **Terminal → Run Task**:
+
+- **Cashio: Metro pentru telefon USB** pornește Metro pe 8082 cu Node 22.
+- **Cashio: reparare development build USB** compilează debug pentru `arm64-v8a`
+  cu Java 17 din Android Studio și instalează prin `adb -d install -r`, fără
+  dezinstalare. Necesită proiectul `android` generat, dependențele instalate și un
+  singur telefon USB autorizat. Nu produce APK-ul autonom EAS.
+
+După schimbări de module/configurație, regenerează întâi proiectul nativ cu
+`npx.cmd expo prebuild --platform android --no-install`. Calea Java din task este
+specifică acestui PC: `C:\Program Files\Android\Android Studio\jbr`.
+
+Pentru legătura USB, după pornirea Metro și conectarea telefonului:
+
+```powershell
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb -d reverse tcp:8082 tcp:8082
+& $adb -d shell am start -a android.intent.action.VIEW -d "exp+cashio://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8082" com.cashio.app
+```
+
+Această variantă este pentru dezvoltare/recuperare. Pentru utilizare zilnică
+fără laptop se instalează APK-ul autonom, nu se pornește Metro.
 
 ### Permisiuni la prima rulare
 
@@ -247,6 +321,7 @@ Estimarea lunii următoare este suma obligațiilor scadente în acea lună plus 
 | `Not enough space to create userdata partition` | `C:` aproape plin | AVD mutat pe `D:` |
 | `Failed to find memory type for ColorBuffers` | Driver Vulkan Intel | `-gpu swiftshader_indirect` |
 | `fnm` nu e găsit | Terminal cu administrator sau pornit înainte de instalare | Terminal normal; redeschide VS Code |
+| `Cannot find native module 'ExpoPushTokenManager'`, urmat de avertismente despre exporturile rutelor | Development build instalat înainte de adăugarea modulului nativ de notificări | Salvează datele, apoi reconstruiește development build-ul cu modulele actuale; repornirea Metro nu adaugă module native. Nu dezinstala aplicația pentru această eroare. |
 
 ## Sesiunea de testare pe telefon — 07.10.2026
 
@@ -259,9 +334,10 @@ Estimarea lunii următoare este suma obligațiilor scadente în acea lună plus 
 
 ## Pașii următori
 
-Ordinea detaliată și criteriile de acceptare sunt în [PLAN.md — Punct de reluare](PLAN.md#punct-de-reluare--11102026).
+Începe cu [punctul de reluare actual](#punct-de-reluare--19102026), apoi cu [PLAN.md](PLAN.md) pentru criteriile funcționale.
 
-1. Node 22, verificări, rebuild Android și validarea celor două PDF-uri ING pe telefon, fără pierderi la migrare.
-2. Finalizarea modulului de scadențare: administrare, remindere, integrare în obligații/estimări; clarificarea calendarului telefonului.
-3. Verificări reale pentru captare/top-up, recurente, bugete, repartizări, CSV, backup și paletă.
-4. Widget Android, polish și build APK release. Profilurile `preview` și `production` din [eas.json](eas.json) sunt configurate pentru APK, dar configurarea profilurilor nu reprezintă un build release verificat.
+1. Confirmarea instalării APK-ului autonom, păstrarea/restaurarea datelor și pornirea fără laptop/Metro. Backup-ul este valid, dar restaurarea pe release nu este încă verificată.
+2. Testarea celor două PDF-uri ING reale și a administrării scadențarelor din PR #1: detalii, remindere, ștergere/anularea notificărilor și recuperare după erori.
+3. Integrarea scadențarelor în obligații/estimări și clarificarea calendarului telefonului.
+4. Verificări reale pentru captare/top-up, recurente, bugete, repartizări, CSV, backup/restaurare și paletă.
+5. Widget Android și polish. Pentru fiecare versiune nouă, build APK după integrarea schimbărilor; nu confunda generarea reușită cu validarea pe telefon.

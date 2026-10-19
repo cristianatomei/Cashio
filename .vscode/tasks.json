@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Cashio: Metro pentru telefon USB",
+			"type": "shell",
+			"command": "fnm env --shell powershell | Out-String | Invoke-Expression; fnm use 22; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npx.cmd expo start --dev-client --host lan --port 8082",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Cashio: reparare development build USB",
+			"type": "shell",
+			"command": "fnm env --shell powershell | Out-String | Invoke-Expression; fnm use 22; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $env:JAVA_HOME='C:\\Program Files\\Android\\Android Studio\\jbr'; $env:ANDROID_HOME=Join-Path $env:LOCALAPPDATA 'Android\\Sdk'; $env:ANDROID_SDK_ROOT=$env:ANDROID_HOME; $env:ANDROID_SDK_HOME=$null; .\\android\\gradlew.bat -p android app:assembleDebug -PreactNativeArchitectures=arm64-v8a; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; & \"$env:ANDROID_HOME\\platform-tools\\adb.exe\" -d install -r .\\android\\app\\build\\outputs\\apk\\debug\\app-debug.apk",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

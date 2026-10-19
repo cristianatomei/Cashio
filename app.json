@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Cashio",
-    "slug": "Cashio",
+    "slug": "cashio",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -31,6 +31,13 @@
       "@react-native-community/datetimepicker",
       "expo-notifications",
       "expo-sharing"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5d4d8267-dc8c-42c1-a3b1-be78066a59fc"
+      }
+    },
+    "owner": "cristianatomeis-team"
   }
 }

@@ -2,9 +2,20 @@
 
 Aplicație Android-first (Expo), local-first, pentru urmărirea cheltuielilor cu captare automată din notificări. Fără backend, fără abonament.
 
-## Punct de reluare — 11.10.2026
+## Actualizare — 19.10.2026
 
-**Dezvoltarea este pusă în pauză la cererea utilizatorului.** La întrebarea „unde am rămas?” / „ce mai avem de făcut?”, citește această secțiune și [README.md](README.md), apoi verifică starea codului înainte de a implementa. Documentația distinge între cod existent și comportament verificat pe telefon.
+Punctul curent de reluare și jurnalul sesiunii sunt în [README.md](README.md#punct-de-reluare--19102026). Utilizatorul dorește continuarea prin GitHub de pe telefon și utilizarea unui APK autonom.
+
+- PR #1 este integrat în `master`: detalii pentru șase rate salvate, comutator de remindere și ștergere cu confirmare. Editarea completă a scadențarului și integrarea în obligații/estimări rămân.
+- APK-ul EAS `preview` cu aceste schimbări a fost generat cu succes; instalarea, restaurarea și pornirea fără Metro nu sunt încă confirmate.
+- Development build-ul a fost recompilat cu modulele native actuale și actualizat fără dezinstalare. Home funcționează cu datele existente; eroarea `ExpoPushTokenManager` nu se mai reproduce la pornirea verificată.
+- Backup JSON validat cu parserul de restaurare; copii SQLite locale integre. Nu include datele private în GitHub.
+- Lint, typecheck și cele 26 de suite / 142 de teste au trecut în 19.10.2026.
+- Prioritatea imediată este instalarea sigură și testarea APK-ului autonom; apoi validarea PDF-urilor și a reminderelor pe telefon.
+
+## Punct de reluare istoric — 11.10.2026
+
+Secțiunea de mai jos păstrează situația din 11.10.2026; stările depășite (administrarea scadențarelor, autentificarea și generarea APK-ului) sunt înlocuite de actualizarea din 19.10.2026. Criteriile de testare și limitările funcționale rămân relevante.
 
 ### Starea verificată
 
