@@ -24,6 +24,12 @@ export type CurrencyEstimate = {
   totalMinor: number;
 };
 
+export type LoanPaymentProjection = {
+  amountMinor: number;
+  currency: string;
+  dueAt: number;
+};
+
 export type RecurringMatchRule = RecurringProjection & {
   id: number;
   accountId: number;
@@ -142,6 +148,7 @@ export function nextDueAfterPayment(rule: RecurringProjection, occurredAt: numbe
 
 export function estimateNextMonth({
   rules,
+  loanPayments,
   transactions,
   targetFrom,
   targetTo,
@@ -149,6 +156,7 @@ export function estimateNextMonth({
   historyTo,
 }: {
   rules: RecurringProjection[];
+  loanPayments: LoanPaymentProjection[];
   transactions: SpendingSample[];
   targetFrom: number;
   targetTo: number;
@@ -162,6 +170,22 @@ export function estimateNextMonth({
     obligations.set(
       rule.currency,
       (obligations.get(rule.currency) ?? 0) + count * rule.amountMinor,
+    );
+  }
+  for (const payment of loanPayments) {
+    if (
+      payment.currency === '' ||
+      !Number.isSafeInteger(payment.amountMinor) ||
+      payment.amountMinor <= 0 ||
+      !Number.isFinite(payment.dueAt) ||
+      payment.dueAt < targetFrom ||
+      payment.dueAt >= targetTo
+    ) {
+      continue;
+    }
+    obligations.set(
+      payment.currency,
+      (obligations.get(payment.currency) ?? 0) + payment.amountMinor,
     );
   }
 
