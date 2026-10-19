@@ -18,10 +18,10 @@ import {
   ListRow,
   Screen,
   SectionHeader,
+  SheetModal,
   TextField,
   useTheme,
 } from '@/core/ui';
-import { AccountPickerModal, useAccounts } from '@/features/accounts';
 import { useCaptureRefresh } from '@/features/capture';
 import {
   installmentTotal,
@@ -29,6 +29,7 @@ import {
   parseStoredLoanSchedule,
   saveLoanSchedule,
   setLoanScheduleReminders,
+  updateLoanScheduleSettings,
   deleteLoanSchedule,
   upcomingInstallments,
   type LoanSchedule,
@@ -37,11 +38,9 @@ import { syncLoanScheduleReminders } from '@/features/loans/data/loanReminders';
 import { extractLoanPdfText } from '@modules/loan-pdf';
 import {
   createCashioBackup,
-  importIngTransactions,
+  IngCsvImportCard,
   parseCashioBackup,
-  parseIngCsv,
   restoreCashioBackup,
-  type IngTransactionRow,
 } from '@/features/backup';
 
 export default function DataScreen() {
@@ -50,20 +49,20 @@ export default function DataScreen() {
   const { setPreference } = useTheme();
   const sqlite = useSQLiteContext();
   const db = useDb();
-  const accounts = useAccounts();
   const { data: rates } = useLiveQuery(db.select().from(schema.exchangeRates));
   const { data: loanSchedules } = useLiveQuery(db.select().from(schema.loanSchedules));
   const [busy, setBusy] = useState(false);
-  const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
-  const [showAccountPicker, setShowAccountPicker] = useState(false);
-  const [pendingRows, setPendingRows] = useState<IngTransactionRow[] | null>(null);
-  const [skippedRows, setSkippedRows] = useState(0);
   const [currency, setCurrency] = useState('');
   const [rate, setRate] = useState('');
   const [pendingLoanSchedule, setPendingLoanSchedule] = useState<LoanSchedule | null>(null);
   const [loanName, setLoanName] = useState('');
   const [includeInsurance, setIncludeInsurance] = useState(true);
   const [loanRemindersEnabled, setLoanRemindersEnabled] = useState(true);
+  const [editingLoanSchedule, setEditingLoanSchedule] = useState<{
+    id: number;
+    name: string;
+    includeInsurance: boolean;
+  } | null>(null);
   const [renderedAt] = useState(() => Date.now());
   const [rateDate, setRateDate] = useState(() => {
     const now = new Date();
@@ -72,8 +71,6 @@ export default function DataScreen() {
     ).padStart(2, '0')}`;
   });
 
-  const effectiveAccountId = selectedAccountId ?? accounts[0]?.id ?? null;
-  const selectedAccount = accounts.find((account) => account.id === effectiveAccountId);
   const locale = i18n.language === 'en' ? 'en-GB' : 'ro-RO';
 
   const chooseLoanPdf = async () => {
@@ -179,6 +176,38 @@ export default function DataScreen() {
     } catch (error) {
       console.error('Failed to update loan payment reminder permission', error);
       Alert.alert(t('errors.generic'), t('data.loanReminderToggleError'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openLoanSettings = (schedule: (typeof loanSchedules)[number]) => {
+    const stored = parseStoredLoanSchedule(schedule.installmentsJson);
+    setEditingLoanSchedule({
+      id: schedule.id,
+      name: schedule.name,
+      includeInsurance: stored.includeInsurance,
+    });
+  };
+
+  const saveLoanSettings = async () => {
+    if (!editingLoanSchedule) return;
+    setBusy(true);
+    try {
+      updateLoanScheduleSettings(db, editingLoanSchedule.id, editingLoanSchedule);
+      setEditingLoanSchedule(null);
+      try {
+        await syncLoanScheduleReminders(db, {
+          title: t('recurring.reminderTitle'),
+          body: (name) => t('recurring.reminderBody', { name }),
+        });
+      } catch (error) {
+        console.error('Failed to refresh loan reminders after updating schedule', error);
+        Alert.alert(t('errors.generic'), t('data.loanReminderResyncError'));
+      }
+    } catch (error) {
+      console.error('Failed to update saved loan schedule', error);
+      Alert.alert(t('errors.generic'), t('data.loanUpdateError'));
     } finally {
       setBusy(false);
     }
@@ -296,49 +325,6 @@ export default function DataScreen() {
     }
   };
 
-  const chooseCsv = async () => {
-    setBusy(true);
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['text/csv', 'text/comma-separated-values', '.csv'],
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled) return;
-      const content = new File(result.assets[0].uri).textSync();
-      const parsed = parseIngCsv(content);
-      if (!accounts.length) throw new Error('Create an account before importing transactions.');
-      setPendingRows(parsed.rows);
-      setSkippedRows(parsed.skippedRows);
-      setShowAccountPicker(true);
-    } catch (error) {
-      console.error('Failed to import ING CSV', error);
-      Alert.alert(t('errors.generic'), t('data.csvError'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const confirmCsvImport = () => {
-    if (!pendingRows || effectiveAccountId === null) return;
-    try {
-      const result = importIngTransactions(db, effectiveAccountId, pendingRows);
-      setPendingRows(null);
-      setSkippedRows(0);
-      Alert.alert(
-        t('data.csvTitle'),
-        t('data.csvResult', {
-          imported: result.imported,
-          duplicates: result.duplicates,
-          mismatched: result.currencyMismatches,
-          skipped: skippedRows,
-        }),
-      );
-    } catch (error) {
-      console.error('Failed to save imported ING transactions', error);
-      Alert.alert(t('errors.generic'), t('data.csvError'));
-    }
-  };
-
   const saveRate = () => {
     const code = currency.trim().toUpperCase();
     const parsedRate = Number(rate.trim().replace(',', '.'));
@@ -403,30 +389,7 @@ export default function DataScreen() {
         />
       </Card>
 
-      <SectionHeader title={t('data.csvTitle')} />
-      <Card>
-        <AppText color="textSecondary">{t('data.csvHint')}</AppText>
-        <Button title={t('data.csvAction')} onPress={chooseCsv} loading={busy} />
-        {selectedAccount ? (
-          <ListRow
-            title={selectedAccount.name}
-            subtitle={`${selectedAccount.currency} · ${t('data.accountHint')}`}
-            onPress={() => setShowAccountPicker(true)}
-          />
-        ) : null}
-        {pendingRows ? (
-          <>
-            <AppText color="textSecondary">
-              {t('data.csvPreview', { count: pendingRows.length, skipped: skippedRows })}
-            </AppText>
-            <Button
-              title={t('data.csvConfirm')}
-              onPress={confirmCsvImport}
-              disabled={effectiveAccountId === null}
-            />
-          </>
-        ) : null}
-      </Card>
+      <IngCsvImportCard />
 
       <SectionHeader title={t('data.loanTitle')} />
       <Card>
@@ -538,12 +501,14 @@ export default function DataScreen() {
                       type="expense"
                     />
                     <AppText variant="caption" color="textMuted">
-                      {t('data.loanInterest')}: {new Intl.NumberFormat(locale, {
+                      {t('data.loanInterest')}:{' '}
+                      {new Intl.NumberFormat(locale, {
                         style: 'currency',
                         currency: schedule.currency,
                       }).format(next.interestMinor / 100)}
                       {' · '}
-                      {t('data.loanPrincipal')}: {new Intl.NumberFormat(locale, {
+                      {t('data.loanPrincipal')}:{' '}
+                      {new Intl.NumberFormat(locale, {
                         style: 'currency',
                         currency: schedule.currency,
                       }).format(next.principalMinor / 100)}
@@ -574,12 +539,14 @@ export default function DataScreen() {
                       }).format(installmentTotal(installment, stored.includeInsurance) / 100)}
                     </AppText>
                     <AppText variant="caption" color="textMuted">
-                      {t('data.loanInterest')}: {new Intl.NumberFormat(locale, {
+                      {t('data.loanInterest')}:{' '}
+                      {new Intl.NumberFormat(locale, {
                         style: 'currency',
                         currency: schedule.currency,
                       }).format(installment.interestMinor / 100)}
                       {' · '}
-                      {t('data.loanPrincipal')}: {new Intl.NumberFormat(locale, {
+                      {t('data.loanPrincipal')}:{' '}
+                      {new Intl.NumberFormat(locale, {
                         style: 'currency',
                         currency: schedule.currency,
                       }).format(installment.principalMinor / 100)}
@@ -601,6 +568,12 @@ export default function DataScreen() {
                   />
                 </View>
                 <Button
+                  title={t('data.loanEdit')}
+                  variant="secondary"
+                  onPress={() => openLoanSettings(schedule)}
+                  disabled={busy}
+                />
+                <Button
                   title={t('data.loanDelete')}
                   variant="danger"
                   onPress={() => confirmDeleteLoan(schedule.id)}
@@ -611,6 +584,40 @@ export default function DataScreen() {
           })}
         </Card>
       )}
+      {editingLoanSchedule ? (
+        <SheetModal
+          visible
+          title={t('data.loanEdit')}
+          onClose={() => setEditingLoanSchedule(null)}
+          footer={
+            <Button
+              title={t('common.save')}
+              onPress={() => void saveLoanSettings()}
+              disabled={!editingLoanSchedule.name.trim()}
+              loading={busy}
+            />
+          }
+        >
+          <TextField
+            label={t('data.loanName')}
+            value={editingLoanSchedule.name}
+            onChangeText={(name) =>
+              setEditingLoanSchedule((current) => (current ? { ...current, name } : current))
+            }
+          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <AppText style={{ flex: 1 }}>{t('data.loanIncludeInsurance')}</AppText>
+            <Switch
+              value={editingLoanSchedule.includeInsurance}
+              onValueChange={(includeInsurance) =>
+                setEditingLoanSchedule((current) =>
+                  current ? { ...current, includeInsurance } : current,
+                )
+              }
+            />
+          </View>
+        </SheetModal>
+      ) : null}
 
       <SectionHeader title={t('data.exchangeTitle', { currency: baseCurrency })} />
       <Card>
@@ -642,14 +649,6 @@ export default function DataScreen() {
           />
         ))}
       </Card>
-
-      {showAccountPicker ? (
-        <AccountPickerModal
-          selectedId={effectiveAccountId}
-          onSelect={setSelectedAccountId}
-          onClose={() => setShowAccountPicker(false)}
-        />
-      ) : null}
     </Screen>
   );
 }

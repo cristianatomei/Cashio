@@ -12,15 +12,24 @@ import {
   Card,
   CategoryIcon,
   ListRow,
+  ProgressBar,
   Screen,
+  SectionHeader,
   spacing,
   useTheme,
 } from '@/core/ui';
-import { addMonths, monthRange } from '@/core/utils/dates';
+import { addMonths, monthRange, startOfDay } from '@/core/utils/dates';
 import { convertToBaseMinor } from '@/core/utils/currency';
+import { formatMinor } from '@/core/utils/money';
 import { useAccountBalances, useAccounts } from '@/features/accounts';
+import { useBudgetViews } from '@/features/budgets';
 import { NotificationBellButton, useCaptureRefresh } from '@/features/capture';
-import { useNextMonthEstimate } from '@/features/recurring';
+import { installmentTotal, parseStoredLoanSchedule } from '@/features/loans';
+import {
+  recurringPaymentsInRange,
+  useNextMonthEstimate,
+  useRecurringRules,
+} from '@/features/recurring';
 import { desc, eq } from 'drizzle-orm';
 import {
   SummaryCard,
@@ -31,6 +40,9 @@ import {
 } from '@/features/transactions';
 
 const RECENT_COUNT = 5;
+const UPCOMING_COUNT = 3;
+const UPCOMING_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default function HomeScreen() {
   const { t, i18n } = useTranslation();
@@ -52,6 +64,9 @@ export default function HomeScreen() {
   const accounts = useAccounts();
   const balances = useAccountBalances();
   const forecast = useNextMonthEstimate();
+  const recurringRules = useRecurringRules();
+  const budgets = useBudgetViews(monthRange(now).from);
+  const { data: loanSchedules } = useLiveQuery(db.select().from(schema.loanSchedules));
   const [range] = useState(() => monthRange(now));
   const monthViews = useTransactionViews(range);
   const previousMonthViews = useTransactionViews(monthRange(addMonths(range.from, -1)));
@@ -78,6 +93,49 @@ export default function HomeScreen() {
     currency: baseCurrency,
     signDisplay: 'always',
   });
+  const locale = i18n.language === 'en' ? 'en-GB' : 'ro-RO';
+  const upcomingPayments = useMemo(() => {
+    const from = startOfDay(now);
+    const to = from + UPCOMING_DAYS * DAY_MS;
+    const recurring = recurringPaymentsInRange(
+      recurringRules.map((rule) => ({
+        id: rule.id,
+        name: rule.note || rule.merchantName || rule.categoryName || t('recurring.obligation'),
+        amountMinor: rule.amountMinor,
+        currency: rule.currency,
+        frequency: rule.frequency,
+        interval: rule.interval,
+        nextDue: rule.nextDue,
+        endAt: rule.endAt,
+        active: rule.active,
+      })),
+      from,
+      to,
+    ).map((payment) => ({ ...payment, source: 'recurring' as const }));
+    const loans = loanSchedules.flatMap((schedule) => {
+      const stored = parseStoredLoanSchedule(schedule.installmentsJson);
+      return stored.installments
+        .filter((installment) => installment.dueAt >= from && installment.dueAt < to)
+        .map((installment) => ({
+          key: `loan-${schedule.id}-${installment.dueAt}`,
+          name: schedule.name,
+          dueAt: installment.dueAt,
+          amountMinor: installmentTotal(installment, stored.includeInsurance),
+          currency: schedule.currency,
+          source: 'loan' as const,
+        }));
+    });
+    return [...recurring, ...loans]
+      .sort((left, right) => left.dueAt - right.dueAt || left.key.localeCompare(right.key))
+      .slice(0, UPCOMING_COUNT);
+  }, [loanSchedules, now, recurringRules, t]);
+  const priorityBudgets = useMemo(
+    () =>
+      [...budgets]
+        .sort((left, right) => right.progress - left.progress)
+        .slice(0, UPCOMING_COUNT),
+    [budgets],
+  );
 
   const latestRates = new Map<string, number>();
   for (const rate of exchangeRates) {
@@ -173,6 +231,73 @@ export default function HomeScreen() {
         </>
       ) : null}
 
+      {upcomingPayments.length > 0 ? (
+        <>
+          <SectionHeader title={t('home.upcomingPayments')} />
+          <Card>
+            {upcomingPayments.map((payment) => (
+              <ListRow
+                key={payment.key}
+                title={payment.name}
+                subtitle={`${new Date(payment.dueAt).toLocaleDateString(locale)} · ${t(
+                  payment.source === 'loan'
+                    ? 'recurring.monthlyScheduleLoan'
+                    : 'recurring.monthlyScheduleRecurring',
+                )}`}
+                leading={
+                  <Ionicons
+                    name={payment.source === 'loan' ? 'document-text-outline' : 'calendar-outline'}
+                    size={24}
+                    color={colors.primary}
+                  />
+                }
+                trailing={
+                  <AmountText
+                    amountMinor={payment.amountMinor}
+                    currency={payment.currency}
+                    type="expense"
+                  />
+                }
+                onPress={() => router.push('/recurring')}
+              />
+            ))}
+          </Card>
+        </>
+      ) : null}
+
+      {priorityBudgets.length > 0 ? (
+        <>
+          <SectionHeader title={t('home.budgetProgress')} />
+          <Card>
+            {priorityBudgets.map((budget) => (
+              <View key={budget.id} style={styles.budget}>
+                <View style={styles.budgetHeading}>
+                  <AppText variant="body" style={styles.budgetName}>
+                    {budget.name}
+                  </AppText>
+                  <AmountText
+                    amountMinor={budget.spentMinor}
+                    currency={budget.currency}
+                    type="expense"
+                  />
+                </View>
+                <ProgressBar value={budget.progress} />
+                <AppText variant="caption" color="textSecondary">
+                  {t('budgets.limit', {
+                    amount: formatMinor(budget.limitMinor, budget.currency, locale),
+                  })}
+                </AppText>
+              </View>
+            ))}
+            <ListRow
+              title={t('home.viewBudgets')}
+              trailing={<Ionicons name="chevron-forward" size={18} color={colors.textMuted} />}
+              onPress={() => router.push('/budgets')}
+            />
+          </Card>
+        </>
+      ) : null}
+
       <AppText variant="heading" style={styles.section}>
         {t('home.accounts')}
       </AppText>
@@ -214,4 +339,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   total: { paddingVertical: spacing.sm },
   section: { marginTop: spacing.sm },
+  budget: { gap: spacing.xs, marginBottom: spacing.md },
+  budgetHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  budgetName: { flex: 1 },
 });

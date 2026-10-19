@@ -7,6 +7,7 @@ import {
   type KeywordRule,
   type ParsedNotification,
 } from '@/features/parsing';
+import { normalizeIban } from '@/features/accounts/domain/iban';
 
 import { matchAlias, type MerchantAlias } from './aliases';
 
@@ -18,6 +19,8 @@ export type CaptureContext = {
   accountId: number | null;
   /** Destination of ATM withdrawals; null when no cash account exists. */
   cashAccountId: number | null;
+  /** User-owned bank accounts; an IBAN match can link a transfer to another account. */
+  ownAccounts: readonly { id: number; iban: string | null }[];
   aliases: readonly MerchantAlias[];
   merchants: readonly { id: number; defaultCategoryId: number | null }[];
   /** Category ids keyed by normalizeText(name). */
@@ -56,43 +59,74 @@ export function dedupeHash(parts: {
  * Decides what a parsed notification becomes. It is confirmed right away only when the merchant
  * and category are both known (or it is an ATM transfer); everything else waits in "To classify".
  */
-export function resolveCapture(parsed: ParsedNotification, ctx: CaptureContext): CapturedTransaction {
+export function resolveCapture(
+  parsed: ParsedNotification,
+  ctx: CaptureContext,
+): CapturedTransaction {
   const rule = classifyText(ctx.text, ctx.rules);
-  const type = parsed.type === 'transfer' ? 'transfer' : (rule?.type ?? parsed.type);
+  let type = parsed.type === 'transfer' ? 'transfer' : (rule?.type ?? parsed.type);
+  let accountId = ctx.accountId;
+  let transferAccountId = type === 'transfer' && parsed.transferToCash ? ctx.cashAccountId : null;
 
-  const alias = parsed.merchantRaw
-    ? matchAlias(normalizeMerchant(parsed.merchantRaw), ctx.aliases)
-    : null;
+  if (transferAccountId === null && ctx.accountId !== null) {
+    const compactText = ctx.text.replace(/[^a-z0-9]/gi, '').toUpperCase();
+    const matches = ctx.ownAccounts.filter(
+      (account) =>
+        account.id !== ctx.accountId &&
+        account.iban !== null &&
+        compactText.includes(normalizeIban(account.iban)),
+    );
+    const matchedAccount = matches.length === 1 ? (matches[0] ?? null) : null;
+    const direction =
+      parsed.type === 'income'
+        ? 'incoming'
+        : parsed.type === 'expense'
+          ? 'outgoing'
+          : parsed.transferDirection;
+
+    if (matchedAccount && direction) {
+      type = 'transfer';
+      if (direction === 'incoming') {
+        accountId = matchedAccount.id;
+        transferAccountId = ctx.accountId;
+      } else {
+        transferAccountId = matchedAccount.id;
+      }
+    }
+  }
+
+  const merchantRaw = type === 'transfer' ? null : parsed.merchantRaw;
+  const alias = merchantRaw ? matchAlias(normalizeMerchant(merchantRaw), ctx.aliases) : null;
   const merchantId = alias?.merchantId ?? null;
-  const merchantCategory = ctx.merchants.find((m) => m.id === merchantId)?.defaultCategoryId ?? null;
+  const merchantCategory =
+    ctx.merchants.find((m) => m.id === merchantId)?.defaultCategoryId ?? null;
   const ruleCategory = rule?.category
     ? (ctx.categoryIdsByName.get(normalizeText(rule.category[ctx.language])) ?? null)
     : null;
   const categoryId = type === 'transfer' ? null : (merchantCategory ?? ruleCategory);
 
-  const transferAccountId = type === 'transfer' && parsed.transferToCash ? ctx.cashAccountId : null;
   const complete =
     type === 'transfer'
-      ? ctx.accountId !== null && transferAccountId !== null
+      ? accountId !== null && transferAccountId !== null && accountId !== transferAccountId
       : categoryId !== null;
 
   return {
     type,
-    accountId: ctx.accountId,
+    accountId,
     transferAccountId,
     amountMinor: parsed.amountMinor,
     currency: parsed.currency,
     merchantId,
-    merchantRaw: parsed.merchantRaw,
+    merchantRaw,
     categoryId,
     status: complete ? 'confirmed' : 'draft',
     occurredAt: ctx.postedAt,
     dedupeHash: dedupeHash({
-      accountId: ctx.accountId,
+      accountId,
       type,
       amountMinor: parsed.amountMinor,
       postedAt: ctx.postedAt,
-      merchantRaw: parsed.merchantRaw,
+      merchantRaw,
     }),
   };
 }

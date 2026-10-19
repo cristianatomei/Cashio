@@ -2,18 +2,30 @@
 
 Aplicație mobilă (Expo / React Native, Android-first) pentru urmărirea cheltuielilor. Ideea: cheltuielile se captează automat din notificările băncilor (ING, Revolut, Salt Bank), fără introducere manuală și fără abonament. Datele rămân local, în SQLite.
 
-## Punct de reluare — 19.10.2026
+## Punct de reluare — 19.10.2026 (actualizat)
 
 Utilizatorul dorește utilizare zilnică fără laptop/Metro și continuarea dezvoltării coordonate de pe telefon, prin GitHub. Începe cu această secțiune; [PLAN.md](PLAN.md) păstrează planul funcțional și limitările. Nu presupune că un build terminat este și instalat/testat.
 
-- **Ultima verificare, 19.10.2026:** `typecheck` și `lint` trec; 26 de suite / 142 de teste trec după integrarea PR-ului.
+- **Ultima verificare locală:** `npm run typecheck`, `npm run lint`, 30 de suite / 173 de teste și `npx expo export --platform android` au trecut. Acestea verifică sursa și bundle-ul, nu instalarea APK-ului pe telefon.
+- **Interfață recent îmbunătățită:** Acasă arată plățile programate în următoarele 30 de zile (obligații recurente și ratele importate) și cele mai presante bugete; formularul de tranzacție oferă scurtături către categorii, conturi și comercianți folosiți des; Tranzacții filtrează cumulativ după categorie și cont; ecranul Mai mult este grupat pe scop.
+- **Scadențare salvate:** se pot edita denumirea și includerea asigurării, cu păstrarea ratelor importate și resincronizarea reminderelor. Ștergerea și comutarea reminderelor existau deja.
+- **Ultima versiune APK EAS cunoscută:** buildul indicat mai jos este anterior acestor modificări UI/scadențar. Pentru testarea lor pe telefon trebuie generat și instalat un APK nou din commitul curent.
 - **PR #1 integrat în `master`:** [administrarea scadențarelor salvate](https://github.com/cristianatomei/Cashio/pull/1), inclusiv următoarele șase rate, activare/dezactivare remindere, ștergere cu confirmare și mesaje separate pentru erorile de salvare/reprogramare. Commit: `5da139295e92a12ee41ddd1df3f0f1ddbe5c690b`.
 - **APK autonom generat cu succes:** profil EAS `preview`, cu PR #1 inclus. [Build-ul de instalat](https://expo.dev/accounts/cristianatomeis-team/projects/cashio/builds/b3ab3d71-3710-47dd-b6da-6f7aef3ed919). Instalarea și pornirea fără Metro **nu au fost încă confirmate de utilizator**.
 - **Telefon verificat:** development build-ul vechi a fost recompilat și actualizat fără dezinstalare; Home se afișează cu datele existente, fără eroarea `ExpoPushTokenManager`.
 - **Backup verificat:** exportul JSON a trecut prin parserul real de restaurare al aplicației; există și o copie brută a bazelor SQLite, verificată cu `PRAGMA integrity_check`. Fișierele private rămân pe laptop, nu în GitHub.
-- **Schema actuală:** 7 migrări; v5 adaugă scadențarele, v6 permite tranzacții fără cont, v7 adaugă repartizarea unei tranzacții între categorii.
-- **Ce facem întâi la reluare:** confirmăm instalarea APK-ului, păstrarea/restaurarea datelor și pornirea fără laptop. Nu dezinstala aplicația existentă fără acord explicit și o cale de restaurare verificată.
-- **Rămân:** validarea PDFBox pe cele două PDF-uri ING reale și a reminderelor pe telefon, integrarea completă în obligații/estimări, calendarul telefonului și widgetul Android.
+- **Schema actuală:** 9 migrări; v5 adaugă scadențarele, v6 permite tranzacții fără cont, v7 adaugă repartizarea unei tranzacții între categorii, v8 adaugă IBAN-ul opțional la conturile bancare, iar v9 indexează notificările pe sursă și dată.
+- **Următorul pas pe telefon:** generează APK-ul din cel mai nou commit de pe `master`, instalează-l peste aplicația existentă numai dacă semnătura permite și verifică pornirea fără Metro, păstrarea datelor, scadențele/reminderele și noile scurtături. Nu dezinstala aplicația existentă fără backup verificat și acord explicit.
+- **Rămân:** validarea PDFBox pe cele două PDF-uri ING reale și a reminderelor pe telefon, integrarea plăților din scadențare în estimări/asocierea plăților, importul pe export Home’Bank actual, widgetul Android și verificarea vizuală pe dispozitiv.
+
+### Modificări UI/UX și funcționale pregătite pentru reluare de pe telefon
+
+- Acasă prioritizează scadențele apropiate și bugetele aproape de limită, cu acces la listele complete.
+- La o tranzacție nouă apar până la trei categorii, conturi și comercianți folosiți des; selecțiile sunt doar scurtături, iar nimic nu se salvează fără acțiunea utilizatorului.
+- Tranzacțiile pot fi filtrate simultan după categorie și cont, inclusiv după categoriile folosite în repartizările tranzacțiilor împărțite.
+- „Mai mult” este grupat în Verificare, Organizare, Planificare și Date/Preferințe.
+- Setările scadențarului permit redenumirea și includerea/excluderea asigurării din valoarea plății; graficul ratelor importate nu se modifică.
+- Pentru lucru de pe telefon, pornește din `master`, verifică commiturile recente și creează un PR pentru schimbări noi. APK-ul nu se actualizează automat la push.
 
 ### Ce s-a făcut în sesiunea din 19.10.2026
 
@@ -95,13 +107,14 @@ Datele inițiale se creează la prima inițializare. Migrările ulterioare trebu
 
 - **Setări (Mai mult → Setări):** temă Sistem / Deschis / Întunecat și limbă Română / English, persistente. Paleta aleasă este albastru ocean + turcoaz; culorile deja personalizate pentru conturi/categorii nu sunt modificate.
 - **Acasă:** sold total, rezumatul lunii, comparație cu luna trecută, conturi cu sold real, ultimele tranzacții și estimarea obligațiilor.
-- **Tranzacții:** lună cu săgetăi, rezumat, căutare (comerciant, categorie, etichetă, notă), filtre pe tip, grupare pe zile cu total pe zi; atingere = editare.
+- **Tranzacții:** lună cu săgetăi, rezumat, căutare (comerciant, categorie, etichetă, notă), filtre pe tip, grupare pe zile cu total pe zi; atingere = editare. La filtrul Cheltuieli este disponibil și importul CSV ING, cu previzualizare și selectarea contului.
 - **Adaugare/editare (butonul +):** Cheltuială / Venit / Transfer, sumă cu calculator (+ − × ÷), categorie (grupuri cu iconițe), cont, comerciant (creat din căutare; completează categoria implicită), dată și oră, etichete (create din selector), notă.
 - **Transfer:** între conturi (retragere ATM = ING → Numerar); nu intră în cheltuieli.
 - **Tranzacții fără cont și repartizări:** codul permite tranzacții nealocate unui cont și împărțirea sumei între categorii. Aceste fluxuri și migrările v6/v7 trebuie verificate pe dispozitiv.
-- **Mai mult:** Conturi (sold inițial, monedă, culoare, icoană, arhivare), Categorii și grupuri, Comercianți, Etichete, Notificări captate (istoric cu stare deschisă/rezolvată/ignorată și acces la tranzacția legată), Recurente.
-- **Recurente:** obligații lunare/anuale cu interval, sumă estimată, cont, comerciant, categorie și următoarea scadență; tranzacțiile compatibile se asociază automat, iar următoarea scadență avansează. Estimarea de pe Acasă/Recurente adună obligațiile scadente luna următoare și media cheltuielilor variabile din ultimele 3 luni complete (separat pe monedă).
+- **Mai mult:** Conturi (sold inițial, monedă, IBAN opțional pentru recunoașterea transferurilor între conturile proprii, culoare, icoană, arhivare), Categorii și grupuri, Comercianți, Etichete, Notificări captate (istoric cu stare deschisă/rezolvată/ignorată și acces la tranzacția legată), Recurente.
+- **Recurente:** obligații lunare/anuale cu interval, sumă estimată, cont, comerciant, categorie și următoarea scadență; tranzacțiile compatibile se asociază automat, iar următoarea scadență avansează. Vederea lunară Recurente reunește obligațiile recurente și scadențele importate din PDF, cu total separat pe monedă. Estimarea de pe Acasă/Recurente adună obligațiile scadente luna viitoare și media cheltuielilor variabile din ultimele 3 luni complete (separat pe monedă).
 - **Statistici:** distribuție pe grupuri/categorii, trend, top comercianți, intervale predefinite/personalizate și plăți recurente.
+- **Investiții Revolut:** activele deținute se adaugă manual (nume și simbol); mișcările explicite de creștere/scădere găsite în notificările Revolut sunt evidențiate în aplicație, iar aceste notificări nu sunt importate accidental ca cheltuieli. Nu se preiau cotații externe și nu se oferă recomandări de investiții.
 - **Bugete:** limite lunare pe categorie/grup, rollover și notificări la 80%/100%.
 - **Date și backup:** cursuri valutare manuale datate, import CSV ING cu deduplicare, export/restaurare JSON cu validare și confirmare. Formatul CSV actual Home’Bank trebuie confirmat pe un export real.
 - **Scadențare salvate (Date și backup):** detaliile următoarelor șase rate (dobândă, principal și asigurare), activarea/dezactivarea reminderelor și ștergerea cu confirmare. Erorile de salvare și de reprogramare a reminderelor sunt afișate separat; verificarea pe telefon rămâne necesară.
@@ -115,12 +128,13 @@ Datele inițiale se creează la prima inițializare. Migrările ulterioare trebu
 3. La pornire și la revenirea în prim-plan, JS mută coada în tabela `raw_notifications` și o golește.
 4. Pachetele permise sunt în `src/features/capture/domain/sources.ts`. Numele pachetelor ING/Revolut sunt presupuneri, de verificat pe notificări reale. Salt Bank lipsește încă.
 5. Doar în build-uri de dezvoltare se acceptă și `com.android.shell`, ca să se poată simula notificări cu `adb`.
+6. Procesarea sugerează categorii pentru ridesharing, livrări de mâncare și supermarketuri. IBAN-urile conturilor bancare proprii pot lega notificările de transfer către/de la un alt cont configurat; direcția neclară sau IBAN-urile ambigue nu sunt ghicite.
 
 Baza de date: schema stă în `src/core/db/schema.ts`, iar migrările (doar de adăugat, niciodată editate) în `src/core/db/migrations.ts`. Versiunea e urmărită prin `PRAGMA user_version`. Orice schimbare de schemă se face în ambele fișiere. Sumele se stochează ca întregi, în bani (`amount_minor`).
 
 Migrarea 3 adaugă `review_status` la notificările istorice, separat de `processed_at`: faptul că parserul a verificat notificarea nu înseamnă că utilizatorul a rezolvat lead-ul.
 
-Migrarea 4 adaugă suma variabilă la recurente; v5 adaugă `loan_schedules`; v6 reconstruiește tranzacțiile pentru cont opțional; v7 adaugă `transaction_allocations`. Înainte de release, verifică actualizarea unei baze existente și restaurarea backupurilor acceptate de cod.
+Migrarea 4 adaugă suma variabilă la recurente; v5 adaugă `loan_schedules`; v6 reconstruiește tranzacțiile pentru cont opțional; v7 adaugă `transaction_allocations`; v8 adaugă IBAN-ul opțional la `accounts`; v9 adaugă indexul pentru căutarea notificărilor pe sursă și dată. Înainte de release, verifică actualizarea unei baze existente și restaurarea backupurilor acceptate de cod.
 
 ## Scadențare ING PDF — implementat, de validat nativ
 

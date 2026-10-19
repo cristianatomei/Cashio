@@ -1,10 +1,11 @@
 import { eq } from 'drizzle-orm';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { schema, useDb } from '@/core/db';
+import { monthRange, startOfMonth } from '@/core/utils/dates';
 import {
   AmountText,
   AppText,
@@ -23,9 +24,12 @@ import {
   syncRecurringReminder,
   type RecurringRule,
   useNextMonthEstimate,
+  recurringPaymentsInRange,
   useRecurringRules,
 } from '@/features/recurring';
 import { RecurringFormModal } from '@/features/recurring';
+import { installmentTotal, parseStoredLoanSchedule } from '@/features/loans';
+import { MonthSwitcher } from '@/features/transactions';
 import { Alert, Switch, View } from 'react-native';
 import { useCaptureRefresh } from '@/features/capture';
 
@@ -43,7 +47,10 @@ export default function RecurringScreen() {
   const rules = useRecurringRules();
   const estimate = useNextMonthEstimate();
   const [editing, setEditing] = useState<RecurringRule | null | undefined>(undefined);
+  const [monthStart, setMonthStart] = useState(() => startOfMonth(Date.now()));
+  const { data: loanSchedules } = useLiveQuery(db.select().from(schema.loanSchedules));
   const locale = i18n.language === 'en' ? 'en-GB' : 'ro-RO';
+  const { from: monthFrom, to: monthTo } = monthRange(monthStart);
   const remindersEnabled = reminderSetting[0]?.value === 'true';
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -51,6 +58,51 @@ export default function RecurringScreen() {
   const unpaidRules = rules
     .filter((rule) => rule.active && rule.nextDue <= dueWindow)
     .sort((left, right) => left.nextDue - right.nextDue);
+  const scheduledPayments = useMemo(() => {
+    const recurringPayments = recurringPaymentsInRange(
+      rules.map((rule) => ({
+        id: rule.id,
+        name: rule.note || rule.merchantName || rule.categoryName || t('recurring.obligation'),
+        amountMinor: rule.amountMinor,
+        currency: rule.currency,
+        frequency: rule.frequency,
+        interval: rule.interval,
+        nextDue: rule.nextDue,
+        endAt: rule.endAt,
+        active: rule.active,
+      })),
+      monthFrom,
+      monthTo,
+    ).map((payment) => ({
+      ...payment,
+      source: 'recurring' as const,
+    }));
+
+    const loanPayments = loanSchedules.flatMap((schedule) => {
+      const stored = parseStoredLoanSchedule(schedule.installmentsJson);
+      return stored.installments
+        .filter((installment) => installment.dueAt >= monthFrom && installment.dueAt < monthTo)
+        .map((installment) => ({
+          key: `loan-${schedule.id}-${installment.dueAt}`,
+          name: schedule.name,
+          dueAt: installment.dueAt,
+          amountMinor: installmentTotal(installment, stored.includeInsurance),
+          currency: schedule.currency,
+          source: 'loan' as const,
+        }));
+    });
+
+    return [...recurringPayments, ...loanPayments].sort(
+      (left, right) => left.dueAt - right.dueAt || left.key.localeCompare(right.key),
+    );
+  }, [loanSchedules, monthFrom, monthTo, rules, t]);
+  const scheduledTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const payment of scheduledPayments) {
+      totals.set(payment.currency, (totals.get(payment.currency) ?? 0) + payment.amountMinor);
+    }
+    return [...totals.entries()].sort(([left], [right]) => left.localeCompare(right));
+  }, [scheduledPayments]);
   const reminderCopy = {
     title: t('recurring.reminderTitle'),
     body: (name: string) => t('recurring.reminderBody', { name }),
@@ -107,6 +159,48 @@ export default function RecurringScreen() {
           />
         </View>
       </Card>
+      <SectionHeader title={t('recurring.monthlySchedule')} />
+      <MonthSwitcher monthStart={monthStart} onChange={setMonthStart} />
+      {scheduledPayments.length === 0 ? (
+        <Card>
+          <AppText color="textSecondary">{t('recurring.monthlyScheduleEmpty')}</AppText>
+        </Card>
+      ) : (
+        <Card>
+          {scheduledTotals.map(([currency, amountMinor]) => (
+            <ListRow
+              key={`total-${currency}`}
+              title={t('recurring.monthlyScheduleTotal', { currency })}
+              trailing={<AmountText amountMinor={amountMinor} currency={currency} type="expense" />}
+            />
+          ))}
+          {scheduledPayments.map((payment) => (
+            <ListRow
+              key={payment.key}
+              title={payment.name}
+              subtitle={`${new Date(payment.dueAt).toLocaleDateString(locale)} · ${t(
+                payment.source === 'loan'
+                  ? 'recurring.monthlyScheduleLoan'
+                  : 'recurring.monthlyScheduleRecurring',
+              )}`}
+              leading={
+                <Ionicons
+                  name={payment.source === 'loan' ? 'document-text-outline' : 'repeat-outline'}
+                  size={24}
+                  color={colors.primary}
+                />
+              }
+              trailing={
+                <AmountText
+                  amountMinor={payment.amountMinor}
+                  currency={payment.currency}
+                  type="expense"
+                />
+              }
+            />
+          ))}
+        </Card>
+      )}
       <SectionHeader title={t('recurring.payable')} />
       {unpaidRules.length === 0 ? (
         <Card>

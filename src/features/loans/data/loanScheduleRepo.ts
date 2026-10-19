@@ -1,10 +1,18 @@
 import type { AppDb } from '@/core/db';
 import * as schema from '@/core/db/schema';
 import { eq } from 'drizzle-orm';
-import type { LoanInstallment } from '../domain/ingSchedule';
-import { parseStoredLoanSchedule } from '../domain/storedSchedule';
 
-export { parseStoredLoanSchedule, type StoredLoanSchedule } from '../domain/storedSchedule';
+import type { LoanInstallment } from '../domain/ingSchedule';
+import {
+  parseStoredLoanSchedule,
+  updateStoredLoanScheduleSettings,
+} from '../domain/storedSchedule';
+
+export {
+  parseStoredLoanSchedule,
+  updateStoredLoanScheduleSettings,
+  type StoredLoanSchedule,
+} from '../domain/storedSchedule';
 
 export type LoanScheduleInput = {
   name: string;
@@ -12,6 +20,11 @@ export type LoanScheduleInput = {
   installments: readonly LoanInstallment[];
   includeInsurance: boolean;
   remindersEnabled: boolean;
+};
+
+export type LoanScheduleSettingsInput = {
+  name: string;
+  includeInsurance: boolean;
 };
 
 export function saveLoanSchedule(db: AppDb, input: LoanScheduleInput): number {
@@ -68,6 +81,29 @@ export function setLoanScheduleReminders(db: AppDb, scheduleId: number, enabled:
   db.update(schema.loanSchedules)
     .set({
       installmentsJson: JSON.stringify({ ...stored, remindersEnabled: enabled }),
+    })
+    .where(eq(schema.loanSchedules.id, scheduleId))
+    .run();
+}
+
+export function updateLoanScheduleSettings(
+  db: AppDb,
+  scheduleId: number,
+  input: LoanScheduleSettingsInput,
+): void {
+  const name = input.name.trim();
+  if (!name) throw new Error('A schedule name is required.');
+  const schedule = db
+    .select()
+    .from(schema.loanSchedules)
+    .where(eq(schema.loanSchedules.id, scheduleId))
+    .get();
+  if (!schedule) throw new Error('The repayment schedule does not exist.');
+
+  db.update(schema.loanSchedules)
+    .set({
+      name,
+      installmentsJson: updateStoredLoanScheduleSettings(schedule.installmentsJson, input),
     })
     .where(eq(schema.loanSchedules.id, scheduleId))
     .run();

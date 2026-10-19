@@ -10,8 +10,17 @@ Punctul curent de reluare și jurnalul sesiunii sunt în [README.md](README.md#p
 - APK-ul EAS `preview` cu aceste schimbări a fost generat cu succes; instalarea, restaurarea și pornirea fără Metro nu sunt încă confirmate.
 - Development build-ul a fost recompilat cu modulele native actuale și actualizat fără dezinstalare. Home funcționează cu datele existente; eroarea `ExpoPushTokenManager` nu se mai reproduce la pornirea verificată.
 - Backup JSON validat cu parserul de restaurare; copii SQLite locale integre. Nu include datele private în GitHub.
-- Lint, typecheck și cele 26 de suite / 142 de teste au trecut în 19.10.2026.
+- După actualizările UI/UX, `npm run typecheck`, `npm run lint`, 30 de suite / 173 de teste și exportul Android au trecut în 19.10.2026.
 - Prioritatea imediată este instalarea sigură și testarea APK-ului autonom; apoi validarea PDF-urilor și a reminderelor pe telefon.
+
+### Actualizare UI/UX și fluxuri — 19.10.2026
+
+- Acasă prezintă plățile programate în următoarele 30 de zile (recurente și rate de credit) și bugetele cele mai aproape de limită.
+- Formularul pentru tranzacții noi oferă scurtături pentru categoriile, conturile și comercianții folosiți frecvent; selecțiile rămân explicite și nu salvează automat.
+- Lista de tranzacții filtrează simultan după categorie și cont; filtrul de categorie include tranzacțiile repartizate pe mai multe categorii.
+- Ecranul „Mai mult” grupează destinațiile după scop.
+- Scadențarele salvate permit editarea numelui și includerii asigurării; ratele importate sunt păstrate, iar reminderele sunt resincronizate după modificare.
+- Înainte de a continua cu widgetul sau noi funcții, generează un APK din commitul actual și validează upgrade-ul, păstrarea datelor și noile fluxuri pe telefon.
 
 ## Punct de reluare istoric — 11.10.2026
 
@@ -23,7 +32,7 @@ Secțiunea de mai jos păstrează situația din 11.10.2026; stările depășite 
 - `npm.cmd run lint`: trecut.
 - `npm.cmd test -- --runInBand`: 26 de suite, 142 de teste, toate trecute.
 - Aceste rezultate sunt din 11.10.2026; înlocuiesc rapoartele anterioare cu erori de captare/tranzacții. Nu reprezintă validare nativă sau vizuală.
-- Schema din cod are **7 migrări**: v5 scadențare PDF, v6 cont opțional la tranzacții, v7 repartizări între categorii. Directorul Android generat există în mediul curent; iOS nu există. Importul PDF nu a fost compilat și verificat pe dispozitiv în această sesiune.
+- Schema din cod are **9 migrări**: v5 scadențare PDF, v6 cont opțional la tranzacții, v7 repartizări între categorii, v8 IBAN opțional pentru conturile bancare, v9 indexarea notificărilor. Directorul Android generat există în mediul curent; iOS nu există. Importul PDF nu a fost compilat și verificat pe dispozitiv în această sesiune.
 
 ### Ce este deja implementat
 
@@ -83,9 +92,10 @@ Paletă albastru ocean + turcoaz: primar `#145DA0` în tema deschisă / `#60A5FA
 - [x] **1.** Modul nativ de captare a notificărilor + listă (testat pe emulator)
 - [x] **A. Fundație:** design system, i18n, navigare cu tab-uri, schema v2, date inițiale (rulează pe emulator)
 - [ ] **B. Flux manual** (scris, de verificat pe emulator): adăugare rapidă cu calculator, listă tranzacții cu căutare și filtre, conturi, categorii/grupuri, comercianți, tag-uri, transferuri, solduri. Date inițiale aliniate cu categoriile din Oinkoin; Salt Bank dezactivat implicit.
-- [ ] **C. Captare inteligentă** (verificat parțial pe Samsung): parsere pe formate presupuse, clasificator pe cuvinte-cheie, drafturi, „De clasificat”, asociere comerciant, deduplicare. Confirmat: notificarea ING de top-up (60 RON) a ajuns în istoric, dar a fost clasificată inițial ca plată necunoscută și corectată manual ca transfer ING → Revolut. Rămas: recunoaștere automată top-up/transfer Revolut, parser pe mai multe notificări reale, Salt Bank și notificări active la prima pornire.
+- [ ] **C. Captare inteligentă** (verificat parțial pe Samsung): parsere pe formate presupuse, clasificator pe cuvinte-cheie, sugestii pentru ridesharing/livrări/supermarketuri, corelarea transferurilor între conturile proprii prin IBAN, drafturi, „De clasificat”, asociere comerciant, deduplicare. Confirmat: notificarea ING de top-up (60 RON) a ajuns în istoric, dar a fost clasificată inițial ca plată necunoscută și corectată manual ca transfer ING → Revolut. Rămas: testarea pe notificări reale a regulilor noi, recunoaștere automată top-up/transfer Revolut, Salt Bank și notificări active la prima pornire.
+- [ ] **Investiții Revolut:** listă locală de active urmărite și detectarea variațiilor explicite din notificările Revolut, fără sursă externă de preț și fără recomandări. Rămas: validarea pe notificări reale, pentru formatele exacte Revolut.
 - [x] **D. Statistici:** Acasă (sold, comparație cu luna trecută), donut pe grupuri/categorii, trend, top comercianți, interval personalizat, plăți recurente și conversie în valuta de bază când există curs salvat. Testele unitare trec; mai necesită verificare vizuală pe telefon.
-- [ ] **E. Bugete, recurente și estimare** (implementat, de verificat pe telefon): obligații locale lunare/anuale cu interval, cont, comerciant/categorie, sumă fixă sau variabilă și scadență; matching strict al plății și avansarea scadenței; estimare luna următoare; ecran Recurente și card Acasă; bugete cu rollover și alertă 80%/100%; listă „de plătit” și remindere cu o zi înainte la 09:00. Rămas: verificare manuală pe telefon/emulator, inclusiv permisiuni și notificări.
+- [ ] **E. Bugete, recurente și estimare** (implementat, de verificat pe telefon): obligații locale lunare/anuale cu interval, cont, comerciant/categorie, sumă fixă sau variabilă și scadență; matching strict al plății și avansarea scadenței; vedere lunară combinată pentru recurente și scadențare PDF; estimare luna următoare; ecran Recurente și card Acasă; bugete cu rollover și alertă 80%/100%; listă „de plătit” și remindere cu o zi înainte la 09:00. Rămas: verificare manuală pe telefon/emulator, inclusiv permisiuni și notificări.
 - [x] **Istoric notificări/lead-uri:** textul original rămâne local; starea de triere (deschis/rezolvat/ignorat) este separată de procesarea parserului; tranzacțiile legate pot fi deschise din istoric.
 - [ ] **F. Finalizare:** multi-valută, import CSV ING, backup/restaurare, scadențare PDF ING, widget Android, polish, build release APK. Implementate: cursuri manuale datate și conversie sigură în valuta de bază, import CSV ING cu deduplicare, export/restaurare JSON cu validare și confirmare, import local al scadențarelor PDF ING pe Android cu previzualizare și remindere individuale pentru următoarele 50 de scadențe (reîmprospătate la pornire/revenirea în aplicație), paletă albastru ocean + turcoaz, profil EAS pentru APK. Rămase: validarea parserului contra PDFBox și a migrării v5 pe dispozitiv, verificarea formatului actual ING pe un export CSV real, widget Android, verificări finale pe dispozitiv și build APK release.
 
@@ -98,9 +108,9 @@ Ordine: A, apoi B, apoi C și D (în paralel), apoi E (implementare parțială),
 - Notificare ING reală de top-up Revolut pentru 60 RON captată. Clasificată inițial ca plată necunoscută; corectată manual ca transfer ING → Revolut. Soldurile pe conturi s-au actualizat corect și totalul a rămas constant.
 - Următoarea verificare: parserul să recunoască top-up-ul ca transfer; apoi testarea notificărilor obișnuite și a fluxului Recurente pe telefon.
 
-## Schema actuală (7 migrări)
+## Schema actuală (9 migrări)
 
-`accounts`, `category_groups`, `categories` (grup, icoană), `merchants` + `merchant_aliases`, `transactions` (cont opțional din v6, comerciant, notă, transfer, status draft/confirmat, recurent, curs valutar), `transaction_allocations` (repartizări din v7), `tags` + `transaction_tags`, `budgets`, `recurring_rules`, `loan_schedules` (migrarea v5), `exchange_rates`, `capture_rules`, `app_settings`, `raw_notifications`. Sumele sunt întregi, în bani. Migrările se adaugă, nu se rescriu; v6 reconstruiește tabela tranzacțiilor și necesită testare pe o bază cu relații existente.
+`accounts` (IBAN opțional din v8), `category_groups`, `categories` (grup, icoană), `merchants` + `merchant_aliases`, `transactions` (cont opțional din v6, comerciant, notă, transfer, status draft/confirmat, recurent, curs valutar), `transaction_allocations` (repartizări din v7), `tags` + `transaction_tags`, `budgets`, `recurring_rules`, `loan_schedules` (migrarea v5), `exchange_rates`, `capture_rules`, `app_settings` (inclusiv activele urmărite pentru investiții), `raw_notifications`. Sumele sunt întregi, în bani. Migrările se adaugă, nu se rescriu; v6 reconstruiește tabela tranzacțiilor și necesită testare pe o bază cu relații existente.
 
 ## Biblioteci
 
@@ -116,4 +126,4 @@ Dependențele instalate sunt în `package.json`: `react-native-svg` (grafice), `
 ## Întrebări deschise
 
 - Widget Android: nu este implementat. Cercetarea anterioară pentru SDK 57 a identificat `expo-widgets` ca soluție iOS, nu Android; reverifică documentația actuală înainte de a alege un modul Kotlin sau altă soluție compatibilă.
-- Import CSV ING: parserul acceptă atât antete simple, cât și structura istorică `Data,Detalii tranzactie,Debit,Credit`, date cu luna în română și rânduri suplimentare de detalii; formatul curent trebuie verificat pe un export Home’Bank real.
+- Import CSV ING: parserul acceptă atât antete simple, cât și structura istorică `Data,Detalii tranzactie,Debit,Credit`, date cu luna în română și rânduri suplimentare de detalii; accesibil atât din Date și backup, cât și din filtrul Cheltuieli al listei de tranzacții. Formatul curent trebuie verificat pe un export Home’Bank real.

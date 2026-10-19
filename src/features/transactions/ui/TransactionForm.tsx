@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { useRouter } from 'expo-router';
+import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
@@ -15,6 +16,7 @@ import {
   Button,
   Card,
   CategoryIcon,
+  Chip,
   FormRow,
   SegmentedControl,
   TextField,
@@ -88,10 +90,64 @@ export function TransactionForm({ transactionId }: Props) {
   const accounts = useAccounts({ includeArchived: true });
   const merchants = useMerchants();
   const tags = useTags();
+  const { data: recentTransactions } = useLiveQuery(
+    db
+      .select({
+        categoryId: schema.transactions.categoryId,
+        accountId: schema.transactions.accountId,
+        merchantId: schema.transactions.merchantId,
+      })
+      .from(schema.transactions)
+      .where(
+        and(
+          eq(schema.transactions.status, 'confirmed'),
+          eq(schema.transactions.type, type),
+        ),
+      )
+      .orderBy(desc(schema.transactions.occurredAt))
+      .limit(60),
+    [type],
+  );
   const groups = useTaxonomy({
     kind: type === 'income' ? 'income' : 'expense',
     includeArchived: true,
   });
+  const categoryIds = useMemo(
+    () =>
+      mostUsedIds(
+        recentTransactions
+          .filter((transaction) => transaction.categoryId !== null)
+          .map((transaction) => transaction.categoryId),
+      ),
+    [recentTransactions],
+  );
+  const accountIds = useMemo(
+    () =>
+      mostUsedIds(
+        recentTransactions
+          .filter((transaction) => transaction.accountId !== null)
+          .map((transaction) => transaction.accountId),
+      ),
+    [recentTransactions],
+  );
+  const merchantIds = useMemo(
+    () =>
+      mostUsedIds(
+        recentTransactions
+          .filter((transaction) => transaction.merchantId !== null)
+          .map((transaction) => transaction.merchantId),
+      ),
+    [recentTransactions],
+  );
+  const recentCategories = categoryIds
+    .map((id) => groups.flatMap((group) => group.categories).find((item) => item.id === id))
+    .filter((item) => item !== undefined);
+  const recentAccounts = accountIds
+    .map((id) => accounts.find((item) => item.id === id))
+    .filter((item) => item !== undefined);
+  const recentMerchants = merchantIds
+    .map((id) => merchants.find((item) => item.id === id))
+    .filter((item) => item !== undefined);
 
   const effectiveAccountId = accountId;
   const account = accounts.find((a) => a.id === accountId);
@@ -254,6 +310,69 @@ export function TransactionForm({ transactionId }: Props) {
             { value: 'transfer', label: t('types.transfer') },
           ]}
         />
+        {transactionId === undefined ? (
+          <View style={styles.quickPicks}>
+            {recentCategories.length > 0 && !isTransfer ? (
+              <View style={styles.quickPickGroup}>
+                <AppText variant="caption" color="textMuted">
+                  {t('form.recentCategories')}
+                </AppText>
+                <View style={styles.quickPicksRow}>
+                  {recentCategories.map((item) => (
+                    <Chip
+                      key={item.id}
+                      label={item.name}
+                      selected={categoryId === item.id}
+                      onPress={() => setCategoryId(item.id)}
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+            {recentAccounts.length > 0 ? (
+              <View style={styles.quickPickGroup}>
+                <AppText variant="caption" color="textMuted">
+                  {t('form.recentAccounts')}
+                </AppText>
+                <View style={styles.quickPicksRow}>
+                  {recentAccounts.map((item) => (
+                    <Chip
+                      key={item.id}
+                      label={item.name}
+                      selected={accountId === item.id}
+                      onPress={() => {
+                        setAccountId(item.id);
+                        setUnassignedCurrency(item.currency);
+                      }}
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+            {recentMerchants.length > 0 && !isTransfer ? (
+              <View style={styles.quickPickGroup}>
+                <AppText variant="caption" color="textMuted">
+                  {t('form.recentMerchants')}
+                </AppText>
+                <View style={styles.quickPicksRow}>
+                  {recentMerchants.map((item) => (
+                    <Chip
+                      key={item.id}
+                      label={item.name}
+                      selected={merchantId === item.id}
+                      onPress={() => {
+                        setMerchantId(item.id);
+                        if (categoryId === null && item.defaultCategoryId !== null) {
+                          setCategoryId(item.defaultCategoryId);
+                        }
+                      }}
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         <Card style={styles.amountCard}>
           <AppText variant="caption" color="textSecondary">
@@ -540,6 +659,9 @@ export function TransactionForm({ transactionId }: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { padding: spacing.lg, gap: spacing.md },
+  quickPicks: { gap: spacing.sm },
+  quickPickGroup: { gap: spacing.xs },
+  quickPicksRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   amountCard: { gap: spacing.xs, alignItems: 'flex-end' },
   rows: { paddingVertical: 0 },
   split: { gap: spacing.sm, paddingVertical: spacing.md },
@@ -552,3 +674,14 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radius.lg,
   },
 });
+
+function mostUsedIds(ids: readonly (number | null)[]): number[] {
+  const counts = new Map<number, number>();
+  ids.forEach((id) => {
+    if (id !== null) counts.set(id, (counts.get(id) ?? 0) + 1);
+  });
+  return [...counts.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 3)
+    .map(([id]) => id);
+}

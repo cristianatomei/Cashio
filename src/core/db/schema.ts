@@ -23,7 +23,10 @@ export const rawNotifications = sqliteTable(
       .notNull()
       .default('open'),
   },
-  (t) => [index('idx_raw_notifications_posted_at').on(t.postedAt)],
+  (t) => [
+    index('idx_raw_notifications_posted_at').on(t.postedAt),
+    index('idx_raw_notifications_package_posted_at').on(t.packageName, t.postedAt),
+  ],
 );
 
 export const appSettings = sqliteTable('app_settings', {
@@ -35,6 +38,7 @@ export const accounts = sqliteTable('accounts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   type: text('type', { enum: ['bank', 'cash', 'other'] }).notNull(),
+  iban: text('iban'),
   currency: text('currency').notNull(),
   color: text('color').notNull(),
   icon: text('icon').notNull(),
@@ -120,7 +124,9 @@ export const loanSchedules = sqliteTable('loan_schedules', {
   name: text('name').notNull(),
   currency: text('currency').notNull(),
   installmentsJson: text('installments_json').notNull(),
-  recurringId: integer('recurring_id').references(() => recurringRules.id, { onDelete: 'set null' }),
+  recurringId: integer('recurring_id').references(() => recurringRules.id, {
+    onDelete: 'set null',
+  }),
   createdAt: integer('created_at').notNull(),
 });
 

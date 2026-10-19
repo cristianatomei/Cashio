@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { migrations } from '@/core/db/migrations';
 
 import { parseStoredLoanSchedule } from '@/features/loans';
+import { parseInvestmentAssets } from '@/features/investments/domain/assets';
 
 const TABLES = [
   'raw_notifications',
@@ -109,11 +109,18 @@ export function parseCashioBackup(json: string): CashioBackup {
   const settings = tables.app_settings as BackupRow[];
   const language = settings.find((row) => row.key === 'language')?.value;
   const theme = settings.find((row) => row.key === 'theme')?.value;
+  const investmentAssets = settings.find((row) => row.key === 'investment_assets')?.value;
   if (language !== undefined && language !== 'ro' && language !== 'en') {
     throw new Error('The backup contains an unsupported language preference.');
   }
   if (theme !== undefined && theme !== 'system' && theme !== 'light' && theme !== 'dark') {
     throw new Error('The backup contains an unsupported theme preference.');
+  }
+  if (investmentAssets !== undefined) {
+    if (typeof investmentAssets !== 'string') {
+      throw new Error('The backup contains an invalid tracked investment asset list.');
+    }
+    parseInvestmentAssets(investmentAssets);
   }
 
   return { ...parsed, tables } as CashioBackup;
@@ -138,14 +145,17 @@ export async function createCashioBackup(db: SQLiteDatabase): Promise<CashioBack
   };
 }
 
+export function isSupportedBackupSchemaVersion(
+  schemaVersion: number,
+  currentVersion: number,
+): boolean {
+  return [currentVersion, currentVersion - 1, currentVersion - 4].includes(schemaVersion);
+}
+
 export async function restoreCashioBackup(db: SQLiteDatabase, backup: CashioBackup): Promise<void> {
   const current = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   const currentVersion = current?.user_version ?? 0;
-  const previousSupportedVersion = migrations.length - 2;
-  if (
-    backup.schemaVersion !== currentVersion &&
-    backup.schemaVersion !== previousSupportedVersion
-  ) {
+  if (!isSupportedBackupSchemaVersion(backup.schemaVersion, currentVersion)) {
     throw new Error('This backup was created with an incompatible Cashio database version.');
   }
 

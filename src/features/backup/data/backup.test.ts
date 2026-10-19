@@ -1,4 +1,6 @@
-import { parseCashioBackup } from './backup';
+import { migrations } from '@/core/db/migrations';
+
+import { isSupportedBackupSchemaVersion, parseCashioBackup } from './backup';
 
 describe('parseCashioBackup', () => {
   const backup = {
@@ -83,7 +85,30 @@ describe('parseCashioBackup', () => {
     );
   });
 
+  it('rejects invalid tracked investment assets before restore can replace data', () => {
+    const invalid = {
+      ...backup,
+      tables: {
+        ...backup.tables,
+        app_settings: [{ key: 'investment_assets', value: '[{"symbol":"bad!"}]' }],
+      },
+    };
+    expect(() => parseCashioBackup(JSON.stringify(invalid))).toThrow(
+      'investment asset list contains an invalid asset',
+    );
+  });
+
   it('propagates malformed JSON errors', () => {
     expect(() => parseCashioBackup('{')).toThrow(SyntaxError);
+  });
+});
+
+describe('backup schema compatibility', () => {
+  it('accepts the current, previous, and existing legacy schema versions', () => {
+    const current = migrations.length;
+    expect(isSupportedBackupSchemaVersion(current, current)).toBe(true);
+    expect(isSupportedBackupSchemaVersion(current - 1, current)).toBe(true);
+    expect(isSupportedBackupSchemaVersion(current - 4, current)).toBe(true);
+    expect(isSupportedBackupSchemaVersion(current - 2, current)).toBe(false);
   });
 });

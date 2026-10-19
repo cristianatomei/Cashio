@@ -6,7 +6,7 @@ import { AppText, CategoryIcon, SheetModal, spacing, useTheme } from '@/core/ui'
 import { useTaxonomy } from '../data/queries';
 
 type Props = {
-  kind: 'expense' | 'income';
+  kind?: 'expense' | 'income';
   selectedId: number | null;
   onSelect: (categoryId: number) => void;
   onClose: () => void;

@@ -11,7 +11,11 @@ const alias = (
 ): MerchantAlias => ({ id, merchantId, rawPattern, matchType });
 
 describe('matchAlias', () => {
-  const aliases = [alias(1, 10, 'mega'), alias(2, 11, 'mega image'), alias(3, 12, 'xulescu', 'exact')];
+  const aliases = [
+    alias(1, 10, 'mega'),
+    alias(2, 11, 'mega image'),
+    alias(3, 12, 'xulescu', 'exact'),
+  ];
 
   it('prefers the longest contains pattern', () => {
     expect(matchAlias('mega image buc', aliases)?.merchantId).toBe(11);
@@ -35,12 +39,18 @@ describe('resolveCapture', () => {
     postedAt: 1_700_000_000_000,
     accountId: 1,
     cashAccountId: 4,
+    ownAccounts: [],
     aliases: [alias(1, 7, 'kaufland')],
     merchants: [{ id: 7, defaultCategoryId: 100 }],
     categoryIdsByName: new Map([[normalizeText('Rate'), 200]]),
     rules: DEFAULT_KEYWORD_RULES,
   };
-  const expense = { type: 'expense', amountMinor: 4520, currency: 'RON', merchantRaw: 'KAUFLAND BUC' } as const;
+  const expense = {
+    type: 'expense',
+    amountMinor: 4520,
+    currency: 'RON',
+    merchantRaw: 'KAUFLAND BUC',
+  } as const;
 
   it('confirms a payment to a known merchant with a default category', () => {
     const result = resolveCapture(expense, base);
@@ -96,10 +106,79 @@ describe('resolveCapture', () => {
       status: 'draft',
     });
   });
+
+  it('recognizes an incoming transfer from another owned account by IBAN', () => {
+    const result = resolveCapture(
+      {
+        type: 'income',
+        amountMinor: 50000,
+        currency: 'RON',
+        merchantRaw: 'Transfer from my account',
+      },
+      {
+        ...base,
+        text: 'Transfer received from RO49AAAA1B31007593840000',
+        ownAccounts: [{ id: 2, iban: 'RO49AAAA1B31007593840000' }],
+      },
+    );
+
+    expect(result).toMatchObject({
+      type: 'transfer',
+      accountId: 2,
+      transferAccountId: 1,
+      merchantRaw: null,
+      status: 'confirmed',
+    });
+  });
+
+  it('recognizes an outgoing transfer to another owned account by IBAN', () => {
+    const result = resolveCapture(
+      {
+        type: 'transfer',
+        amountMinor: 50000,
+        currency: 'RON',
+        merchantRaw: null,
+        transferDirection: 'outgoing',
+      },
+      {
+        ...base,
+        text: 'Transfer sent to RO49AAAA1B31007593840000',
+        ownAccounts: [{ id: 2, iban: 'RO49AAAA1B31007593840000' }],
+      },
+    );
+
+    expect(result).toMatchObject({
+      type: 'transfer',
+      accountId: 1,
+      transferAccountId: 2,
+      status: 'confirmed',
+    });
+  });
+
+  it('does not guess when an IBAN matches more than one owned account', () => {
+    const result = resolveCapture(
+      { ...expense },
+      {
+        ...base,
+        text: 'Payment to RO49AAAA1B31007593840000',
+        ownAccounts: [
+          { id: 2, iban: 'RO49AAAA1B31007593840000' },
+          { id: 3, iban: 'RO49AAAA1B31007593840000' },
+        ],
+      },
+    );
+
+    expect(result).toMatchObject({ type: 'expense', transferAccountId: null });
+  });
 });
 
 describe('dedupeHash', () => {
-  const parts = { accountId: 1, type: 'expense', amountMinor: 100, merchantRaw: 'Kaufland SRL' } as const;
+  const parts = {
+    accountId: 1,
+    type: 'expense',
+    amountMinor: 100,
+    merchantRaw: 'Kaufland SRL',
+  } as const;
 
   it('is stable within a minute and ignores merchant formatting', () => {
     const a = dedupeHash({ ...parts, postedAt: 60_000 * 10 + 5_000 });
@@ -108,6 +187,8 @@ describe('dedupeHash', () => {
   });
 
   it('differs across minutes', () => {
-    expect(dedupeHash({ ...parts, postedAt: 0 })).not.toBe(dedupeHash({ ...parts, postedAt: 120_000 }));
+    expect(dedupeHash({ ...parts, postedAt: 0 })).not.toBe(
+      dedupeHash({ ...parts, postedAt: 120_000 }),
+    );
   });
 });

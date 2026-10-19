@@ -17,12 +17,8 @@ import {
 import { minorToInput, parseSignedAmountToMinor } from '@/core/utils/money';
 import { ACCOUNT_ICONS } from '@/features/categories';
 
-import {
-  deleteAccount,
-  saveAccount,
-  setAccountArchived,
-  type Account,
-} from '../data/accountsRepo';
+import { isValidIban } from '../domain/iban';
+import { deleteAccount, saveAccount, setAccountArchived, type Account } from '../data/accountsRepo';
 
 type Props = { account?: Account; onClose: () => void };
 
@@ -31,13 +27,16 @@ export function AccountFormModal({ account, onClose }: Props) {
   const db = useDb();
   const [name, setName] = useState(account?.name ?? '');
   const [type, setType] = useState<Account['type']>(account?.type ?? 'bank');
+  const [iban, setIban] = useState(account?.iban ?? '');
   const [currency, setCurrency] = useState(account?.currency ?? DEFAULT_CURRENCY);
   const [opening, setOpening] = useState(minorToInput(account?.openingBalanceMinor ?? 0));
   const [color, setColor] = useState(account?.color ?? swatchColors[0]);
   const [icon, setIcon] = useState(account?.icon ?? ACCOUNT_ICONS[0]);
 
   const openingMinor = parseSignedAmountToMinor(opening);
-  const canSave = name.trim().length > 0 && currency.trim().length === 3 && openingMinor !== null;
+  const ibanValid = !iban.trim() || isValidIban(iban);
+  const canSave =
+    name.trim().length > 0 && currency.trim().length === 3 && openingMinor !== null && ibanValid;
 
   const save = () => {
     if (!canSave || openingMinor === null) return;
@@ -45,6 +44,7 @@ export function AccountFormModal({ account, onClose }: Props) {
       id: account?.id,
       name,
       type,
+      iban,
       currency,
       color,
       icon,
@@ -84,6 +84,26 @@ export function AccountFormModal({ account, onClose }: Props) {
           { value: 'other', label: t('accounts.type.other') },
         ]}
       />
+      {type === 'bank' ? (
+        <>
+          <TextField
+            label={t('accounts.iban')}
+            value={iban}
+            onChangeText={setIban}
+            autoCapitalize="characters"
+            autoCorrect={false}
+          />
+          {iban.trim() && !ibanValid ? (
+            <AppText variant="caption" color="expense">
+              {t('accounts.invalidIban')}
+            </AppText>
+          ) : (
+            <AppText variant="caption" color="textSecondary">
+              {t('accounts.ibanHint')}
+            </AppText>
+          )}
+        </>
+      ) : null}
       <TextField
         label={t('accounts.currency')}
         value={currency}

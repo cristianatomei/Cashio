@@ -61,6 +61,9 @@ export default function InboxScreen() {
       {others.length > 0 ? (
         <>
           <SectionHeader title={t('inbox.others')} />
+          <AppText variant="caption" color="textSecondary">
+            {t('inbox.othersHint')}
+          </AppText>
           <Card>
             {others.map((view) => (
               <TransactionRow

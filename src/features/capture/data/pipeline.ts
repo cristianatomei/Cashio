@@ -2,6 +2,7 @@ import { asc, eq, isNull } from 'drizzle-orm';
 
 import { schema, type AppDb, type Language } from '@/core/db';
 import { DEFAULT_KEYWORD_RULES, normalizeText, parseNotification } from '@/features/parsing';
+import { isRevolutPriceMovementNotification } from '@/features/investments/domain/notification';
 import { findRecurringMatch, nextDueAfterPayment } from '@/features/recurring';
 
 import { resolveCapture } from '../domain/resolve';
@@ -17,7 +18,11 @@ export function processRawNotifications(db: AppDb, language: Language): number {
     .all();
   if (pending.length === 0) return 0;
 
-  const accounts = db.select().from(schema.accounts).where(eq(schema.accounts.archived, false)).all();
+  const accounts = db
+    .select()
+    .from(schema.accounts)
+    .where(eq(schema.accounts.archived, false))
+    .all();
   const merchants = db.select().from(schema.merchants).all();
   const aliases = db.select().from(schema.merchantAliases).all();
   const categories = db.select().from(schema.categories).all();
@@ -35,7 +40,14 @@ export function processRawNotifications(db: AppDb, language: Language): number {
       const account =
         accounts.find((a) => normalizeText(a.name) === normalizeText(sourceName)) ??
         accounts.find((a) => a.type === 'bank');
-      const parsed = parseNotification({ sourceName, title: raw.title, body: raw.body });
+      const isInvestmentMovement = isRevolutPriceMovementNotification(
+        sourceName,
+        raw.title,
+        raw.body,
+      );
+      const parsed = isInvestmentMovement
+        ? null
+        : parseNotification({ sourceName, title: raw.title, body: raw.body });
       if (parsed) {
         const captured = resolveCapture(parsed, {
           language,
@@ -43,6 +55,9 @@ export function processRawNotifications(db: AppDb, language: Language): number {
           postedAt: raw.postedAt,
           accountId: account?.id ?? null,
           cashAccountId,
+          ownAccounts: accounts
+            .filter((candidate) => candidate.type === 'bank' && candidate.iban !== null)
+            .map(({ id, iban }) => ({ id, iban })),
           aliases,
           merchants,
           categoryIdsByName,

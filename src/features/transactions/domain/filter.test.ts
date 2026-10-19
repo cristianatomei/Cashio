@@ -32,6 +32,7 @@ describe('filterTransactions', () => {
     view({
       id: 2,
       type: 'income',
+      account: { id: 2, name: 'ING', color: '#fff', icon: 'wallet' },
       category: {
         id: 1,
         name: 'Salariu',
@@ -41,7 +42,32 @@ describe('filterTransactions', () => {
         groupName: 'Venituri',
       },
     }),
-    view({ id: 3, note: 'Cadou pentru Ana' }),
+    view({
+        id: 3,
+        note: 'Cadou pentru Ana',
+        account: { id: 1, name: 'Cash', color: '#000', icon: 'cash' },
+        category: {
+          id: 2,
+          name: 'Cadouri',
+          icon: 'gift',
+          color: '#abc',
+          groupId: 2,
+          groupName: 'Dorințe',
+        },
+        allocations: [
+          {
+            amountMinor: 1000,
+            category: {
+              id: 2,
+              name: 'Cadouri',
+              icon: 'gift',
+              color: '#abc',
+              groupId: 2,
+              groupName: 'Dorințe',
+            },
+          },
+        ],
+    }),
   ];
 
   it('keeps everything with no filter', () => {
@@ -59,5 +85,14 @@ describe('filterTransactions', () => {
     ]);
     expect(filterTransactions(rows, { query: 'salar', type: 'all' }).map((r) => r.id)).toEqual([2]);
     expect(filterTransactions(rows, { query: 'ana', type: 'all' }).map((r) => r.id)).toEqual([3]);
+  });
+
+  it('filters by account and category, including split allocations', () => {
+    expect(filterTransactions(rows, { query: '', type: 'all', accountId: 2 }).map((r) => r.id)).toEqual([
+      2,
+    ]);
+    expect(filterTransactions(rows, { query: '', type: 'all', categoryId: 2 }).map((r) => r.id)).toEqual([
+      3,
+    ]);
   });
 });

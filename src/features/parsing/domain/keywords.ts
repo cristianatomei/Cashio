@@ -12,10 +12,41 @@ export type KeywordRule = {
 
 // Order matters: the first rule that matches wins.
 export const DEFAULT_KEYWORD_RULES: readonly KeywordRule[] = [
+  {
+    pattern: 'bolt food',
+    type: 'expense',
+    category: { ro: 'Comandă mâncare', en: 'Food delivery' },
+  },
+  {
+    pattern: 'boltfood',
+    type: 'expense',
+    category: { ro: 'Comandă mâncare', en: 'Food delivery' },
+  },
+  { pattern: 'glovo', type: 'expense', category: { ro: 'Comandă mâncare', en: 'Food delivery' } },
+  { pattern: 'volt', type: 'expense', category: { ro: 'Comandă mâncare', en: 'Food delivery' } },
+  {
+    pattern: 'uber eats',
+    type: 'expense',
+    category: { ro: 'Comandă mâncare', en: 'Food delivery' },
+  },
+  { pattern: 'uber', type: 'expense', category: { ro: 'Taxi', en: 'Ride hailing' } },
+  { pattern: 'bolt', type: 'expense', category: { ro: 'Taxi', en: 'Ride hailing' } },
+  {
+    pattern: 'mega image',
+    type: 'expense',
+    category: { ro: 'Alimente', en: 'Groceries' },
+  },
+  { pattern: 'kaufland', type: 'expense', category: { ro: 'Alimente', en: 'Groceries' } },
+  { pattern: 'carrefour', type: 'expense', category: { ro: 'Alimente', en: 'Groceries' } },
+  { pattern: 'mega', type: 'expense', category: { ro: 'Alimente', en: 'Groceries' } },
   { pattern: 'rata', type: 'expense', category: { ro: 'Rate', en: 'Loan installments' } },
   { pattern: 'rate', type: 'expense', category: { ro: 'Rate', en: 'Loan installments' } },
   { pattern: 'salariu', type: 'income', category: { ro: 'Salariu', en: 'Salary' } },
-  { pattern: 'asigurare auto', type: 'expense', category: { ro: 'Asigurare auto', en: 'Car insurance' } },
+  {
+    pattern: 'asigurare auto',
+    type: 'expense',
+    category: { ro: 'Asigurare auto', en: 'Car insurance' },
+  },
   { pattern: 'rca', type: 'expense', category: { ro: 'Asigurare auto', en: 'Car insurance' } },
   { pattern: 'rovinieta', type: 'expense', category: { ro: 'Rovinietă și taxe', en: 'Road tax' } },
 ];

@@ -1,6 +1,7 @@
 import { count, eq, max, or } from 'drizzle-orm';
 
 import { schema, type AppDb } from '@/core/db';
+import { normalizeIban } from '../domain/iban';
 
 export type Account = typeof schema.accounts.$inferSelect;
 
@@ -8,6 +9,7 @@ export type AccountInput = {
   id?: number;
   name: string;
   type: Account['type'];
+  iban: string | null;
   currency: string;
   color: string;
   icon: string;
@@ -18,6 +20,7 @@ export function saveAccount(db: AppDb, input: AccountInput): number {
   const values = {
     name: input.name.trim(),
     type: input.type,
+    iban: input.type === 'bank' && input.iban?.trim() ? normalizeIban(input.iban) : null,
     currency: input.currency.trim().toUpperCase(),
     color: input.color,
     icon: input.icon,

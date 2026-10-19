@@ -17,7 +17,21 @@ describe('classifyText', () => {
     );
   });
 
+  it.each([
+    ['Plata la Bolt Food', 'Comandă mâncare'],
+    ['Plata la Uber Eats', 'Comandă mâncare'],
+    ['Plata la Bolt', 'Taxi'],
+    ['Plata la Uber', 'Taxi'],
+    ['Plata la Glovo', 'Comandă mâncare'],
+    ['Plata la Volt', 'Comandă mâncare'],
+    ['Plata la Kaufland', 'Alimente'],
+    ['Plata la Carrefour', 'Alimente'],
+    ['Plata la Mega Image', 'Alimente'],
+  ])('classifies %s', (text, category) => {
+    expect(classifyText(text, DEFAULT_KEYWORD_RULES)?.category?.ro).toBe(category);
+  });
+
   it('returns null when nothing matches', () => {
-    expect(classifyText('Plata la Kaufland', DEFAULT_KEYWORD_RULES)).toBeNull();
+    expect(classifyText('Plata la Xulescu Market', DEFAULT_KEYWORD_RULES)).toBeNull();
   });
 });

@@ -270,6 +270,13 @@ export const migrations: readonly string[] = [
   FROM transactions
   WHERE category_id IS NOT NULL AND type != 'transfer';
   `,
+  `
+  ALTER TABLE accounts ADD COLUMN iban TEXT;
+  `,
+  `
+  CREATE INDEX idx_raw_notifications_package_posted_at
+    ON raw_notifications (package_name, posted_at);
+  `,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {

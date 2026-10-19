@@ -16,6 +16,7 @@ export type ParsedNotification = {
   currency: string;
   merchantRaw: string | null;
   transferToCash?: boolean;
+  transferDirection?: 'incoming' | 'outgoing';
 };
 
 const TRANSFER_WORDS = [
@@ -31,6 +32,22 @@ const TRANSFER_WORDS = [
   'own account',
 ];
 const CASH_WITHDRAWAL_WORDS = ['retragere', 'retragere numerar', 'atm', 'cash withdrawal'];
+const TRANSFER_INCOMING_WORDS = [
+  'transfer primit',
+  'transfer primita',
+  'transfer received',
+  'received transfer',
+  'incoming transfer',
+];
+const TRANSFER_OUTGOING_WORDS = [
+  'transfer catre',
+  'transfer trimis',
+  'transfer sent',
+  'sent transfer',
+  'outgoing transfer',
+  'transfer initiat',
+  'transfer initiated',
+];
 const INCOME_WORDS = [
   'incasare',
   'incasat',
@@ -65,6 +82,16 @@ function detectType(normalizedText: string): TransactionType {
   return 'expense';
 }
 
+function detectTransferDirection(normalizedText: string): 'incoming' | 'outgoing' | undefined {
+  if (TRANSFER_INCOMING_WORDS.some((word) => containsWord(normalizedText, word))) {
+    return 'incoming';
+  }
+  if (TRANSFER_OUTGOING_WORDS.some((word) => containsWord(normalizedText, word))) {
+    return 'outgoing';
+  }
+  return undefined;
+}
+
 // Stops at the first word that usually introduces card details; keeps dots inside names ("S.R.L").
 const MERCHANT_PATTERN =
   /\b(?:la|de la|at|to|from|merchant:?)\s+([^\n,;:()*]+?)(?=\s+(?:cu|pe|din|on|with|card|ref|data|in|\u00een)\b|[,;:()*\n]|\.(?!\S)|$)/i;
@@ -81,7 +108,11 @@ function extractMerchant(text: string, title: string | null, sourceName: string)
 }
 
 /** Turns a bank notification into a structured payment; null when it carries no amount. */
-export function parseNotification({ sourceName, title, body }: NotificationInput): ParsedNotification | null {
+export function parseNotification({
+  sourceName,
+  title,
+  body,
+}: NotificationInput): ParsedNotification | null {
   const text = [title, body].filter(Boolean).join('\n');
   const normalized = text
     .normalize('NFD')
@@ -95,6 +126,7 @@ export function parseNotification({ sourceName, title, body }: NotificationInput
   const amount = extractAmount(text);
   if (!amount) return null;
   const type = detectType(normalized);
+  const transferDirection = type === 'transfer' ? detectTransferDirection(normalized) : undefined;
   const transferToCash =
     type === 'transfer' && CASH_WITHDRAWAL_WORDS.some((word) => containsWord(normalized, word));
 
@@ -103,5 +135,6 @@ export function parseNotification({ sourceName, title, body }: NotificationInput
     ...amount,
     merchantRaw: type === 'transfer' ? null : extractMerchant(body, title, sourceName),
     ...(transferToCash ? { transferToCash: true } : {}),
+    ...(transferDirection ? { transferDirection } : {}),
   };
 }

@@ -62,7 +62,7 @@ describe('parseNotification', () => {
     });
   });
 
-  it('parses the ING Home\'Bank authorization format', () => {
+  it("parses the ING Home'Bank authorization format", () => {
     expect(
       parse(
         'Mesaj nou de la ING',
@@ -77,9 +77,9 @@ describe('parseNotification', () => {
   });
 
   it('stops the merchant before card details', () => {
-    expect(parse('ING', 'Ai platit 12,50 RON la GRAFRELY S.R.L. cu cardul ****1234.')?.merchantRaw).toBe(
-      'GRAFRELY S.R.L',
-    );
+    expect(
+      parse('ING', 'Ai platit 12,50 RON la GRAFRELY S.R.L. cu cardul ****1234.')?.merchantRaw,
+    ).toBe('GRAFRELY S.R.L');
   });
 
   it('parses incoming money', () => {
@@ -98,6 +98,20 @@ describe('parseNotification', () => {
       currency: 'RON',
       merchantRaw: null,
       transferToCash: true,
+    });
+  });
+
+  it('detects the direction of an incoming transfer', () => {
+    expect(parse('ING', 'Transfer primit de la RO49AAAA1B31007593840000: 500 RON')).toMatchObject({
+      type: 'transfer',
+      transferDirection: 'incoming',
+    });
+  });
+
+  it('detects the direction of an outgoing transfer', () => {
+    expect(parse('ING', 'Transfer trimis catre RO49AAAA1B31007593840000: 500 RON')).toMatchObject({
+      type: 'transfer',
+      transferDirection: 'outgoing',
     });
   });
 
@@ -134,7 +148,7 @@ describe('parseNotification', () => {
     expect(
       parse(
         'Mesaj nou de la ING',
-        'Nu ai fonduri suficiente pentru autorizarea tranzactiei in valoare de 29.00 USD efectuata la comerciantul GITHUB, INC.. Poti consulta soldul in Home\'Bank.',
+        "Nu ai fonduri suficiente pentru autorizarea tranzactiei in valoare de 29.00 USD efectuata la comerciantul GITHUB, INC.. Poti consulta soldul in Home'Bank.",
       ),
     ).toBeNull();
   });

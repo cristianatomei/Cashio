@@ -1,4 +1,4 @@
-import { parseStoredLoanSchedule } from './loanScheduleRepo';
+import { parseStoredLoanSchedule, updateStoredLoanScheduleSettings } from './loanScheduleRepo';
 
 describe('parseStoredLoanSchedule', () => {
   const valid = {
@@ -30,5 +30,12 @@ describe('parseStoredLoanSchedule', () => {
         }),
       ),
     ).toThrow('Stored loan schedule data is invalid.');
+  });
+
+  it('updates insurance settings without changing installments or reminder preference', () => {
+    const updated = JSON.parse(
+      updateStoredLoanScheduleSettings(JSON.stringify(valid), { includeInsurance: false }),
+    );
+    expect(updated).toEqual({ ...valid, includeInsurance: false });
   });
 });

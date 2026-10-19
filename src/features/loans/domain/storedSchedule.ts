@@ -54,3 +54,11 @@ export function parseStoredLoanSchedule(value: string): StoredLoanSchedule {
   }
   return schedule;
 }
+
+export function updateStoredLoanScheduleSettings(
+  value: string,
+  settings: Pick<StoredLoanSchedule, 'includeInsurance'>,
+): string {
+  const stored = parseStoredLoanSchedule(value);
+  return JSON.stringify({ ...stored, includeInsurance: settings.includeInsurance });
+}
