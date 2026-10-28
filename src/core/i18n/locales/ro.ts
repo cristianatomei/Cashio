@@ -1,4 +1,23 @@
 export const ro = {
+  productivity: {
+    title: 'Captare și acces rapid',
+    open: 'Deschide',
+    captureToggle: 'Notificări după captarea plăților',
+    captureHint:
+      'Oprite implicit. Cel mult 5 pe zi, în limita a 50 de notificări, fără a înlocui mementourile. Butoanele de categorie deschid aplicația. Captarea se procesează la revenirea în aplicație.',
+    capturedTitle: 'Cashio · Plată captată',
+    capturedBody: 'Verifică plata sau alege o categorie.',
+    permissionDenied:
+      'Permisiunea pentru notificări nu a fost acordată. Activeaz-o din setările sistemului.',
+    deliveryError:
+      'Notificarea de captare nu a putut fi trimisă. Plata rămâne salvată. Verifică permisiunile și reactivează opțiunea.',
+    actionError: 'Categoria nu a putut fi aplicată. Verifică plata în aplicație.',
+    noTransactions: 'Nicio tranzacție confirmată luna aceasta',
+    androidHint:
+      'Adaugă widgetul din ecranul principal, ține apăsat pe pictograma Cashio pentru adăugare rapidă sau adaugă dala din editarea Setărilor rapide. Fluxul lunar înseamnă venituri minus cheltuieli confirmate, separat pe monedă, nu soldul conturilor. Se actualizează când Cashio procesează datele; deschide aplicația pentru date noi. Cu blocarea activată, sumele rămân ascunse.',
+    nativeMissing:
+      'Widgetul, scurtătura și dala necesită o versiune Android nouă construită cu modulul nativ Cashio.',
+  },
   planning: {
     goals: 'Obiective de economisire',
     netWorth: 'Patrimoniu net',

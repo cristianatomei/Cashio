@@ -1,0 +1,6 @@
+<resources>
+  <string name="cashio_add">Add transaction</string>
+  <string name="cashio_monthly">Cashio · Monthly cash flow</string>
+  <string name="cashio_refresh">Open Cashio to refresh</string>
+  <string name="cashio_private">Unlock Cashio to view amounts</string>
+</resources>

@@ -1,0 +1,12 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent" android:layout_height="match_parent"
+  android:orientation="vertical" android:padding="16dp" android:background="#172534">
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:text="@string/cashio_monthly" android:textColor="#FFFFFF" android:textSize="16sp" />
+  <TextView android:id="@+id/cashio_amount" android:layout_width="match_parent"
+    android:layout_height="0dp" android:layout_weight="1" android:textColor="#FFFFFF"
+    android:textSize="18sp" android:maxLines="6" android:text="@string/cashio_refresh" />
+  <TextView android:id="@+id/cashio_add_button" android:layout_width="match_parent"
+    android:layout_height="48dp" android:gravity="center_vertical"
+    android:text="@string/cashio_add" android:textColor="#96EBD5" android:textSize="16sp" />
+</LinearLayout>

@@ -1,6 +1,24 @@
 import type { Resources } from './ro';
 
 export const en: Resources = {
+  productivity: {
+    title: 'Capture and quick access',
+    open: 'Open',
+    captureToggle: 'Captured payment notifications',
+    captureHint:
+      'Off by default. Up to 5 daily within a 50-notification limit, without replacing reminders. Category buttons open the app. Capture is processed when returning to the app.',
+    capturedTitle: 'Cashio · Payment captured',
+    capturedBody: 'Review the payment or choose a category.',
+    permissionDenied: 'Notification permission was not granted. Enable it in system settings.',
+    deliveryError:
+      'The capture notification could not be delivered. Your payment is saved. Check permissions and re-enable this option.',
+    actionError: 'The category could not be applied. Review the payment in the app.',
+    noTransactions: 'No confirmed transactions this month',
+    androidHint:
+      'Add the widget from your home screen, long-press Cashio for quick add, or add the tile through Quick Settings editing. Monthly cash flow is confirmed income minus expenses, separately by currency, not account balances. It updates when Cashio processes data; open the app for fresh data. Amounts remain hidden when app lock is enabled.',
+    nativeMissing:
+      'The widget, shortcut and tile require a new Android build containing the Cashio native module.',
+  },
   planning: {
     goals: 'Savings goals',
     netWorth: 'Net worth',

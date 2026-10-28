@@ -1,4 +1,5 @@
 import type { AppDb, Language } from '@/core/db';
+import { latestTransactionId, notifyNewCaptures } from '@/features/productivity/data/notifications';
 
 import { applyCaptureSources, drainPendingNotifications } from './rawNotifications';
 import { processRawNotifications } from './pipeline';
@@ -11,7 +12,10 @@ export function syncCapture(db: AppDb, language: Language): Promise<number> {
   inFlight ??= (async () => {
     applyCaptureSources(db);
     await drainPendingNotifications(db);
-    return processRawNotifications(db, language);
+    const afterId = latestTransactionId(db);
+    const created = processRawNotifications(db, language);
+    await notifyNewCaptures(db, afterId);
+    return created;
   })().finally(() => {
     inFlight = null;
   });
