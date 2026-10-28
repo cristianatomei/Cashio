@@ -132,7 +132,11 @@ export async function createCashioBackup(db: SQLiteDatabase): Promise<CashioBack
 
   await db.withExclusiveTransactionAsync(async (transaction) => {
     for (const table of TABLES) {
-      tables[table] = await transaction.getAllAsync<BackupRow>(`SELECT * FROM "${table}"`);
+      const rows = await transaction.getAllAsync<BackupRow>(`SELECT * FROM "${table}"`);
+      tables[table] =
+        table === 'app_settings'
+          ? rows.filter((row) => row.key !== 'backup_folder_uri' && row.key !== 'backup_last_at')
+          : rows;
     }
   });
 

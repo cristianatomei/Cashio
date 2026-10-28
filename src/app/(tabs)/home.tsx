@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 
 import { DEFAULT_CURRENCY, schema, useDb } from '@/core/db';
 import {
@@ -30,6 +30,7 @@ import {
   useCaptureRefresh,
 } from '@/features/capture';
 import { installmentTotal, parseStoredLoanSchedule } from '@/features/loans';
+import { backupSettingKeys, isBackupStale } from '@/features/backup';
 import {
   recurringPaymentsInRange,
   useNextMonthEstimate,
@@ -60,6 +61,13 @@ export default function HomeScreen() {
     db.select().from(schema.exchangeRates).orderBy(desc(schema.exchangeRates.effectiveAt)),
   );
   const [now] = useState(() => Date.now());
+  const [backupCheckAt, setBackupCheckAt] = useState(now);
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') setBackupCheckAt(Date.now());
+    });
+    return () => subscription.remove();
+  }, []);
   const baseCurrency =
     db
       .select({ value: schema.appSettings.value })
@@ -73,6 +81,7 @@ export default function HomeScreen() {
   const recurringRules = useRecurringRules();
   const budgets = useBudgetViews(monthRange(now).from);
   const { data: loanSchedules } = useLiveQuery(db.select().from(schema.loanSchedules));
+  const { data: appSettings } = useLiveQuery(db.select().from(schema.appSettings));
   const [range] = useState(() => monthRange(now));
   const monthViews = useTransactionViews(range);
   const previousMonthViews = useTransactionViews(monthRange(addMonths(range.from, -1)));
@@ -135,6 +144,12 @@ export default function HomeScreen() {
       .sort((left, right) => left.dueAt - right.dueAt || left.key.localeCompare(right.key))
       .slice(0, UPCOMING_COUNT);
   }, [loanSchedules, now, recurringRules, t]);
+  const lastBackupValue = appSettings.find((setting) => setting.key === backupSettingKeys.lastAt)
+    ?.value;
+  const lastBackupAt =
+    lastBackupValue && Number.isSafeInteger(Number(lastBackupValue))
+      ? Number(lastBackupValue)
+      : null;
   const priorityBudgets = useMemo(
     () =>
       [...budgets]
@@ -171,6 +186,17 @@ export default function HomeScreen() {
       headerAction={<NotificationBellButton />}
       onRefresh={refresh}
     >
+      {isBackupStale(lastBackupAt, backupCheckAt) ? (
+        <Card>
+          <ListRow
+            title={t('home.backupWarning')}
+            subtitle={t('home.backupWarningHint')}
+            leading={<Ionicons name="cloud-offline-outline" size={28} color={colors.warning} />}
+            trailing={<Ionicons name="chevron-forward" size={18} color={colors.textMuted} />}
+            onPress={() => router.push('/settings')}
+          />
+        </Card>
+      ) : null}
       {drafts.length > 0 ? (
         <Card>
           <ListRow

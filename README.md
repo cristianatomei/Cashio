@@ -76,7 +76,7 @@ Planul complet (decizii, schema, biblioteci, verificare) e în [PLAN.md](PLAN.md
 ```
 src/
   app/                     rute expo-router: index (redirect), (tabs)/ (home, transactions, add, stats, more),
-                           add-transaction (formular, și editare cu ?id=), captured, recurring, budgets, data, settings,
+                           add-transaction (formular, și editare cu ?id=), captured, recurring, budgets, data, settings, onboarding,
                            manage/ (accounts, categories, merchants, tags)
   core/
     db/                    schema.ts (Drizzle), migrations.ts, defaults.ts + seed.ts (date inițiale), index.ts (useDb)
@@ -85,7 +85,7 @@ src/
     ui/                    theme/ (paletă, tokeni, ThemeProvider), components/ (AppText, Card, Screen, Button, SheetModal, ...)
     utils/                 money.ts, dates.ts, calculator.ts (+ teste)
   features/                fiecare modul: domain/ (TypeScript pur), data/ (repository-uri, interogări live), ui/, index.ts
-    accounts/  categories/  merchants/  tags/  transactions/  capture/  recurring/
+    accounts/  categories/  merchants/  tags/  transactions/  capture/  onboarding/  recurring/
     stats/  budgets/  backup/  loans/  parsing/
 modules/
   notification-listener/   modul nativ Android (Kotlin) + index.ts
@@ -106,6 +106,7 @@ Datele inițiale se creează la prima inițializare. Migrările ulterioare trebu
 ## Ce conține aplicația acum
 
 - **Acasă:** sold total, rezumatul lunii, comparație cu luna trecută, conturi cu sold real, ultimele tranzacții și estimarea obligațiilor; un banner semnalează accesul revocat sau lipsa notificărilor bancare, cu prag configurabil în Setări (3/7/14/30 zile).
+- **La prima pornire:** ghid RO/EN pentru accesul la notificări, optimizarea bateriei Samsung, conturile active, moneda de bază și limbă; configurarea se poate relua din Setări și este salvată local.
 - **Setări (Mai mult → Setări):** temă Sistem / Deschis / Întunecat și limbă Română / English, persistente; blocare opțională cu biometrie sau codul telefonului la pornire și după un timeout de 0, 1, 5 sau 15 minute în fundal. Dezactivată implicit. Paleta aleasă este albastru ocean + turcoaz; culorile deja personalizate pentru conturi/categorii nu sunt modificate.
 - **Tranzacții:** lună cu săgetăi, rezumat, căutare (comerciant, categorie, etichetă, notă), filtre pe tip, grupare pe zile cu total pe zi; atingere = editare. La filtrul Cheltuieli este disponibil și importul CSV ING, cu previzualizare și selectarea contului.
 - **Adaugare/editare (butonul +):** Cheltuială / Venit / Transfer, sumă cu calculator (+ − × ÷), categorie (grupuri cu iconițe), cont, comerciant (creat din căutare; completează categoria implicită), dată și oră, etichete (create din selector), notă.
@@ -116,7 +117,7 @@ Datele inițiale se creează la prima inițializare. Migrările ulterioare trebu
 - **Statistici:** distribuție pe grupuri/categorii, trend, top comercianți, intervale predefinite/personalizate și plăți recurente.
 - **Investiții Revolut:** activele deținute se adaugă manual (nume și simbol); mișcările explicite de creștere/scădere găsite în notificările Revolut sunt evidențiate în aplicație, iar aceste notificări nu sunt importate accidental ca cheltuieli. Nu se preiau cotații externe și nu se oferă recomandări de investiții.
 - **Bugete:** limite lunare pe categorie/grup, rollover și notificări la 80%/100%.
-- **Date și backup:** cursuri valutare manuale datate, import CSV ING cu deduplicare, export/restaurare JSON cu validare și confirmare. Formatul CSV actual Home’Bank trebuie confirmat pe un export real.
+- **Date și backup:** cursuri valutare manuale datate, import CSV ING cu deduplicare, export/restaurare JSON cu validare și confirmare, plus backup automat zilnic/săptămânal la deschiderea aplicației. Frecvența și retenția se configurează în Setări; destinația poate fi aleasă prin SAF pe Android, iar pe iOS se folosește folderul Documents al aplicației. Date și backup afișează data ultimului backup, iar Acasă avertizează dacă acesta lipsește sau are peste 14 zile. Formatul CSV actual Home’Bank trebuie confirmat pe un export real.
 - **Scadențare salvate (Date și backup):** detaliile următoarelor șase rate (dobândă, principal și asigurare), activarea/dezactivarea reminderelor și ștergerea cu confirmare. Erorile de salvare și de reprogramare a reminderelor sunt afișate separat; verificarea pe telefon rămâne necesară.
 - **Istoric notificări:** triere separată de parsare, acces la tranzacția legată; în cod există și refresh prin gest și indicator pentru notificările deschise, de verificat pe telefon.
 - Categoriile „Retrageri cash” din Oinkoin sunt înlocuite aici de transferul către contul Numerar.
