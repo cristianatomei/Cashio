@@ -26,6 +26,15 @@ Anterior, pe alb, textul estompat avea 3,15:1, venitul 2,93:1, cheltuiala 3,47:1
 
 ## Progres și punct de reluare — 28.10.2026
 
+### Acasă: disponibil până la salariu (#15)
+
+- Data următorului salariu se introduce explicit în Acasă (`AAAA-LL-ZZ`); nu este dedusă din venituri și nu avansează automat. După ziua salariului trebuie actualizată. Fără o dată viitoare validă sau fără conturi, nu se afișează o sumă zilnică.
+- Calcul: soldurile conturilor ne-arhivate minus plățile cunoscute din intervalul `[azi, data salariului)`, împărțit la numărul de zile calendaristice (inclusiv azi). Suma zilnică este rotunjită în jos la bani și limitată la zero; deficitul rămâne vizibil separat. Nu se adaugă venituri viitoare și nu se scad din nou cheltuielile istorice.
+- Sunt rezervate doar recurentele de cheltuieli și ratele, cu asigurare dacă este activată. Scadențarul înlocuiește regula asociată prin `recurringId`; asocierea explicită unu-la-unu poate fi setată/eliminată din „Verifică duplicatele rate / recurente” în Acasă. Nu se deduce din sume similare și nu modifică reminderele sau estimarea separată din Recurente. Plățile confirmate cu asociere explicită și aceeași zi/monedă reduc obligația restantă; asocierile ambigue și sugestiile bazate pe text nu reduc rezerva.
+- Se folosesc cursurile salvate cele mai recente care nu sunt în viitor și conversia existentă în moneda de bază. Lipsa unui curs pentru un cont sau o obligație blochează suma zilnică, nu este tratată ca zero.
+- Estimarea nu include restanțe anterioare zilei curente, cheltuieli variabile nesalvate sau duplicate fără asociere explicită. Pentru recurente variabile se folosește suma salvată. Aceste limite sunt afișate și în interfață; verifică Recurente înainte de a te baza pe estimare.
+- Ordinea cardurilor este: sold/disponibil, De clasificat, Scadențe, Bugete. Fără o dată a salariului, Scadențe arată următoarele 30 de zile, fără calcul zilnic. Stările goale oferă acces la configurare; încărcarea inițială folosește un skeleton static, cu etichetă accesibilă și culori din tema activă.
+
 ### Planificare: obiective și patrimoniu (#22, #24; pregătit în această ramură)
 
 - Mai mult → Planificare conține **Obiective de economisire** și **Patrimoniu net**, cu carduri pe Acasă și texte RO/EN.
