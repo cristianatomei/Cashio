@@ -292,6 +292,23 @@ export const migrations: readonly string[] = [
     created_at INTEGER NOT NULL
   );
   `,
+  `
+  CREATE TABLE savings_goals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+    currency TEXT NOT NULL CHECK (length(currency) = 3),
+    target_minor INTEGER NOT NULL CHECK (target_minor > 0),
+    current_minor INTEGER NOT NULL CHECK (current_minor >= 0),
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  CREATE TABLE investment_valuations (
+    asset_id TEXT PRIMARY KEY NOT NULL,
+    amount_minor INTEGER NOT NULL CHECK (amount_minor >= 0),
+    currency TEXT NOT NULL CHECK (length(currency) = 3),
+    valued_at INTEGER NOT NULL
+  );
+  `,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {

@@ -36,12 +36,14 @@ describe('parseCashioBackup', () => {
         transaction_allocations: [],
         merchant_category_rules: [],
         saved_transaction_filters: [],
+        savings_goals: [],
+        investment_valuations: [],
       },
     });
   });
 
   it('rejects incompatible formats and missing tables', () => {
-    expect(() => parseCashioBackup(JSON.stringify({ ...backup, version: 3 }))).toThrow(
+    expect(() => parseCashioBackup(JSON.stringify({ ...backup, version: 4 }))).toThrow(
       'Unsupported backup format or version.',
     );
     const { capture_rules: _captureRules, ...tables } = backup.tables;
@@ -113,5 +115,11 @@ describe('backup schema compatibility', () => {
     expect(isSupportedBackupSchemaVersion(current - 4, current)).toBe(true);
     expect(isSupportedBackupSchemaVersion(5, current)).toBe(true);
     expect(isSupportedBackupSchemaVersion(4, current)).toBe(false);
+    for (const version of [5, 6, 7, 8, 9, 10]) {
+      expect(isSupportedBackupSchemaVersion(version, current)).toBe(true);
+    }
+    for (const version of [0, 4, current + 1]) {
+      expect(isSupportedBackupSchemaVersion(version, current)).toBe(false);
+    }
   });
 });
