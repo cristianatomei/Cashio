@@ -653,6 +653,40 @@ export const ro = {
     dismissTitle: 'Ștergi plățile?',
     dismissBody: 'Se șterg {{count}} plăți captate. Nu se poate anula.',
   },
+  workflows: {
+    missingTransaction: 'Tranzacția nu există sau legătura este invalidă.',
+    select: 'Selectează',
+    selectAll: 'Selectează toate cele afișate',
+    selected: '{{count}} selectate',
+    confirm: 'Confirmă',
+    ignore: 'Ignoră',
+    remaining: '{{count}} rămase · ținta: zero',
+    swipeHint:
+      'Glisează spre dreapta pentru confirmare, spre stânga pentru ignorare. Sau selectează plățile și folosește butoanele.',
+    undo: 'Anulează acțiunea',
+    applied: 'Actualizate: {{count}}. Anulează sau apasă Gata înainte de următoarea acțiune.',
+    batchError:
+      'Nu s-a schimbat nimic. Verifică tipul categoriei, contul și moneda. Plățile împărțite se editează individual; confirmarea necesită categorie sau conturile transferului.',
+    undoError:
+      'Nu s-a putut anula. Datele au fost modificate între timp sau o legătură nu mai există. Nu s-au suprascris date.',
+    addTags: 'Adaugă etichete',
+    saveView: 'Salvează vizualizarea',
+    savedViews: 'Vizualizări salvate',
+    from: 'De la (AAAA-LL-ZZ)',
+    to: 'Până la, inclusiv (AAAA-LL-ZZ)',
+    applyDates: 'Aplică perioada',
+    filterError: 'Verifică numele unic și perioada validă (ambele date sau niciuna).',
+    learnFuture: 'Aplici categoria la plățile viitoare ale comerciantului?',
+    retroactive: 'Aplică și istoricului acestui comerciant',
+    retroactiveHint:
+      'Opțional: schimbă categoria plăților existente de același tip. Plățile împărțite sunt excluse. Nu le confirmă.',
+    saveError:
+      'Salvarea nu a reușit. Verifică comerciantul, categoria și legăturile cu ratele creditului. Dezasociază rata înainte să schimbi tipul, moneda, obligația recurentă sau să muți plata în viitor.',
+    rules: 'Reguli comerciant → categorie',
+    rulesHint:
+      'Atinge pentru a schimba categoria viitoare. Ștergerea oprește această regulă; categoria implicită și regulile de cuvinte-cheie rămân active.',
+    noRules: 'Nicio regulă învățată.',
+  },
   errors: {
     generic: 'Ceva nu a mers. Încearcă din nou.',
   },

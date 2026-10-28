@@ -1,4 +1,4 @@
-import { and, desc, eq, lte } from 'drizzle-orm';
+import { and, desc, eq, lte, sql } from 'drizzle-orm';
 
 import { DEFAULT_CURRENCY } from '@/core/db';
 import type { TransactionType } from '@/core/domain/transaction';
@@ -81,13 +81,47 @@ export function saveTransaction(db: AppDb, input: TransactionInput): number {
     let matchedRuleId: number | null = null;
     let matchedNextDue: number | null = null;
     if (input.id !== undefined) {
+      let linkedLoanRecurringId: number | null | undefined;
+      if (
+        tx.all<{ name: string }>(
+          sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'loan_payment_links'`,
+        ).length
+      ) {
+        const linked = tx.all<{ currency: string; recurring_id: number | null }>(
+          sql`SELECT loan_schedules.currency, loan_schedules.recurring_id FROM loan_payment_links JOIN loan_schedules ON loan_schedules.id = loan_payment_links.schedule_id WHERE transaction_id = ${input.id}`,
+        );
+        if (
+          linked.some(
+            (schedule) =>
+              input.type !== 'expense' ||
+              input.currency !== schedule.currency ||
+              input.occurredAt > now,
+          )
+        ) {
+          throw new Error(
+            'Unlink the loan installment before changing its payment type or currency.',
+          );
+        }
+        linkedLoanRecurringId = linked[0]?.recurring_id;
+      }
       const existing = tx
         .select({ recurringId: schema.transactions.recurringId })
         .from(schema.transactions)
         .where(eq(schema.transactions.id, input.id))
         .get();
+      if (!existing) throw new Error('The transaction no longer exists.');
       const recurringRules = tx.select().from(schema.recurringRules).all();
       const recurringMatch = existing?.recurringId ? null : matchRecurring(input, recurringRules);
+      const nextRecurringId = recurringMatch?.id ?? existing.recurringId;
+      if (
+        linkedLoanRecurringId !== undefined &&
+        nextRecurringId !== null &&
+        nextRecurringId !== linkedLoanRecurringId
+      ) {
+        throw new Error(
+          'Unlink the loan installment before matching another recurring obligation.',
+        );
+      }
       tx.update(schema.transactions)
         .set({ ...values, recurringId: recurringMatch?.id ?? existing?.recurringId ?? null })
         .where(eq(schema.transactions.id, input.id))

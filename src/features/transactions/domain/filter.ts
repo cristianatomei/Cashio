@@ -5,22 +5,44 @@ import { transactionTitle, type TransactionView } from './views';
 export type TransactionFilter = {
   query: string;
   type: 'all' | TransactionType;
-  categoryId?: number | null;
+  categoryId?: number | 'uncategorized' | null;
+  groupId?: number | 'uncategorized' | null;
   accountId?: number | null;
+  tagId?: number | null;
+  currency?: string;
 };
 
 /** Case-insensitive match on title, category, merchant, note and tags. */
 export function filterTransactions(
   views: readonly TransactionView[],
-  { query, type, categoryId, accountId }: TransactionFilter,
+  { query, type, categoryId, groupId, accountId, tagId, currency }: TransactionFilter,
 ): TransactionView[] {
   const needle = query.trim().toLowerCase();
 
   return views.filter((view) => {
+    if (currency && view.currency !== currency) return false;
+    if (
+      categoryId === 'uncategorized' &&
+      view.category !== null &&
+      !view.allocations.some((item) => item.category === null)
+    )
+      return false;
+    if (
+      groupId === 'uncategorized' &&
+      view.category !== null &&
+      !view.allocations.some((item) => item.category === null)
+    )
+      return false;
+    if (
+      typeof groupId === 'number' &&
+      view.category?.groupId !== groupId &&
+      !view.allocations.some((item) => item.category?.groupId === groupId)
+    )
+      return false;
+    if (tagId != null && !view.tags.some((tag) => tag.id === tagId)) return false;
     if (type !== 'all' && view.type !== type) return false;
     if (
-      categoryId !== null &&
-      categoryId !== undefined &&
+      typeof categoryId === 'number' &&
       view.category?.id !== categoryId &&
       !view.allocations.some((allocation) => allocation.category?.id === categoryId)
     ) {
