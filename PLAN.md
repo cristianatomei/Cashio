@@ -2,6 +2,13 @@
 
 Aplicație Android-first (Expo), local-first, pentru urmărirea cheltuielilor cu captare automată din notificări. Fără backend, fără abonament.
 
+## Integrare în lucru — 28.10.2026
+
+- Modificările din PR #2 și #5 sunt integrate în branch-ul de lucru, nu încă în `master`.
+- Estimarea include ratele individuale, dar poate număra dublu plățile istorice sau o regulă recurentă pentru același credit. Este necesară asocierea explicită, confirmată, înainte de eliminarea dublurilor; nu considera tichetul #4 finalizat.
+- Potrivirile de plăți afișate sunt doar posibile, nu confirmări persistente. Cazurile cu mai multe potriviri nu sunt asociate automat.
+- Instalarea APK-ului, actualizarea fără pierderi de date și validarea fluxurilor native pe telefon rămân de verificat conform tichetului #3.
+
 ## Actualizare — 19.10.2026
 
 Punctul curent de reluare și jurnalul sesiunii sunt în [README.md](README.md#punct-de-reluare--19102026). Utilizatorul dorește continuarea prin GitHub de pe telefon și utilizarea unui APK autonom.
@@ -38,7 +45,7 @@ Secțiunea de mai jos păstrează situația din 11.10.2026; stările depășite 
 
 - Etapele 3/4/5 cerute anterior: statistici, bugete/recurente/estimare și o parte importantă din finalizare (multi-valută, CSV ING, backup, setări persistente).
 - Paleta aleasă: **albastru ocean + turcoaz**, nu mov; selecție Română/English și Sistem/Deschis/Întunecat.
-- Flux PDF ING în `src/app/data.tsx`, parser în `src/features/loans/domain/ingSchedule.ts`, stocare locală în `loan_schedules`, modul nativ `modules/loan-pdf` cu PdfBox-Android.
+- Flux PDF ING în `src/app/data.tsx`, parser în `src/features/loans/domain/ingSchedule.ts`, stocare locală în `loan_schedules`, modul nativ `modules/loan-pdf` cu PdfBox-Android. Importul plăților din raportul CSV Home’Bank este separat; tranzacțiile de credit recunoscute după descriere sunt asociate orientativ ratelor la ±5 zile, iar diferențele de sumă sunt semnalate.
 - Preview: număr de rate, monedă, șase scadențe viitoare și componentele plată/dobândă/principal/asigurare; opțiune de includere a asigurării.
 - Remindere individuale cu o zi înainte la 09:00; maximum **50 de scadențe în total** între toate scadențarele, reîmprospătate la pornire/revenire în aplicație.
 - Cod pentru tranzacții fără cont, repartizări între categorii, refresh prin gest și indicator de notificări deschise; de validat manual.
@@ -55,7 +62,7 @@ Secțiunea de mai jos păstrează situația din 11.10.2026; stările depășite 
 
 ### Limite și date private
 
-- PDF: numai Android, text selectabil; fără OCR. Parserul este testat pe date sintetice, nu pe textul PDFBox real. Antetele/diacriticele, ordinea coloanelor și rândurile parțial citite rămân puncte de verificat.
+- PDF: numai Android, text selectabil; fără OCR. Parserul este testat pe date sintetice, nu pe textul PDFBox real. Antetele/diacriticele, ordinea coloanelor și rândurile parțial citite rămân puncte de verificat. Reconcilierea ratelor folosește cuvinte-cheie din descriere și nu este o confirmare contabilă; tranzacțiile descrise generic pot rămâne neasociate, iar potrivirile trebuie verificate.
 - Reminderele sunt notificări locale, **nu evenimente în calendarul telefonului**; plafonul de 50 se reîmprospătează numai când aplicația rulează/revine în prim-plan.
 - Cele două extracții text temporare ale scadențarelor au fost șterse. Dacă sunt necesare din nou documentele reale, cere utilizatorului să le furnizeze local; nu salva date financiare sau identificatori în repo, teste, documentație ori loguri.
 - Nu marca modulul PDF, faza E sau release-ul drept finalizate doar pentru că verificările TypeScript/Jest trec.
@@ -97,7 +104,7 @@ Paletă albastru ocean + turcoaz: primar `#145DA0` în tema deschisă / `#60A5FA
 - [x] **D. Statistici:** Acasă (sold, comparație cu luna trecută), donut pe grupuri/categorii, trend, top comercianți, interval personalizat, plăți recurente și conversie în valuta de bază când există curs salvat. Testele unitare trec; mai necesită verificare vizuală pe telefon.
 - [ ] **E. Bugete, recurente și estimare** (implementat, de verificat pe telefon): obligații locale lunare/anuale cu interval, cont, comerciant/categorie, sumă fixă sau variabilă și scadență; matching strict al plății și avansarea scadenței; vedere lunară combinată pentru recurente și scadențare PDF; estimare luna următoare; ecran Recurente și card Acasă; bugete cu rollover și alertă 80%/100%; listă „de plătit” și remindere cu o zi înainte la 09:00. Rămas: verificare manuală pe telefon/emulator, inclusiv permisiuni și notificări.
 - [x] **Istoric notificări/lead-uri:** textul original rămâne local; starea de triere (deschis/rezolvat/ignorat) este separată de procesarea parserului; tranzacțiile legate pot fi deschise din istoric.
-- [ ] **F. Finalizare:** multi-valută, import CSV ING, backup/restaurare, scadențare PDF ING, widget Android, polish, build release APK. Implementate: cursuri manuale datate și conversie sigură în valuta de bază, import CSV ING cu deduplicare, export/restaurare JSON cu validare și confirmare, import local al scadențarelor PDF ING pe Android cu previzualizare și remindere individuale pentru următoarele 50 de scadențe (reîmprospătate la pornire/revenirea în aplicație), paletă albastru ocean + turcoaz, profil EAS pentru APK. Rămase: validarea parserului contra PDFBox și a migrării v5 pe dispozitiv, verificarea formatului actual ING pe un export CSV real, widget Android, verificări finale pe dispozitiv și build APK release.
+- [ ] **F. Finalizare:** multi-valută, import CSV ING, backup/restaurare, scadențare PDF ING, widget Android, polish, build release APK. Implementate: cursuri manuale datate și conversie sigură în valuta de bază, import separat al plăților CSV ING cu deduplicare la import repetat și față de notificări compatibile, semnalarea diferențelor de sumă pentru plăți de credit identificabile în apropierea scadenței, export/restaurare JSON cu validare și confirmare, import local al scadențarelor PDF ING pe Android cu previzualizare și remindere individuale pentru următoarele 50 de scadențe (reîmprospătate la pornire/revenirea în aplicație), paletă albastru ocean + turcoaz, profil EAS pentru APK. Rămase: validarea parserului contra PDFBox și a migrării v5 pe dispozitiv, verificarea formatului actual ING pe un export CSV real, widget Android, verificări finale pe dispozitiv și build APK release.
 
 Ordine: A, apoi B, apoi C și D (în paralel), apoi E (implementare parțială), apoi F.
 

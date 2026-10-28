@@ -227,6 +227,9 @@ export default function HomeScreen() {
                 onPress={() => router.push('/recurring')}
               />
             ))}
+            {loanSchedules.length > 0 ? (
+              <AppText color="textSecondary">{t('recurring.forecastLoanWarning')}</AppText>
+            ) : null}
           </Card>
         </>
       ) : null}

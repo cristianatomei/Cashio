@@ -159,8 +159,9 @@ export const ro = {
       'Restaurarea înlocuiește toate datele actuale. Această acțiune nu poate fi anulată.',
     restoreSuccess: 'Datele au fost restaurate.',
     restoreError: 'Backupul nu a putut fi validat sau restaurat.',
-    csvTitle: 'Import ING Home’Bank',
-    csvHint: 'Importă un fișier CSV cu data, descrierea și suma tranzacției.',
+    csvTitle: 'Import plăți ING Home’Bank',
+    csvHint:
+      'Importă raportul CSV de tranzacții ING pentru a adăuga plățile efectuate. Acest import este separat de scadentar.',
     csvAction: 'Alege fișier CSV',
     csvError: 'Fișierul nu poate fi citit sau nu are coloanele ING recunoscute.',
     csvPreview: '{{count}} tranzacții valide găsite · {{skipped}} rânduri ignorate.',
@@ -175,9 +176,9 @@ export const ro = {
     saveRate: 'Salvează cursul',
     rateInvalid: 'Introdu un cod de monedă din 3 litere și un curs pozitiv.',
     rateError: 'Cursul valutar nu a putut fi salvat.',
-    loanTitle: 'Scadențare de credit',
+    loanTitle: 'Import scadentar ING',
     loanHint:
-      'Importă un scadențar ING PDF pentru a vedea ratele viitoare și, opțional, a seta remindere pentru plăți.',
+      'Importă separat scadentarul ING PDF pentru a vedea ratele viitoare și, opțional, a seta remindere. Plățile efectuate se importă din raportul Home’Bank.',
     loanAndroidOnly: 'Importul scadențarelor PDF este disponibil momentan doar pe Android.',
     loanChoosePdf: 'Alege PDF-ul scadențarului',
     loanName: 'Denumire scadențar',
@@ -214,6 +215,9 @@ export const ro = {
     loanDeleteReminderError:
       'Scadențarul a fost șters, dar reminderele nu au putut fi reîmprospătate.',
     loanNoUpcoming: 'Nu mai sunt rate viitoare.',
+    loanPaymentCheckTitle: 'Verificarea plăților importate',
+    loanPaymentMatched: 'Plată posibilă la {{date}} · {{amount}}',
+    loanPaymentConflict: 'Plată posibilă la {{date}} · estimat {{expected}}, găsit {{actual}}',
   },
   captured: {
     title: 'Notificări captate',
@@ -246,6 +250,7 @@ export const ro = {
     forecast: 'Estimare luna viitoare',
     forecastTotal: 'Estimare totală',
     forecastBreakdown: 'Obligații {{obligations}} · Cheltuieli variabile {{variable}}',
+    forecastLoanWarning: 'Estimarea poate număra de două ori ratele din scadențare, plățile anterioare sau regulile recurente.',
     forecastEmpty: 'Adaugă cheltuieli sau obligații pentru a calcula estimarea.',
     monthlySchedule: 'Plăți programate pe lună',
     monthlyScheduleEmpty: 'Nu sunt plăți programate în luna selectată.',

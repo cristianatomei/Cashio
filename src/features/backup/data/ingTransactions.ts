@@ -1,7 +1,8 @@
-import { and, desc, eq, lte } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, lte, or } from 'drizzle-orm';
 
 import { DEFAULT_CURRENCY, schema, type AppDb } from '@/core/db';
 import { convertToBaseMinor } from '@/core/utils/currency';
+import { findUnusedCapturedPayment } from '../domain/capturedPaymentMatch';
 import type { IngTransactionRow } from '../domain/ingCsv';
 
 export type IngImportResult = {
@@ -30,10 +31,46 @@ export function importIngTransactions(
     let duplicates = 0;
     let currencyMismatches = 0;
     const occurrences = new Map<string, number>();
+    const usedCapturedPayments = new Set<number>();
 
     for (const row of rows) {
       if (row.currency !== account.currency) {
         currencyMismatches += 1;
+        continue;
+      }
+
+      const dateStart = new Date(row.date);
+      dateStart.setHours(0, 0, 0, 0);
+      const dateEnd = new Date(dateStart);
+      dateEnd.setDate(dateEnd.getDate() + 1);
+      const capturedPayments = tx
+        .select({
+          id: schema.transactions.id,
+          type: schema.transactions.type,
+          amountMinor: schema.transactions.amountMinor,
+          currency: schema.transactions.currency,
+          merchantRaw: schema.transactions.merchantRaw,
+        })
+        .from(schema.transactions)
+        .where(
+          and(
+            eq(schema.transactions.accountId, accountId),
+            eq(schema.transactions.amountMinor, Math.abs(row.amountMinor)),
+            eq(schema.transactions.currency, row.currency),
+            eq(schema.transactions.status, 'confirmed'),
+            gte(schema.transactions.occurredAt, dateStart.getTime()),
+            lt(schema.transactions.occurredAt, dateEnd.getTime()),
+            or(
+              eq(schema.transactions.source, 'notification'),
+              eq(schema.transactions.source, 'sms'),
+            ),
+          ),
+        )
+        .all();
+      const capturedMatch = findUnusedCapturedPayment(row, capturedPayments, usedCapturedPayments);
+      if (capturedMatch) {
+        usedCapturedPayments.add(capturedMatch.id);
+        duplicates += 1;
         continue;
       }
 
