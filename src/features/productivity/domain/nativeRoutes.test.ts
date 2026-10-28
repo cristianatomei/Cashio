@@ -10,7 +10,11 @@ it('wires widget and tile through the existing Expo Router add screen', () => {
   const widget = read('java/expo/modules/productivity/CashioWidget.kt');
   const tile = read('java/expo/modules/productivity/CashioTile.kt');
   const module = read('java/expo/modules/productivity/ProductivityModule.kt');
-  expect(widget).toContain('"cashio:///add-transaction"');
+  expect(widget).toContain('val route = if (add) "/add-transaction" else "/"');
+  expect(widget).toContain('Uri.parse("$scheme://$route")');
+  expect(widget).toContain('context.packageName.endsWith(".e2e")');
+  expect(widget).toContain('"cashio-e2e" else "cashio"');
+  expect(widget).toContain('getLaunchIntentForPackage(context.packageName)');
   expect(widget).toContain('cashioPendingIntent(context, true)');
   expect(tile).toContain('cashioPendingIntent(this, true)');
   expect(tile).toContain('launchCashio(this, true)');

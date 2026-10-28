@@ -17,6 +17,8 @@ These changes are **pending merge**, not part of an integrated/released APK.
 - Android: add the widget through the launcher, long-press the app icon for Add transaction,
   or add Cashio's tile from Quick Settings editing. All shortcuts target `cashio:///add-transaction`
   through Expo Router and the existing app-lock overlay.
+  Disposable `.e2e` application IDs use `cashio-e2e` instead, with an explicit launch component
+  resolved from the current application ID so test shortcuts cannot launch the production app.
 - The widget shows this local month's **confirmed income minus expenses, separately by currency**,
   not account balances or a misleading mixed-currency total. Drafts/transfers are excluded.
   It refreshes after database changes, foregrounding and while the app runs; an expired month

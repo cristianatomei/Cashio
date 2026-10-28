@@ -12,11 +12,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-internal fun launchCashio(context: Context, add: Boolean): Intent =
-  (context.packageManager.getLaunchIntentForPackage(context.packageName) ?: Intent())
+internal fun launchCashio(context: Context, add: Boolean): Intent {
+  val scheme = if (context.packageName.endsWith(".e2e")) "cashio-e2e" else "cashio"
+  val route = if (add) "/add-transaction" else "/"
+  return (context.packageManager.getLaunchIntentForPackage(context.packageName) ?: Intent())
     .setAction(Intent.ACTION_VIEW)
-    .setData(Uri.parse(if (add) "cashio:///add-transaction" else "cashio:///"))
+    .setData(Uri.parse("$scheme://$route"))
     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+}
 
 internal fun cashioPendingIntent(context: Context, add: Boolean): PendingIntent =
   PendingIntent.getActivity(context, if (add) 1 else 0, launchCashio(context, add),
