@@ -4,6 +4,8 @@ Aplicație Android-first (Expo), local-first, pentru urmărirea cheltuielilor cu
 
 ## Integrare în lucru — 28.10.2026
 
+- Propus pe `feat/rates-quality`, **neintegrat**: FX public opt-in fără transmiterea datelor financiare și fără migrare; teste reale SQLite v1–v9; flow-uri Maestro izolate într-o aplicație sintetică. Lint/typecheck, exportul JavaScript Android, 213 teste Jest și 17 teste Node/SQLite/siguranță trec local. Maestro/Android SDK lipsesc; #26 rămâne parțial până la execuție, #25 necesită și verificarea directă a termenilor BCE/endpointului live. Checklist-ul fizic din README este neexecutat; #3 rămâne deschis.
+
 - Modificările din PR #2 și #5 sunt integrate în branch-ul de lucru, nu încă în `master`.
 - Estimarea include ratele individuale, dar poate număra dublu plățile istorice sau o regulă recurentă pentru același credit. Este necesară asocierea explicită, confirmată, înainte de eliminarea dublurilor; nu considera tichetul #4 finalizat.
 - Potrivirile de plăți afișate sunt doar posibile, nu confirmări persistente. Cazurile cu mai multe potriviri nu sunt asociate automat.

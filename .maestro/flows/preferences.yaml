@@ -1,0 +1,30 @@
+appId: com.cashio.app.e2e
+name: Offline opt-in preference and navigation
+---
+- runFlow: ../setup/onboarding.yaml
+- tapOn: 'More'
+- scrollUntilVisible:
+    element: 'Settings'
+- tapOn: 'Settings'
+- assertVisible: 'Optional public exchange rates'
+- assertVisible: 'Disabled — no requests.*'
+- tapOn: 'Allow public exchange-rate requests'
+- assertVisible: 'Enabled — use Refresh.*'
+- tapOn: 'Allow public exchange-rate requests'
+- assertVisible: 'Disabled — no requests.*'
+- stopApp
+- launchApp
+- tapOn: 'More'
+- scrollUntilVisible:
+    element: 'Settings'
+- tapOn: 'Settings'
+- assertVisible: 'Disabled — no requests.*'
+- back
+- scrollUntilVisible:
+    element: 'To classify'
+    direction: UP
+- tapOn: 'To classify'
+- assertVisible: 'Everything is classified'
+- back
+- tapOn: 'Captured notifications'
+- assertVisible: 'Captured notifications'

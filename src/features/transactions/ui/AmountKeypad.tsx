@@ -24,6 +24,7 @@ export function AmountKeypad({ expression, onChange }: Props) {
             return (
               <Pressable
                 key={key}
+                testID={`amount-key-${key}`}
                 onPress={() => onChange(applyKeypadKey(expression, key))}
                 onLongPress={key === '⌫' ? () => onChange('') : undefined}
                 style={({ pressed }) => [

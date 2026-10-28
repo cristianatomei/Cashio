@@ -356,3 +356,59 @@ Estimarea lunii următoare este suma obligațiilor scadente în acea lună plus 
 3. Integrarea scadențarelor în obligații/estimări și clarificarea calendarului telefonului.
 4. Verificări reale pentru captare/top-up, recurente, bugete, repartizări, CSV, backup/restaurare și paletă.
 5. Widget Android și polish. Pentru fiecare versiune nouă, build APK după integrarea schimbărilor; nu confunda generarea reușită cu validarea pe telefon.
+
+## Cursuri opționale și verificări automate — propuse, neintegrate
+
+Implementarea din `feat/rates-quality` este în așteptarea revizuirii/integrării; această secțiune nu certifică un APK instalat.
+
+### Cursuri publice (#25)
+
+Setări → Cursuri publice opționale este **dezactivat implicit**. Activarea salvează acordul; numai apăsarea „Actualizează” face o cerere. Nu există polling, cereri la pornire sau serviciu obligatoriu. Dezactivarea oprește cererile viitoare, nu șterge istoricul. Introducerea manuală datată din Date și backup rămâne disponibilă offline.
+
+- Cererea este fixă pentru toți utilizatorii: `https://api.frankfurter.dev/v2/rates?base=EUR&quotes=RON,USD,GBP&providers=ECB`. Nu trimite conturi, sume, tranzacții, monede selectate de utilizator sau identificatori; furnizorul vede în mod normal IP-ul și metadatele HTTP. Fără chei API sau secrete CI.
+- Sursa este Frankfurter v2, filtrată explicit la BCE, **nu** amestecul implicit de furnizori. Schema verificată este un array de `{ date, base, quote, rate }`. Conversia în RON/EUR/USD/GBP se calculează local; alte monede de bază produc o eroare fără cerere.
+- Se păstrează data publicării, sursa `frankfurter:ECB:MONEDA_DE_BAZĂ` și toate cursurile existente. Conflictele nu suprascriu cursuri manuale. Un curs manual are prioritate pentru aceeași dată calendaristică (manual: ziua locală existentă; public: ziua publicată UTC); cursurile automate pentru altă monedă de bază nu se reutilizează. Conversiile salvate în tranzacții nu se rescriu retroactiv.
+- Cursurile BCE sunt orientative, nu cotații de execuție. Data efectivă automată este sfârșitul zilei publicate UTC (conservator, fără utilizare înaintea publicării). Interfața arată data/sursa, lipsa cursurilor, erorile și vechimea peste patru zile, inclusiv în weekend. Eșecurile păstrează datele locale.
+- Contract/sursă/licență verificate online în repo-ul oficial Frankfurter, commit `3607db718b2a7c228c40d5d590b7bf5e95c3c462`: [OpenAPI v2](https://github.com/lineofflight/frankfurter/blob/3607db718b2a7c228c40d5d590b7bf5e95c3c462/lib/public/v2/openapi.json), [metadate BCE și adresa termenilor](https://github.com/lineofflight/frankfurter/blob/3607db718b2a7c228c40d5d590b7bf5e95c3c462/db/seeds/providers/ecb.json), [licență software MIT](https://github.com/lineofflight/frankfurter/blob/3607db718b2a7c228c40d5d590b7bf5e95c3c462/LICENSE). Licența software nu înlocuiește termenii datelor BCE: [aviz juridic BCE](https://www.ecb.europa.eu/services/using-our-site/disclaimer/html/index.en.html).
+- **Rămas înainte de release:** recuperarea/revizuirea directă a textului juridic BCE și un smoke test al endpointului live. În acest mediu domeniile Expo/Frankfurter/BCE nu se rezolvă DNS; contractul și licența software au fost citite prin API-ul GitHub, nu s-a pretins verificarea răspunsului live sau a textului juridic BCE. Documentația oficială Expo SDK57 SQLite/Constants/config a fost citită din mirror-ul oficial `expo/expo/docs/pages/versions/v57.0.0`.
+
+Nu se adaugă migrări sau dependențe. `exchange_rates` și `app_settings` existente sunt incluse deja în backup/restaurare.
+
+### SQLite real și Maestro (#26)
+
+```bash
+npm run typecheck
+npm run lint
+npm test -- --runInBand
+npm run test:migrations
+```
+
+`test:migrations` necesită Node **22.13+** cu `node:sqlite` (rulat aici cu Node 26.12.1). Execută funcția de migrare de producție și SQL-ul nemodificat într-un SQLite real, în memorie, numai cu date sintetice. Acoperă instalare nouă și fiecare versiune anterioară v1–v9 → versiunea curentă, valorile/legăturile existente, backfill-ul repartizărilor v7, `foreign_key_check`, `integrity_check`, cascade, idempotență și rollback-ul reconstruirii v6. Pentru v1 se testează păstrarea notificărilor: tabelele financiare originale **niciodată populate de aplicație** sunt reconstruite intenționat de v2; nu se promite păstrarea unor date financiare v1 arbitrare. Intrările istorice de migrare nu sunt editate.
+
+Testele suplimentare SQLite verifică salvarea FX, conflictele manuale, eșecurile offline și schimbarea acordului/monedei în timpul cererii. Nu reprezintă execuție pe `expo-sqlite` Android; după integrarea oricăror migrări noi, rerulați pe ordinea finală și completați fixture-urile noilor tabele.
+
+Maestro este local, fără cont cloud, token sau serviciu obligatoriu:
+
+1. Folosește **numai un emulator Android de test**, fără date private. Instalează Android SDK/emulator, Java 17+ și Maestro CLI din documentația oficială.
+2. Construiește varianta separată: `npx eas-cli@latest build --platform android --profile e2e`. Pentru build local cu SDK disponibil: `CASHIO_E2E=1 npx expo run:android --variant release`. Nu folosi Expo Go.
+3. Confirmă că APK-ul este **Cashio Synthetic E2E**, ID **`com.cashio.app.e2e`**, apoi instalează-l pe emulator. Configul de producție rămâne `com.cashio.app`. Varianta de test are și baza separată `cashio.e2e.synthetic.db`, activată numai dacă ambele marcaje de config coincid.
+4. Rulează `npm run test:e2e`. Setup-ul șterge **exclusiv starea aplicației sintetice** și parcurge onboarding-ul în engleză. Nu modifica `appId` în flow-uri și nu rula `clearState`, `pm clear` sau dezinstalare pentru aplicația utilizatorului.
+
+Flow-urile acoperă onboarding fără acord nativ, cheltuială creare/restart/editare/ștergere, transfer/restart, acord FX pornit/oprit fără accesarea rețelei, navigare în inbox/capturi și salvarea/persistența unui curs manual datat. Nu automatizează PDFBox, permisiuni native, picker-ul de backup sau livrarea reminderelor.
+
+**Dovezi locale pe această ramură:** 38 suite Jest / 213 teste trecute; 17 teste Node/SQLite și siguranță E2E trecute (inclusiv backup FX și prioritate manuală cu fus orar); lint/typecheck și exportul JavaScript Android trecute; `expo config --type public` confirmă ID-urile distincte cu/fără `CASHIO_E2E=1`. **Maestro nu a rulat**: `npm run test:e2e` returnează `maestro: not found`; `adb`, emulatorul și Android SDK nu sunt disponibile. Flow-urile sunt pregătite, dar acceptarea E2E rămâne în așteptare. Nu marca #26 finalizat până la rulare.
+
+### Checklist de validare Android fizică (#3 — deschis, fără dovezi noi)
+
+Toate punctele de mai jos sunt **în așteptare**. Testele unitare/SQLite, validarea configului și un build EAS nu sunt dovezi de instalare sau teste fizice.
+
+- [ ] Înregistrează commitul, EAS build ID, versiunea APK/versionCode, modelul telefonului și versiunea Android. Nu include identificatori ai dispozitivului sau date financiare.
+- [ ] Păstrează un backup local verificat înainte de upgrade. Notează instalarea/versiunea anterioară. Nu șterge datele și nu dezinstala aplicația utilizatorului pentru a „repara” migrarea.
+- [ ] Instalează APK-ul standalone și pornește-l cu Metro/laptopul oprite și fără Wi-Fi. Verifică onboarding-ul pentru instalare nouă, apoi navigarea Acasă/Tranzacții/Mai mult și repornirea procesului.
+- [ ] Fă upgrade **peste** instalarea existentă, fără reset. Compară local conturi, solduri, tranzacții/repartizări/etichete, cursuri datate, scadențare, preferințe și permisiuni. În GitHub publică numai „păstrat/eroare”, nu valori sau fișiere private.
+- [ ] Importă local scadențare ING reprezentative (NP/ipotecar, rate variabile și asigurare). Compară **fiecare** dată, sumă și componentă cu PDF-ul; verifică preview, salvare, editare și restart. Nu încărca PDF-uri/extracții în repo sau loguri.
+- [ ] Testează permisiune notificări refuzată/acordată/revocată; programarea, anularea și editarea reminderelor, scadențe apropiate/expirate, mai multe credite și limita de 50. Verifică livrarea cu aplicația oprită și după repornirea telefonului.
+- [ ] Verifică restaurarea backupului și reconstruirea reminderelor **întâi într-o instalare sintetică separată**. Confirmă anularea reminderelor vechi și lipsa duplicatelor, nu doar mesajul de succes.
+- [ ] Confirmă captarea notificărilor sintetice, draft → confirmare, transfer ING → Revolut fără cheltuială falsă; verifică fluxurile zilnice și funcționarea offline.
+- [ ] Verifică FX dezactivat fără cereri, acord explicit, eroare offline, dată/sursă/vechime, prioritate manuală și păstrarea cursurilor după restart/upgrade.
+- [ ] Adaugă rezultatele și defectele rămase în tichetul #3 folosind formatul: `build/commit | model + Android | scenariu | așteptat | observat | PASS/FAIL/BLOCAT | dovadă redactată`. Închide #3 numai după dovezi reale și remedierea/documentarea criteriilor rămase.

@@ -21,6 +21,7 @@ import {
   saveBackupSetting,
 } from '@/features/backup';
 import { APP_LOCK_TIMEOUT_MINUTES, useAppLock } from '@/features/app-lock';
+import { PublicRatesSettings } from '@/features/exchange-rates/ui/PublicRatesSettings';
 
 const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
 const LANGUAGES = ['ro', 'en'] as const;
@@ -168,6 +169,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen topInset={false} onRefresh={refresh}>
+      <PublicRatesSettings />
       <AppText variant="heading">{t('settings.appearance')}</AppText>
       <AppText color="textSecondary">{t('settings.themeHint')}</AppText>
       <Card>

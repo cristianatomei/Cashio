@@ -51,6 +51,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "test:migrations": "node --test scripts/migrations.test.cjs scripts/public-rates.test.cjs scripts/e2e-safety.test.cjs",
+    "test:e2e": "maestro test .maestro/flows",
     "format": "prettier --write ."
   },
   "jest": {

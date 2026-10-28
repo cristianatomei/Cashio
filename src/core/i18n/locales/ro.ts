@@ -497,6 +497,25 @@ export const ro = {
     dismissTitle: 'Ștergi plățile?',
     dismissBody: 'Se șterg {{count}} plăți captate. Nu se poate anula.',
   },
+  publicFx: {
+    title: 'Cursuri publice opționale',
+    enable: 'Permite cereri pentru cursuri publice',
+    privacy:
+      'Doar cu acord explicit. Actualizarea trimite o cerere fixă de cursuri, niciodată conturi, sume, tranzacții sau identificatori. Furnizorul poate vedea adresa IP. Fără cereri în fundal.',
+    enabled: 'Activat — apasă Actualizează pentru descărcare.',
+    disabled: 'Dezactivat — fără cereri. Cursurile descărcate rămân disponibile offline.',
+    source: 'Sursă: Frankfurter v2 / Banca Centrală Europeană (BCE). Doar EUR, RON, USD și GBP.',
+    terms:
+      'Cursuri de referință orientative, nu cotații bancare. Software Frankfurter: MIT; date BCE conform avizului juridic. Fără garanția serviciului.',
+    asOf: 'Publicate pentru {{date}} (UTC); utilizate numai după sfârșitul zilei.',
+    noRates: 'Nu există cursuri descărcate pentru moneda de bază curentă.',
+    stale: 'Curs vechi: peste patru zile. Actualizează sau introdu un curs manual datat.',
+    refresh: 'Actualizează cursurile publice',
+    success: '{{count}} cursuri noi salvate. Cursurile datate/manuale existente au fost păstrate.',
+    error:
+      'Actualizare nereușită. Verifică rețeaua, furnizorul și moneda de bază (RON/EUR/USD/GBP). Cursurile anterioare și manuale sunt neschimbate.',
+    saveError: 'Preferința nu a fost salvată. Nu s-a trimis nicio cerere.',
+  },
   errors: {
     generic: 'Ceva nu a mers. Încearcă din nou.',
   },
