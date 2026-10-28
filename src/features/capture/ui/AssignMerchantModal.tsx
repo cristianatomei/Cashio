@@ -1,35 +1,30 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useDb } from '@/core/db';
-import {
-  AmountText,
-  AppText,
-  Button,
-  Chip,
-  FormRow,
-  SheetModal,
-  confirmDestructive,
-} from '@/core/ui';
+import { AmountText, AppText, Button, Chip, FormRow, SheetModal } from '@/core/ui';
 import { CategoryPickerModal, useTaxonomy } from '@/features/categories';
 import { MerchantPickerModal, useMerchants } from '@/features/merchants';
 import { suggestMerchantName } from '@/features/parsing';
 
-import { associateMerchant, dismissDrafts } from '../data/associate';
+import type { AssociateInput } from '../data/associate';
 import type { UnknownMerchantGroup } from '../domain/grouping';
 
-type Props = { group: UnknownMerchantGroup; onClose: () => void };
+type Props = {
+  group: UnknownMerchantGroup;
+  onClose: () => void;
+  onAssign: (input: AssociateInput) => void;
+  onDismiss: () => void;
+};
 
-export function AssignMerchantModal({ group, onClose }: Props) {
+export function AssignMerchantModal({ group, onClose, onAssign, onDismiss }: Props) {
   const { t } = useTranslation();
-  const db = useDb();
   const merchants = useMerchants();
   const kind = group.items[0]?.type === 'income' ? 'income' : 'expense';
   const groups = useTaxonomy({ kind, includeArchived: true });
 
   const [merchantId, setMerchantId] = useState<number | null>(null);
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [remember, setRemember] = useState(true);
+  const [remember, setRemember] = useState(false);
   const [picker, setPicker] = useState<'merchant' | 'category' | null>(null);
 
   const merchant = merchants.find((m) => m.id === merchantId);
@@ -44,21 +39,14 @@ export function AssignMerchantModal({ group, onClose }: Props) {
 
   const save = () => {
     if (merchantId === null || categoryId === null) return;
-    associateMerchant(db, { merchantRaw: group.merchantRaw, merchantId, categoryId, remember });
+    onAssign({ merchantRaw: group.merchantRaw, merchantId, categoryId, remember });
     onClose();
   };
 
-  const dismiss = () =>
-    confirmDestructive({
-      title: t('inbox.dismissTitle'),
-      message: t('inbox.dismissBody', { count: group.items.length }),
-      confirmLabel: t('common.delete'),
-      cancelLabel: t('common.cancel'),
-      onConfirm: () => {
-        dismissDrafts(db, group.merchantRaw);
-        onClose();
-      },
-    });
+  const dismiss = () => {
+    onDismiss();
+    onClose();
+  };
 
   return (
     <>

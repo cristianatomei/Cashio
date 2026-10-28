@@ -1,7 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { AppText, CategoryIcon, SheetModal, spacing, useTheme } from '@/core/ui';
+import {
+  AppText,
+  CategoryIcon,
+  SheetModal,
+  minimumTouchTarget,
+  spacing,
+  useTheme,
+} from '@/core/ui';
 
 import { useTaxonomy } from '../data/queries';
 
@@ -23,6 +30,9 @@ export function CategoryPickerModal({ kind, selectedId, onSelect, onClose, onCle
     <SheetModal visible title={t('categories.pick')} onClose={onClose}>
       {onClear ? (
         <Pressable
+          style={styles.clear}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.none')}
           onPress={() => {
             onClear();
             onClose();
@@ -42,10 +52,13 @@ export function CategoryPickerModal({ kind, selectedId, onSelect, onClose, onCle
               return (
                 <Pressable
                   key={category.id}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`${group.name}, ${category.name}`}
+                  accessibilityState={{ checked: selected }}
                   style={[
                     styles.tile,
-                    selected && { backgroundColor: `${group.color}26`, borderColor: group.color },
-                    { borderColor: selected ? group.color : 'transparent' },
+                    selected && { backgroundColor: `${group.color}26` },
+                    { borderColor: selected ? colors.textSecondary : 'transparent' },
                   ]}
                   onPress={() => {
                     onSelect(category.id);
@@ -68,12 +81,17 @@ export function CategoryPickerModal({ kind, selectedId, onSelect, onClose, onCle
 
 const styles = StyleSheet.create({
   group: { gap: spacing.sm },
+  clear: { minHeight: minimumTouchTarget, justifyContent: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   tile: {
-    width: '23%',
+    flexBasis: 96,
+    flexGrow: 1,
+    minWidth: minimumTouchTarget,
+    minHeight: minimumTouchTarget,
     alignItems: 'center',
     gap: spacing.xs,
     paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
     borderRadius: 12,
     borderWidth: 1,
   },

@@ -14,4 +14,5 @@ export { Screen } from './Screen';
 export { SectionHeader } from './SectionHeader';
 export { SegmentedControl } from './SegmentedControl';
 export { SheetModal } from './SheetModal';
+export { SwitchRow } from './SwitchRow';
 export { TextField } from './TextField';

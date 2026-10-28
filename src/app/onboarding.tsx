@@ -112,6 +112,12 @@ export default function OnboardingScreen() {
                 <ListRow
                   key={account.id}
                   title={account.name}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={`${account.name}, ${account.currency}`}
+                  accessibilityState={{ checked: selected }}
+                  accessibilityHint={
+                    selected && activeCount === 1 ? t('onboarding.keepOneAccount') : undefined
+                  }
                   subtitle={account.currency}
                   trailing={
                     <Ionicons
@@ -148,6 +154,9 @@ export default function OnboardingScreen() {
               <ListRow
                 key={currency}
                 title={currency}
+                accessibilityRole="radio"
+                accessibilityLabel={currency}
+                accessibilityState={{ checked: baseCurrency === currency }}
                 subtitle={baseCurrency === currency ? t('common.selected') : undefined}
                 trailing={
                   baseCurrency === currency ? (
@@ -164,6 +173,9 @@ export default function OnboardingScreen() {
               <ListRow
                 key={language}
                 title={t(`settings.languages.${language}`)}
+                accessibilityRole="radio"
+                accessibilityLabel={t(`settings.languages.${language}`)}
+                accessibilityState={{ checked: i18n.resolvedLanguage === language }}
                 subtitle={i18n.resolvedLanguage === language ? t('common.selected') : undefined}
                 trailing={
                   i18n.resolvedLanguage === language ? (
@@ -185,7 +197,11 @@ export default function OnboardingScreen() {
       ) : null}
 
       {step > 0 ? (
-        <Button title={t('onboarding.back')} onPress={() => setStep((current) => current - 1)} variant="secondary" />
+        <Button
+          title={t('onboarding.back')}
+          onPress={() => setStep((current) => current - 1)}
+          variant="secondary"
+        />
       ) : null}
       <Button
         title={step === STEP_COUNT - 1 ? t('onboarding.finish') : t('onboarding.continue')}

@@ -10,6 +10,7 @@ export type AssociateInput = {
   categoryId: number;
   /** Saves the raw name as an alias so the next payment is classified automatically. */
   remember: boolean;
+  selectedIds?: readonly number[];
 };
 
 function draftsMatching(db: AppDb, merchantRaw: string) {
@@ -25,7 +26,10 @@ function draftsMatching(db: AppDb, merchantRaw: string) {
       ),
     )
     .all()
-    .filter((draft) => draft.merchantRaw && (normalizeMerchant(draft.merchantRaw) || draft.merchantRaw) === key);
+    .filter(
+      (draft) =>
+        draft.merchantRaw && (normalizeMerchant(draft.merchantRaw) || draft.merchantRaw) === key,
+    );
 }
 
 /** Links every pending payment with this raw merchant name and confirms them; returns the count. */
@@ -43,12 +47,21 @@ export function associateMerchant(db: AppDb, input: AssociateInput): number {
         .run();
     }
 
-    tx.update(schema.merchants)
-      .set({ defaultCategoryId: input.categoryId })
-      .where(and(eq(schema.merchants.id, input.merchantId), isNull(schema.merchants.defaultCategoryId)))
-      .run();
+    if (input.remember) {
+      tx.update(schema.merchants)
+        .set({ defaultCategoryId: input.categoryId })
+        .where(
+          and(
+            eq(schema.merchants.id, input.merchantId),
+            isNull(schema.merchants.defaultCategoryId),
+          ),
+        )
+        .run();
+    }
 
-    const drafts = draftsMatching(db, input.merchantRaw);
+    const drafts = draftsMatching(db, input.merchantRaw).filter(
+      (draft) => !input.selectedIds || input.selectedIds.includes(draft.id),
+    );
     if (drafts.length > 0) {
       tx.update(schema.transactions)
         .set({
@@ -57,7 +70,12 @@ export function associateMerchant(db: AppDb, input: AssociateInput): number {
           status: 'confirmed',
           updatedAt: Date.now(),
         })
-        .where(inArray(schema.transactions.id, drafts.map((draft) => draft.id)))
+        .where(
+          inArray(
+            schema.transactions.id,
+            drafts.map((draft) => draft.id),
+          ),
+        )
         .run();
 
       const recurringRules = tx.select().from(schema.recurringRules).all();

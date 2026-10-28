@@ -9,6 +9,7 @@ Aplicație Android-first (Expo), local-first, pentru urmărirea cheltuielilor cu
 - Backupul automat (#6 / PR #28), blocarea biometrică (#7 / PR #31), onboardingul (#8 / PR #29) și monitorizarea captării (#9 / PR #30) sunt integrate.
 - Backupul rulează la deschiderea/revenirea în aplicație, nu garantat în fundal. Blocarea folosește codul dispozitivului ca alternativă la biometrie, nu un PIN separat.
 - Combinația Sprintului 1, inclusiv PR #30, a trecut typecheck, lint și 37 de suite / 197 de teste; validarea pe dispozitiv rămâne deschisă.
+- Propus pe `feat/rates-quality`, **neintegrat**: FX public opt-in fără transmiterea datelor financiare și fără migrare; teste reale SQLite v1–v9; flow-uri Maestro izolate într-o aplicație sintetică. Lint/typecheck, exportul JavaScript Android, 213 teste Jest și 17 teste Node/SQLite/siguranță trec local. Maestro/Android SDK lipsesc; #26 rămâne parțial până la execuție, #25 necesită și verificarea directă a termenilor BCE/endpointului live. Checklist-ul fizic din README este neexecutat; #3 rămâne deschis.
 - Estimarea include ratele individuale, dar poate număra dublu plățile istorice sau o regulă recurentă pentru același credit. Este necesară asocierea explicită, confirmată, înainte de eliminarea dublurilor; nu considera tichetul #4 finalizat.
 - Potrivirile de plăți afișate sunt doar posibile, nu confirmări persistente. Cazurile cu mai multe potriviri nu sunt asociate automat.
 - Instalarea APK-ului, actualizarea fără pierderi de date și validarea fluxurilor native pe telefon rămân de verificat conform tichetului #3.
@@ -96,7 +97,7 @@ Tab-uri: Acasă, Tranzacții, (+) adăugare rapidă, Statistici, Mai mult. „De
 
 ## Design
 
-Paletă albastru ocean + turcoaz: primar `#145DA0` în tema deschisă / `#60A5FA` în tema închisă; venit `#0FA99A` / `#2DD4BF`, cheltuială `#F0525A` / `#FF6B6B`. Închis: fundal `#0E1116`, suprafețe `#171B22`. Deschis: fundal `#F6F7FB`, suprafețe albe. Fiecare grup de categorii are culoare și icoană proprii. Cifrele folosesc variante tabulare. Alegerea utilizatorului este implementată; verificarea contrastului și aspectului pe telefon rămâne.
+Paletă albastru ocean + turcoaz: primar `#145DA0` în tema deschisă / `#60A5FA` în tema închisă; venit `#007567` / `#2DD4BF`, cheltuială `#C43140` / `#FF6B6B` în propunerea de accesibilitate #19. Închis: fundal `#0E1116`, suprafețe `#171B22`. Deschis: fundal `#F6F7FB`, suprafețe albe. Fiecare grup de categorii are culoare și icoană proprii. Cifrele folosesc variante tabulare. Alegerea utilizatorului este implementată. Auditul propus, măsurătorile automate AA și verificările native încă necesare sunt în [README — audit accesibilitate](README.md#audit-accesibilitate-19--propunere-din-28102026); nu presupune integrarea PR-ului sau verificarea pe telefon.
 
 ## Faze
 

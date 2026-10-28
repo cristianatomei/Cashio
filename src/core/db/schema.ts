@@ -98,6 +98,28 @@ export const merchantAliases = sqliteTable(
   (t) => [unique().on(t.rawPattern, t.matchType)],
 );
 
+export const merchantCategoryRules = sqliteTable(
+  'merchant_category_rules',
+  {
+    merchantId: integer('merchant_id')
+      .notNull()
+      .references(() => merchants.id, { onDelete: 'cascade' }),
+    type: text('type', { enum: ['expense', 'income'] }).notNull(),
+    categoryId: integer('category_id')
+      .notNull()
+      .references(() => categories.id, { onDelete: 'cascade' }),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.merchantId, table.type] })],
+);
+
+export const savedTransactionFilters = sqliteTable('saved_transaction_filters', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull().unique(),
+  filterJson: text('filter_json').notNull(),
+  createdAt: integer('created_at').notNull(),
+});
+
 export const recurringRules = sqliteTable('recurring_rules', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   accountId: integer('account_id')
@@ -238,4 +260,21 @@ export const captureRules = sqliteTable('capture_rules', {
   }),
   priority: integer('priority').notNull().default(0),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+});
+
+export const savingsGoals = sqliteTable('savings_goals', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  currency: text('currency').notNull(),
+  targetMinor: integer('target_minor').notNull(),
+  currentMinor: integer('current_minor').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+export const investmentValuations = sqliteTable('investment_valuations', {
+  assetId: text('asset_id').primaryKey().notNull(),
+  amountMinor: integer('amount_minor').notNull(),
+  currency: text('currency').notNull(),
+  valuedAt: integer('valued_at').notNull(),
 });

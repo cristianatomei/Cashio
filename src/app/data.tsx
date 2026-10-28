@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Platform, Switch, View } from 'react-native';
+import { Alert, Platform, View } from 'react-native';
 
 import { DEFAULT_CURRENCY, schema, useDb } from '@/core/db';
 import { requestLocalNotificationPermission } from '@/core/notifications';
@@ -19,6 +19,7 @@ import {
   Screen,
   SectionHeader,
   SheetModal,
+  SwitchRow,
   TextField,
   useTheme,
 } from '@/core/ui';
@@ -461,14 +462,16 @@ export default function DataScreen() {
                 currency: pendingLoanSchedule.currency,
               })}
             </AppText>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <AppText style={{ flex: 1 }}>{t('data.loanIncludeInsurance')}</AppText>
-              <Switch value={includeInsurance} onValueChange={setIncludeInsurance} />
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <AppText style={{ flex: 1 }}>{t('data.loanReminders')}</AppText>
-              <Switch value={loanRemindersEnabled} onValueChange={setLoanRemindersEnabled} />
-            </View>
+            <SwitchRow
+              label={t('data.loanIncludeInsurance')}
+              value={includeInsurance}
+              onValueChange={setIncludeInsurance}
+            />
+            <SwitchRow
+              label={t('data.loanReminders')}
+              value={loanRemindersEnabled}
+              onValueChange={setLoanRemindersEnabled}
+            />
             {loanRemindersEnabled ? (
               <AppText variant="caption" color="textMuted">
                 {t('data.loanReminderHint')}
@@ -639,14 +642,13 @@ export default function DataScreen() {
                     })}
                   </View>
                 ) : null}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <AppText style={{ flex: 1 }}>{t('data.loanReminderStatus')}</AppText>
-                  <Switch
-                    value={stored.remindersEnabled}
-                    onValueChange={(enabled) => void updateLoanReminders(schedule.id, enabled)}
-                    disabled={busy}
-                  />
-                </View>
+                <SwitchRow
+                  label={t('data.loanReminderStatus')}
+                  accessibilityLabel={`${schedule.name}: ${t('data.loanReminderStatus')}`}
+                  value={stored.remindersEnabled}
+                  onValueChange={(enabled) => void updateLoanReminders(schedule.id, enabled)}
+                  disabled={busy}
+                />
                 <Button
                   title={t('data.loanEdit')}
                   variant="secondary"
@@ -685,17 +687,15 @@ export default function DataScreen() {
               setEditingLoanSchedule((current) => (current ? { ...current, name } : current))
             }
           />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <AppText style={{ flex: 1 }}>{t('data.loanIncludeInsurance')}</AppText>
-            <Switch
-              value={editingLoanSchedule.includeInsurance}
-              onValueChange={(includeInsurance) =>
-                setEditingLoanSchedule((current) =>
-                  current ? { ...current, includeInsurance } : current,
-                )
-              }
-            />
-          </View>
+          <SwitchRow
+            label={t('data.loanIncludeInsurance')}
+            value={editingLoanSchedule.includeInsurance}
+            onValueChange={(includeInsurance) =>
+              setEditingLoanSchedule((current) =>
+                current ? { ...current, includeInsurance } : current,
+              )
+            }
+          />
         </SheetModal>
       ) : null}
 
@@ -703,6 +703,7 @@ export default function DataScreen() {
       <Card>
         <TextField
           label={t('data.currencyCode')}
+          accessibilityLabel={t('data.currencyCode')}
           value={currency}
           onChangeText={(value) => setCurrency(value.toUpperCase())}
           maxLength={3}
@@ -710,12 +711,14 @@ export default function DataScreen() {
         />
         <TextField
           label={t('data.rateToBase')}
+          accessibilityLabel={t('data.rateToBase')}
           value={rate}
           onChangeText={setRate}
           keyboardType="decimal-pad"
         />
         <TextField
           label={t('data.rateDate')}
+          accessibilityLabel={t('data.rateDate')}
           value={rateDate}
           onChangeText={setRateDate}
           placeholder="YYYY-MM-DD"
@@ -725,7 +728,7 @@ export default function DataScreen() {
           <ListRow
             key={item.id}
             title={`1 ${item.currency} = ${item.rateToBase} ${baseCurrency}`}
-            subtitle={new Date(item.effectiveAt).toLocaleDateString()}
+            subtitle={`${new Date(item.effectiveAt).toLocaleDateString()} · ${item.source}`}
           />
         ))}
       </Card>

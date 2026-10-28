@@ -69,7 +69,7 @@ export function Screen({ title, topInset = true, children, headerAction, onRefre
       >
         {title ? (
           <View style={styles.titleRow}>
-            <AppText variant="title" style={styles.title}>
+            <AppText variant="title" accessibilityRole="header" style={styles.title}>
               {title}
             </AppText>
             {headerAction}

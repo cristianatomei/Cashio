@@ -2,8 +2,31 @@
 
 Aplicație mobilă (Expo / React Native, Android-first) pentru urmărirea cheltuielilor. Ideea: cheltuielile se captează automat din notificările băncilor (ING, Revolut, Salt Bank), fără introducere manuală și fără abonament. Datele rămân local, în SQLite.
 
+## Audit accesibilitate #19 — propunere din 28.10.2026
+
+**Stare: implementare pregătită pentru review, nu integrată în `master` și nu livrată în APK-ul existent.** Nu închide automat issue-ul: verificările native de mai jos rămân necesare. Nu adaugă dependențe, migrări sau preferințe noi și nu schimbă culorile personalizate salvate.
+
+- **Ținte reale, nu doar `hitSlop`:** Chip 36→48dp, segmente 38→48dp, culori și clopoțel 40→48dp, închidere modal 24→48dp. Butoanele, rândurile interactive, navigarea lunară și noile `SwitchRow` au minimum 48dp; grila de icoane păstrează țintele existente ≥48dp. Switch-ul are un singur element accesibil, cu etichetă, stare și callback pe întregul rând.
+- **Contrast:** textul semantic (inclusiv caption, placeholder, venit, cheltuială și avertizare) este testat la ≥4,5:1 pe fundal, card, suprafață elevată, `primarySoft` și tab bar. `controlBorder` asigură ≥3:1 fără a recolora separatoarele/graficele existente. Feedback-ul de apăsare nu mai reduce contrastul prin opacitate; controalele dezactivate sunt exceptate de WCAG. Bifele culorilor aleg alb/negru, iar icoanele personalizate păstrează nuanța când este lizibilă, altfel folosesc textul temei; culoarea salvată și nuanța fundalului rămân neschimbate.
+
+| Măsurătoare WCAG, raport minim | Deschisă | Închisă |
+|---|---:|---:|
+| Text semantic pe cele cinci suprafețe | 4,69:1 | 5,05:1 |
+| Contur interactiv pe aceleași suprafețe | 3,03:1 | 3,24:1 |
+| Text buton primar / pericol | 6,77 / 5,44:1 | 6,97 / 6,39:1 |
+
+Anterior, pe alb, textul estompat avea 3,15:1, venitul 2,93:1, cheltuiala 3,47:1 și avertizarea 2,15:1. Testele folosesc luminanța relativă sRGB WCAG și compunerea alfa exactă `0x26/255` pentru nuanțele transparente; culorile de grafic și orice text colorat arbitrar din afara componentelor comune nu primesc o certificare globală.
+
+- **Cititoare de ecran RO/EN:** roluri și stări pentru butoane, selecții și preferințe; etichete vorbite pentru fiecare culoare/icoană oferită, operatorii calculatorului și lunile precedentă/următoare; acțiune accesibilă de golire a sumei fără apăsare lungă; progres numeric, inclusiv depășirea 100%. Butonul în încărcare își păstrează numele și anunță starea ocupat/dezactivat. Icoanele decorative nu înlocuiesc descrierea rândului; sumele finale rămân în arborele accesibil.
+- **Scalare font:** AppText/TextField respectă implicit sistemul și păstrează opțiunile explicite ale apelantului, inclusiv `maxFontSizeMultiplier`. Nu micșorează textul pentru a-l înghesui. Rândurile, segmentele și categoriile se pot rearanja, butoanele/câmpurile/calculatorul au înălțime minimă, nu fixă pentru text. Etichetele tab-urilor se pot împărți pe linii, iar bara crește după înălțimea măsurată; scalarea este explicit activată inclusiv pe iOS.
+- **Verificare automată:** 44 de regresii noi în `src/core/ui/components/accessibility.test.tsx` și `theme/contrast.test.ts` verifică stilurile/props, stările, callback-urile și matricea de contrast în ambele teme. Acestea nu măsoară layout-ul nativ. Au trecut `npm run typecheck`, `npm run lint` (fără avertismente) și `npm test -- --runInBand` — total 39 de suite / 241 de teste.
+- **Documentație SDK:** `expo ~57.0.27`, RN `0.86.3`. Atât `https://docs.expo.dev/versions/v57.0.0/`, cât și `https://docs.expo.dev/llms.txt` au fost inaccesibile prin DNS în acest mediu; API-urile folosite au fost verificate în tipurile/sursa pachetelor instalate, inclusiv comportamentul fonturilor din Expo Router 57.
+
+**De verificat manual înainte de acceptarea #19:** APK nou pe Android/TalkBack și iOS/VoiceOver; font 100/150/200% și maximul sistemului, zoom afișaj, ecran îngust și landscape, ambele teme și limbi. Parcurge toate tab-urile, formularele, selecțiile și modalele cu tastatura deschisă: lipsă suprapuneri/trunchieri, ordine/focus inițial și revenire după modal, anunțarea sumelor/stărilor/progresului, acțiunea de golire, activarea unică a switch-urilor și ținte reale fără suprapunere. Nu au fost disponibile `adb`/emulatorul pentru aceste verificări. Reauditează împreună PR-urile încă neintegrate pentru Home, tranzacții/inbox și statistici; noul switch din `ProductivitySettings` propus separat trebuie trecut la `SwitchRow` la integrare. Testele unitare sau un PR deschis nu confirmă integrarea, instalarea ori conformitatea tuturor ecranelor pe dispozitiv.
+
 ## Progres și punct de reluare — 28.10.2026
 
+<<<<<<< HEAD
 ### Acasă: disponibil până la salariu (#15)
 
 - Data următorului salariu se introduce explicit în Acasă (`AAAA-LL-ZZ`); nu este dedusă din venituri și nu avansează automat. După ziua salariului trebuie actualizată. Fără o dată viitoare validă sau fără conturi, nu se afișează o sumă zilnică.
@@ -12,6 +35,17 @@ Aplicație mobilă (Expo / React Native, Android-first) pentru urmărirea cheltu
 - Se folosesc cursurile salvate cele mai recente care nu sunt în viitor și conversia existentă în moneda de bază. Lipsa unui curs pentru un cont sau o obligație blochează suma zilnică, nu este tratată ca zero.
 - Estimarea nu include restanțe anterioare zilei curente, cheltuieli variabile nesalvate sau duplicate fără asociere explicită. Pentru recurente variabile se folosește suma salvată. Aceste limite sunt afișate și în interfață; verifică Recurente înainte de a te baza pe estimare.
 - Ordinea cardurilor este: sold/disponibil, De clasificat, Scadențe, Bugete. Fără o dată a salariului, Scadențe arată următoarele 30 de zile, fără calcul zilnic. Stările goale oferă acces la configurare; încărcarea inițială folosește un skeleton static, cu etichetă accesibilă și culori din tema activă.
+=======
+### Planificare: obiective și patrimoniu (#22, #24; pregătit în această ramură)
+
+- Mai mult → Planificare conține **Obiective de economisire** și **Patrimoniu net**, cu carduri pe Acasă și texte RO/EN.
+- Obiectivele au nume, valută, țintă și sumă economisită actualizată manual. Progresul se oprește la 100%, dar suma poate depăși ținta. Nu se creează tranzacții și nu se adună din nou economiile la patrimoniu.
+- Patrimoniul include soldurile tuturor conturilor (inclusiv arhivate), mișcări confirmate până acum, evaluările manuale ale activelor urmărite și principalul estimat al creditelor. Trackerul Revolut existent conține simboluri/alerte, nu cantități sau valoarea deținerilor; introdu valoarea totală a fiecărei dețineri, fără dublarea sumelor deja incluse în conturi. Se păstrează o singură evaluare, cea mai recent introdusă, per activ; eliminarea activului din tracker îl exclude din calcul.
+- Sunt folosite numai cursuri salvate cu dată cel târziu la evaluare (azi pentru conturi/credite, data evaluării pentru investiții). Cursurile viitoare, valorile lipsă și scadențarele fără sold utilizabil produc poziții necunoscute și un subtotal explicit parțial, nu zero implicit. Sumele rămân vizibile în valuta originală când lipsește conversia.
+- Soldul ING este capitalul **după** rată: înaintea următoarei scadențe se folosește soldul anterior sau soldul următor + principalul acelei rate, nu dobânda/asigurarea și nu suma ratelor unui fragment de scadențar. Scadența de azi este considerată încă neachitată. Zero după ultima rată este acceptat numai când apare explicit ca sold; lipsa soldului nu dovedește stingerea creditului. Calculul presupune plăți la termen, nu verifică restanțe/rambursări anticipate.
+- Migrarea **v11**, adăugată fără modificarea v1–v10, introduce `savings_goals` și `investment_valuations`. Exportul JSON folosește formatul v3, cu ambele tabele; backupurile în formatele v1/v2 (schemele acceptate v5–v10) rămân acceptate și primesc liste goale pentru datele noi. Nu există sincronizare sau acces la servicii financiare.
+- Validare: `npm run lint`, `npm run typecheck`, **49 suite / 344 teste**. Testele folosesc exclusiv date sintetice, SQLite în memorie pentru upgrade, CRUD, export/restaurare și rollback, plus randări RO/EN pentru progres, formulare, stări parțiale și navigarea cardurilor. Este necesară verificarea pe Android/iOS a navigării, tastaturii și cititorului de ecran; nu a fost validat un APK nou.
+>>>>>>> origin/master
 
 Aceasta este situația curentă; secțiunile din 19.10 de mai jos sunt istorice. Actualizăm acest jurnal la integrarea fiecărui task. „Integrat” înseamnă cod în `master`, nu funcționare confirmată pe telefon. Tichetele se închid după integrarea implementării; verificarea nativă rămâne urmărită separat în #3.
 
@@ -51,6 +85,18 @@ Aceasta este situația curentă; secțiunile din 19.10 de mai jos sunt istorice.
 | Notificări cu acțiuni și integrare Android | #13, #20 |
 | Accesibilitate și componente comune | #19 |
 | Cursuri opționale, teste E2E/migrări și pregătirea validării manuale | #25, #26; checklist pentru #3 |
+
+## Fluxuri tranzacții — pregătite pentru integrare, 28.10.2026
+
+Branch-ul `feat/transaction-workflows` implementează #11, #12, #14 și #17; această secțiune nu declară modificările integrate în `master` sau validate pe telefon.
+
+- **De clasificat:** listă virtualizată, număr rămas, swipe dreapta pentru confirmare / stânga pentru ignorare, selecție multiplă, categorie în lot și butoane echivalente gesturilor. Asocierea grupurilor de comercianți necunoscuți rămâne disponibilă; grupurile separă tipul și moneda. Confirmarea refuză datele incomplete.
+- **Undo real:** operațiile sunt tranzacționale. Anularea reface rândurile, etichetele, repartizările, starea notificării, scadențele recurente schimbate și legăturile explicite cu ratele (dacă modulul de planificare este prezent). Asocierea reface și aliasul/regula/categoria implicită anterioară. Nu suprascrie modificări apărute ulterior.
+- **Tranzacții:** vizualizări numite cu căutare, tip, categorie/grup, cont, etichetă, monedă și perioadă; salvarea păstrează și luna afișată. Selecția lucrează numai pe rezultatele afișate. Editare categorie/cont, adăugare de etichete și ștergere cu snackbar Undo, fără confirmare modală. Contul nou trebuie să aibă aceeași monedă; repartizările multiple nu sunt înlocuite prin schimbarea categoriei în lot.
+- **Învățare:** formularul oferă explicit regula pentru plățile viitoare ale comerciantului, separat pentru venit/cheltuială. Aplicarea în istoric este un al doilea opt-in, exclude repartizările multiple și nu confirmă drafturi. Regula are prioritate în pipeline față de categoria implicită și cuvintele-cheie; administrare în Organizare → Comercianți. Ștergerea regulii nu elimină vechile categorii implicite/aliasuri.
+- **Zile și comercianți:** gruparea existentă este reutilizată într-un `SectionList`; totalurile zilnice și rezumatele lunare sunt separate pe monedă, excluzând drafturi și transferuri. Avatarul are inițiale Unicode și culoare deterministă; nu descarcă logo-uri.
+- **Persistență:** o singură migrare adăugată după v9 (v10 pe acest branch), cu `merchant_category_rules` și `saved_transaction_filters`. Backup JSON v2 include obligatoriu ambele; citirea v1 păstrează compatibilitatea cu seturile istorice cunoscute, iar restaurarea acceptă schemele 5 până la schema curentă și refuză versiunile viitoare. Migrările adăugate independent de alte branch-uri trebuie ordonate contiguu înainte de release.
+- **Limite/verificare:** Undo păstrează o singură acțiune în memoria ecranului; apasă Undo sau Gata înaintea următoarei operații. Plecarea din ecran/restartul finalizează acțiunea, fără istoric Undo persistent. Lint/typecheck și 39 suite / 219 teste Jest seriale trec; includ SQLite real pentru operații, relații, pipeline, upgrade și backup/restore. Gesturile, haptics, cititorul de ecran și randarea pe Android/iOS nu sunt verificate nativ aici. Documentația oficială Expo v57 nu a putut fi accesată (DNS); API-urile folosite au fost confruntate cu declarațiile instalate Expo 57 / RN 0.86.
 
 ## Istoric — punct de reluare 19.10.2026
 
@@ -414,3 +460,59 @@ Estimarea lunii următoare este suma obligațiilor scadente în acea lună plus 
 3. Integrarea scadențarelor în obligații/estimări și clarificarea calendarului telefonului.
 4. Verificări reale pentru captare/top-up, recurente, bugete, repartizări, CSV, backup/restaurare și paletă.
 5. Widget Android și polish. Pentru fiecare versiune nouă, build APK după integrarea schimbărilor; nu confunda generarea reușită cu validarea pe telefon.
+
+## Cursuri opționale și verificări automate — propuse, neintegrate
+
+Implementarea din `feat/rates-quality` este în așteptarea revizuirii/integrării; această secțiune nu certifică un APK instalat.
+
+### Cursuri publice (#25)
+
+Setări → Cursuri publice opționale este **dezactivat implicit**. Activarea salvează acordul; numai apăsarea „Actualizează” face o cerere. Nu există polling, cereri la pornire sau serviciu obligatoriu. Dezactivarea oprește cererile viitoare, nu șterge istoricul. Introducerea manuală datată din Date și backup rămâne disponibilă offline.
+
+- Cererea este fixă pentru toți utilizatorii: `https://api.frankfurter.dev/v2/rates?base=EUR&quotes=RON,USD,GBP&providers=ECB`. Nu trimite conturi, sume, tranzacții, monede selectate de utilizator sau identificatori; furnizorul vede în mod normal IP-ul și metadatele HTTP. Fără chei API sau secrete CI.
+- Sursa este Frankfurter v2, filtrată explicit la BCE, **nu** amestecul implicit de furnizori. Schema verificată este un array de `{ date, base, quote, rate }`. Conversia în RON/EUR/USD/GBP se calculează local; alte monede de bază produc o eroare fără cerere.
+- Se păstrează data publicării, sursa `frankfurter:ECB:MONEDA_DE_BAZĂ` și toate cursurile existente. Conflictele nu suprascriu cursuri manuale. Un curs manual are prioritate pentru aceeași dată calendaristică (manual: ziua locală existentă; public: ziua publicată UTC); cursurile automate pentru altă monedă de bază nu se reutilizează. Conversiile salvate în tranzacții nu se rescriu retroactiv.
+- Cursurile BCE sunt orientative, nu cotații de execuție. Data efectivă automată este sfârșitul zilei publicate UTC (conservator, fără utilizare înaintea publicării). Interfața arată data/sursa, lipsa cursurilor, erorile și vechimea peste patru zile, inclusiv în weekend. Eșecurile păstrează datele locale.
+- Contract/sursă/licență verificate online în repo-ul oficial Frankfurter, commit `3607db718b2a7c228c40d5d590b7bf5e95c3c462`: [OpenAPI v2](https://github.com/lineofflight/frankfurter/blob/3607db718b2a7c228c40d5d590b7bf5e95c3c462/lib/public/v2/openapi.json), [metadate BCE și adresa termenilor](https://github.com/lineofflight/frankfurter/blob/3607db718b2a7c228c40d5d590b7bf5e95c3c462/db/seeds/providers/ecb.json), [licență software MIT](https://github.com/lineofflight/frankfurter/blob/3607db718b2a7c228c40d5d590b7bf5e95c3c462/LICENSE). Licența software nu înlocuiește termenii datelor BCE: [aviz juridic BCE](https://www.ecb.europa.eu/services/using-our-site/disclaimer/html/index.en.html).
+- **Rămas înainte de release:** recuperarea/revizuirea directă a textului juridic BCE și un smoke test al endpointului live. În acest mediu domeniile Expo/Frankfurter/BCE nu se rezolvă DNS; contractul și licența software au fost citite prin API-ul GitHub, nu s-a pretins verificarea răspunsului live sau a textului juridic BCE. Documentația oficială Expo SDK57 SQLite/Constants/config a fost citită din mirror-ul oficial `expo/expo/docs/pages/versions/v57.0.0`.
+
+Nu se adaugă migrări sau dependențe. `exchange_rates` și `app_settings` existente sunt incluse deja în backup/restaurare.
+
+### SQLite real și Maestro (#26)
+
+```bash
+npm run typecheck
+npm run lint
+npm test -- --runInBand
+npm run test:migrations
+```
+
+`test:migrations` necesită Node **22.13+** cu `node:sqlite` (rulat aici cu Node 26.12.1). Execută funcția de migrare de producție și SQL-ul nemodificat într-un SQLite real, în memorie, numai cu date sintetice. Acoperă instalare nouă și fiecare versiune anterioară v1–v9 → versiunea curentă, valorile/legăturile existente, backfill-ul repartizărilor v7, `foreign_key_check`, `integrity_check`, cascade, idempotență și rollback-ul reconstruirii v6. Pentru v1 se testează păstrarea notificărilor: tabelele financiare originale **niciodată populate de aplicație** sunt reconstruite intenționat de v2; nu se promite păstrarea unor date financiare v1 arbitrare. Intrările istorice de migrare nu sunt editate.
+
+Testele suplimentare SQLite verifică salvarea FX, conflictele manuale, eșecurile offline și schimbarea acordului/monedei în timpul cererii. Nu reprezintă execuție pe `expo-sqlite` Android; după integrarea oricăror migrări noi, rerulați pe ordinea finală și completați fixture-urile noilor tabele.
+
+Maestro este local, fără cont cloud, token sau serviciu obligatoriu:
+
+1. Folosește **numai un emulator Android de test**, fără date private. Instalează Android SDK/emulator, Java 17+ și Maestro CLI din documentația oficială.
+2. Construiește varianta separată: `npx eas-cli@latest build --platform android --profile e2e`. Pentru build local cu SDK disponibil: `CASHIO_E2E=1 npx expo run:android --variant release`. Nu folosi Expo Go.
+3. Confirmă că APK-ul este **Cashio Synthetic E2E**, ID **`com.cashio.app.e2e`**, apoi instalează-l pe emulator. Configul de producție rămâne `com.cashio.app`. Varianta de test are și baza separată `cashio.e2e.synthetic.db`, activată numai dacă ambele marcaje de config coincid.
+4. Rulează `npm run test:e2e`. Setup-ul șterge **exclusiv starea aplicației sintetice** și parcurge onboarding-ul în engleză. Nu modifica `appId` în flow-uri și nu rula `clearState`, `pm clear` sau dezinstalare pentru aplicația utilizatorului.
+
+Flow-urile acoperă onboarding fără acord nativ, cheltuială creare/restart/editare/ștergere, transfer/restart, acord FX pornit/oprit fără accesarea rețelei, navigare în inbox/capturi și salvarea/persistența unui curs manual datat. Nu automatizează PDFBox, permisiuni native, picker-ul de backup sau livrarea reminderelor.
+
+**Dovezi locale pe această ramură:** 38 suite Jest / 213 teste trecute; 17 teste Node/SQLite și siguranță E2E trecute (inclusiv backup FX și prioritate manuală cu fus orar); lint/typecheck și exportul JavaScript Android trecute; `expo config --type public` confirmă ID-urile distincte cu/fără `CASHIO_E2E=1`. **Maestro nu a rulat**: `npm run test:e2e` returnează `maestro: not found`; `adb`, emulatorul și Android SDK nu sunt disponibile. Flow-urile sunt pregătite, dar acceptarea E2E rămâne în așteptare. Nu marca #26 finalizat până la rulare.
+
+### Checklist de validare Android fizică (#3 — deschis, fără dovezi noi)
+
+Toate punctele de mai jos sunt **în așteptare**. Testele unitare/SQLite, validarea configului și un build EAS nu sunt dovezi de instalare sau teste fizice.
+
+- [ ] Înregistrează commitul, EAS build ID, versiunea APK/versionCode, modelul telefonului și versiunea Android. Nu include identificatori ai dispozitivului sau date financiare.
+- [ ] Păstrează un backup local verificat înainte de upgrade. Notează instalarea/versiunea anterioară. Nu șterge datele și nu dezinstala aplicația utilizatorului pentru a „repara” migrarea.
+- [ ] Instalează APK-ul standalone și pornește-l cu Metro/laptopul oprite și fără Wi-Fi. Verifică onboarding-ul pentru instalare nouă, apoi navigarea Acasă/Tranzacții/Mai mult și repornirea procesului.
+- [ ] Fă upgrade **peste** instalarea existentă, fără reset. Compară local conturi, solduri, tranzacții/repartizări/etichete, cursuri datate, scadențare, preferințe și permisiuni. În GitHub publică numai „păstrat/eroare”, nu valori sau fișiere private.
+- [ ] Importă local scadențare ING reprezentative (NP/ipotecar, rate variabile și asigurare). Compară **fiecare** dată, sumă și componentă cu PDF-ul; verifică preview, salvare, editare și restart. Nu încărca PDF-uri/extracții în repo sau loguri.
+- [ ] Testează permisiune notificări refuzată/acordată/revocată; programarea, anularea și editarea reminderelor, scadențe apropiate/expirate, mai multe credite și limita de 50. Verifică livrarea cu aplicația oprită și după repornirea telefonului.
+- [ ] Verifică restaurarea backupului și reconstruirea reminderelor **întâi într-o instalare sintetică separată**. Confirmă anularea reminderelor vechi și lipsa duplicatelor, nu doar mesajul de succes.
+- [ ] Confirmă captarea notificărilor sintetice, draft → confirmare, transfer ING → Revolut fără cheltuială falsă; verifică fluxurile zilnice și funcționarea offline.
+- [ ] Verifică FX dezactivat fără cereri, acord explicit, eroare offline, dată/sursă/vechime, prioritate manuală și păstrarea cursurilor după restart/upgrade.
+- [ ] Adaugă rezultatele și defectele rămase în tichetul #3 folosind formatul: `build/commit | model + Android | scenariu | așteptat | observat | PASS/FAIL/BLOCAT | dovadă redactată`. Închide #3 numai după dovezi reale și remedierea/documentarea criteriilor rămase.

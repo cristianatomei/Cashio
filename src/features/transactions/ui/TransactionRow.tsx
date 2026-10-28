@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { AmountText, CategoryIcon, ListRow, useTheme } from '@/core/ui';
+import { AmountText, AppText, CategoryIcon, ListRow, useTheme } from '@/core/ui';
+import { merchantIdentity } from '../domain/merchantIdentity';
 
 import { transactionTitle, type TransactionView } from '../domain/views';
 
@@ -12,6 +13,8 @@ export function TransactionRow({ view, onPress }: Props) {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const locale = i18n.language === 'en' ? 'en-GB' : 'ro-RO';
+  const merchantName = view.merchant?.name ?? view.merchantRaw;
+  const identity = merchantName ? merchantIdentity(merchantName) : null;
 
   const time = new Date(view.occurredAt).toLocaleTimeString(locale, {
     hour: '2-digit',
@@ -19,8 +22,11 @@ export function TransactionRow({ view, onPress }: Props) {
   });
   const details = [
     view.merchant && view.allocations.length > 0
-      ? [...new Set(view.allocations.map((allocation) => allocation.category?.name).filter(Boolean))]
-          .join(', ')
+      ? [
+          ...new Set(
+            view.allocations.map((allocation) => allocation.category?.name).filter(Boolean),
+          ),
+        ].join(', ')
       : null,
     ...view.tags.map((tag) => `#${tag.name}`),
     time,
@@ -36,6 +42,10 @@ export function TransactionRow({ view, onPress }: Props) {
       leading={
         view.type === 'transfer' ? (
           <Ionicons name="swap-horizontal" size={24} color={colors.primary} style={styles.icon} />
+        ) : identity ? (
+          <View accessible={false} style={[styles.avatar, { backgroundColor: identity.color }]}>
+            <AppText style={styles.initials}>{identity.initials}</AppText>
+          </View>
         ) : (
           <CategoryIcon
             name={view.category?.icon ?? 'help-circle-outline'}
@@ -57,4 +67,12 @@ export function TransactionRow({ view, onPress }: Props) {
 
 const styles = StyleSheet.create({
   icon: { width: 40, textAlign: 'center' },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  initials: { color: '#FFFFFF', fontWeight: '700' },
 });

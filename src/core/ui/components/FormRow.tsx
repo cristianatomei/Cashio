@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { spacing, useTheme } from '../theme';
+import { minimumTouchTarget, spacing, useTheme } from '../theme';
 import { AppText } from './AppText';
 
 type Props = {
@@ -20,12 +20,26 @@ export function FormRow({ label, value, placeholder, leading, onPress }: Props) 
     <Pressable
       onPress={onPress}
       disabled={!onPress}
+      accessible={!!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={
+        onPress ? [label, value || placeholder].filter(Boolean).join(', ') : undefined
+      }
       style={({ pressed }) => [
         styles.row,
-        { borderBottomColor: colors.border, opacity: pressed ? 0.6 : 1 },
+        {
+          borderBottomColor: colors.border,
+          backgroundColor: pressed ? colors.primarySoft : 'transparent',
+        },
       ]}
     >
-      <View style={styles.leading}>{leading}</View>
+      <View
+        style={styles.leading}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        {leading}
+      </View>
       <View style={styles.texts}>
         <AppText variant="caption" color="textMuted">
           {label}
@@ -34,13 +48,22 @@ export function FormRow({ label, value, placeholder, leading, onPress }: Props) 
           {value || placeholder || ''}
         </AppText>
       </View>
-      {onPress ? <Ionicons name="chevron-forward" size={18} color={colors.textMuted} /> : null}
+      {onPress ? (
+        <Ionicons
+          name="chevron-forward"
+          size={18}
+          color={colors.textMuted}
+          accessible={false}
+          importantForAccessibility="no"
+        />
+      ) : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
+    minHeight: minimumTouchTarget,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,

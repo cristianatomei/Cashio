@@ -12,11 +12,17 @@ import { AppLockProvider } from '@/features/app-lock';
 import { useCaptureSync } from '@/features/capture';
 import { syncLoanScheduleReminders } from '@/features/loans/data/loanReminders';
 import { runScheduledBackup } from '@/features/backup';
+import { isDisposableTestBuild } from '@/core/db/testBuild';
 
 async function initializeDatabase(db: SQLiteDatabase) {
   try {
     await i18nReady;
     await migrate(db);
+    if (isDisposableTestBuild) {
+      await db.runAsync(
+        "INSERT INTO app_settings (key,value) VALUES ('language','en') ON CONFLICT(key) DO UPDATE SET value='en'",
+      );
+    }
     const savedLanguage = await db.getFirstAsync<{ value: string }>(
       'SELECT value FROM app_settings WHERE key = ?',
       ['language'],
@@ -90,6 +96,8 @@ function RootStack() {
         <Stack.Screen name="recurring" options={{ title: t('recurring.title') }} />
         <Stack.Screen name="investments" options={{ title: t('investments.title') }} />
         <Stack.Screen name="budgets" options={{ title: t('budgets.title') }} />
+        <Stack.Screen name="goals" options={{ title: t('planning.goals') }} />
+        <Stack.Screen name="net-worth" options={{ title: t('planning.netWorth') }} />
         <Stack.Screen name="data" options={{ title: t('data.title') }} />
         <Stack.Screen name="settings" options={{ title: t('more.settings') }} />
         <Stack.Screen name="onboarding" options={{ title: t('onboarding.title') }} />
