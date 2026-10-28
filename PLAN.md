@@ -91,7 +91,7 @@ Tab-uri: Acasă, Tranzacții, (+) adăugare rapidă, Statistici, Mai mult. „De
 
 ## Design
 
-Paletă albastru ocean + turcoaz: primar `#145DA0` în tema deschisă / `#60A5FA` în tema închisă; venit `#0FA99A` / `#2DD4BF`, cheltuială `#F0525A` / `#FF6B6B`. Închis: fundal `#0E1116`, suprafețe `#171B22`. Deschis: fundal `#F6F7FB`, suprafețe albe. Fiecare grup de categorii are culoare și icoană proprii. Cifrele folosesc variante tabulare. Alegerea utilizatorului este implementată; verificarea contrastului și aspectului pe telefon rămâne.
+Paletă albastru ocean + turcoaz: primar `#145DA0` în tema deschisă / `#60A5FA` în tema închisă; venit `#007567` / `#2DD4BF`, cheltuială `#C43140` / `#FF6B6B` în propunerea de accesibilitate #19. Închis: fundal `#0E1116`, suprafețe `#171B22`. Deschis: fundal `#F6F7FB`, suprafețe albe. Fiecare grup de categorii are culoare și icoană proprii. Cifrele folosesc variante tabulare. Alegerea utilizatorului este implementată. Auditul propus, măsurătorile automate AA și verificările native încă necesare sunt în [README — audit accesibilitate](README.md#audit-accesibilitate-19--propunere-din-28102026); nu presupune integrarea PR-ului sau verificarea pe telefon.
 
 ## Faze
 

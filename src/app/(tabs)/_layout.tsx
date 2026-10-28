@@ -1,14 +1,24 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { radius, useTheme } from '@/core/ui';
+import { AppText, minimumTouchTarget, radius, useTheme } from '@/core/ui';
 
 export default function TabsLayout() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const router = useRouter();
+  const { width, fontScale } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const measurementKey = `${width}:${fontScale}:${i18n.language}`;
+  const [measurement, setMeasurement] = useState({ key: measurementKey, height: 0 });
+  const labelHeight = Math.max(
+    16 * fontScale,
+    measurement.key === measurementKey ? measurement.height : 0,
+  );
 
   return (
     <Tabs
@@ -16,27 +26,58 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { backgroundColor: colors.tabBar, borderTopColor: colors.border },
+        tabBarAllowFontScaling: true,
+        tabBarLabelPosition: 'below-icon',
+        tabBarItemStyle: { minHeight: minimumTouchTarget, minWidth: minimumTouchTarget },
+        tabBarStyle: {
+          backgroundColor: colors.tabBar,
+          borderTopColor: colors.border,
+          height: Math.max(64, 44 + labelHeight) + insets.bottom,
+        },
+        tabBarLabel: ({ color, children }) => (
+          <AppText
+            variant="caption"
+            style={[styles.label, { color }]}
+            onLayout={({ nativeEvent }) => {
+              const height = Math.ceil(nativeEvent.layout.height);
+              setMeasurement((current) =>
+                current.key === measurementKey && current.height >= height
+                  ? current
+                  : {
+                      key: measurementKey,
+                      height: Math.max(current.key === measurementKey ? current.height : 0, height),
+                    },
+              );
+            }}
+          >
+            {children}
+          </AppText>
+        ),
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
           title: t('tabs.home'),
-          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="transactions"
         options={{
           title: t('tabs.transactions'),
-          tabBarIcon: ({ color, size }) => <Ionicons name="list-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="list-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="add"
         options={{
           title: t('tabs.add'),
+          tabBarAccessibilityLabel: t('tabs.add'),
           tabBarLabel: () => null,
           tabBarIcon: () => (
             <View style={[styles.addButton, { backgroundColor: colors.primary }]}>
@@ -74,6 +115,7 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
+  label: { alignSelf: 'stretch', textAlign: 'center' },
   addButton: {
     width: 48,
     height: 48,

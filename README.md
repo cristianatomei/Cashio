@@ -2,6 +2,28 @@
 
 Aplicație mobilă (Expo / React Native, Android-first) pentru urmărirea cheltuielilor. Ideea: cheltuielile se captează automat din notificările băncilor (ING, Revolut, Salt Bank), fără introducere manuală și fără abonament. Datele rămân local, în SQLite.
 
+## Audit accesibilitate #19 — propunere din 28.10.2026
+
+**Stare: implementare pregătită pentru review, nu integrată în `master` și nu livrată în APK-ul existent.** Nu închide automat issue-ul: verificările native de mai jos rămân necesare. Nu adaugă dependențe, migrări sau preferințe noi și nu schimbă culorile personalizate salvate.
+
+- **Ținte reale, nu doar `hitSlop`:** Chip 36→48dp, segmente 38→48dp, culori și clopoțel 40→48dp, închidere modal 24→48dp. Butoanele, rândurile interactive, navigarea lunară și noile `SwitchRow` au minimum 48dp; grila de icoane păstrează țintele existente ≥48dp. Switch-ul are un singur element accesibil, cu etichetă, stare și callback pe întregul rând.
+- **Contrast:** textul semantic (inclusiv caption, placeholder, venit, cheltuială și avertizare) este testat la ≥4,5:1 pe fundal, card, suprafață elevată, `primarySoft` și tab bar. `controlBorder` asigură ≥3:1 fără a recolora separatoarele/graficele existente. Feedback-ul de apăsare nu mai reduce contrastul prin opacitate; controalele dezactivate sunt exceptate de WCAG. Bifele culorilor aleg alb/negru, iar icoanele personalizate păstrează nuanța când este lizibilă, altfel folosesc textul temei; culoarea salvată și nuanța fundalului rămân neschimbate.
+
+| Măsurătoare WCAG, raport minim | Deschisă | Închisă |
+|---|---:|---:|
+| Text semantic pe cele cinci suprafețe | 4,69:1 | 5,05:1 |
+| Contur interactiv pe aceleași suprafețe | 3,03:1 | 3,24:1 |
+| Text buton primar / pericol | 6,77 / 5,44:1 | 6,97 / 6,39:1 |
+
+Anterior, pe alb, textul estompat avea 3,15:1, venitul 2,93:1, cheltuiala 3,47:1 și avertizarea 2,15:1. Testele folosesc luminanța relativă sRGB WCAG și compunerea alfa exactă `0x26/255` pentru nuanțele transparente; culorile de grafic și orice text colorat arbitrar din afara componentelor comune nu primesc o certificare globală.
+
+- **Cititoare de ecran RO/EN:** roluri și stări pentru butoane, selecții și preferințe; etichete vorbite pentru fiecare culoare/icoană oferită, operatorii calculatorului și lunile precedentă/următoare; acțiune accesibilă de golire a sumei fără apăsare lungă; progres numeric, inclusiv depășirea 100%. Butonul în încărcare își păstrează numele și anunță starea ocupat/dezactivat. Icoanele decorative nu înlocuiesc descrierea rândului; sumele finale rămân în arborele accesibil.
+- **Scalare font:** AppText/TextField respectă implicit sistemul și păstrează opțiunile explicite ale apelantului, inclusiv `maxFontSizeMultiplier`. Nu micșorează textul pentru a-l înghesui. Rândurile, segmentele și categoriile se pot rearanja, butoanele/câmpurile/calculatorul au înălțime minimă, nu fixă pentru text. Etichetele tab-urilor se pot împărți pe linii, iar bara crește după înălțimea măsurată; scalarea este explicit activată inclusiv pe iOS.
+- **Verificare automată:** 44 de regresii noi în `src/core/ui/components/accessibility.test.tsx` și `theme/contrast.test.ts` verifică stilurile/props, stările, callback-urile și matricea de contrast în ambele teme. Acestea nu măsoară layout-ul nativ. Au trecut `npm run typecheck`, `npm run lint` (fără avertismente) și `npm test -- --runInBand` — total 39 de suite / 241 de teste.
+- **Documentație SDK:** `expo ~57.0.27`, RN `0.86.3`. Atât `https://docs.expo.dev/versions/v57.0.0/`, cât și `https://docs.expo.dev/llms.txt` au fost inaccesibile prin DNS în acest mediu; API-urile folosite au fost verificate în tipurile/sursa pachetelor instalate, inclusiv comportamentul fonturilor din Expo Router 57.
+
+**De verificat manual înainte de acceptarea #19:** APK nou pe Android/TalkBack și iOS/VoiceOver; font 100/150/200% și maximul sistemului, zoom afișaj, ecran îngust și landscape, ambele teme și limbi. Parcurge toate tab-urile, formularele, selecțiile și modalele cu tastatura deschisă: lipsă suprapuneri/trunchieri, ordine/focus inițial și revenire după modal, anunțarea sumelor/stărilor/progresului, acțiunea de golire, activarea unică a switch-urilor și ținte reale fără suprapunere. Nu au fost disponibile `adb`/emulatorul pentru aceste verificări. Reauditează împreună PR-urile încă neintegrate pentru Home, tranzacții/inbox și statistici; noul switch din `ProductivitySettings` propus separat trebuie trecut la `SwitchRow` la integrare. Testele unitare sau un PR deschis nu confirmă integrarea, instalarea ori conformitatea tuturor ecranelor pe dispozitiv.
+
 ## Punct de reluare — 19.10.2026 (actualizat)
 
 Utilizatorul dorește utilizare zilnică fără laptop/Metro și continuarea dezvoltării coordonate de pe telefon, prin GitHub. Începe cu această secțiune; [PLAN.md](PLAN.md) păstrează planul funcțional și limitările. Nu presupune că un build terminat este și instalat/testat.

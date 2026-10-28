@@ -15,7 +15,13 @@ export function EmptyState({ icon, title, body }: Props) {
 
   return (
     <View style={styles.container}>
-      <Ionicons name={icon} size={48} color={colors.textMuted} />
+      <Ionicons
+        name={icon}
+        size={48}
+        color={colors.textMuted}
+        accessible={false}
+        importantForAccessibility="no"
+      />
       <AppText variant="heading">{title}</AppText>
       {body ? (
         <AppText color="textSecondary" style={styles.body}>
