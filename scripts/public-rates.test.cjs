@@ -5,7 +5,10 @@ const { migrate } = loadTypeScript('src/core/db/migrations.ts');
 const { refreshPublicRates } = loadTypeScript('src/features/exchange-rates/data/publicRates.ts');
 const { createCashioBackup, parseCashioBackup, restoreCashioBackup } = loadTypeScript(
   'src/features/backup/data/backup.ts',
-  { '@/features/loans': loadTypeScript('src/features/loans/domain/storedSchedule.ts') },
+  {
+    '@/features/loans': loadTypeScript('src/features/loans/domain/storedSchedule.ts'),
+    'expo-file-system': loadTypeScript('src/features/receipts/testing/fileSystem.ts'),
+  },
 );
 const payload = ['RON', 'USD', 'GBP'].map((quote, i) => ({
   base: 'EUR',

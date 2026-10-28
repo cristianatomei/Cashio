@@ -41,6 +41,14 @@
       "expo-sharing",
       "expo-font",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cashio selects receipt photos to store privately on this device. Cashio selectează fotografii de bonuri păstrate privat pe acest dispozitiv.",
+          "cameraPermission": "Cashio uses the camera only to photograph receipts stored on this device. Cashio folosește camera doar pentru bonuri păstrate pe acest dispozitiv.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-calendar",
         {
           "calendarPermission": "Cashio needs full calendar access to export, update and remove only its payment events in your chosen calendar.",

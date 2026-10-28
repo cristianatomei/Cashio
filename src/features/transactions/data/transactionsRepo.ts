@@ -5,6 +5,7 @@ import type { TransactionType } from '@/core/domain/transaction';
 import { schema, type AppDb } from '@/core/db';
 import { convertToBaseMinor } from '@/core/utils/currency';
 import { ratePreferenceOrder } from '@/features/exchange-rates/data/rateOrder';
+import { cleanupReceipts, loadReceipt } from '@/features/receipts/data/repo';
 import {
   findRecurringMatch,
   nextDueAfterPayment,
@@ -187,7 +188,9 @@ export function saveTransaction(db: AppDb, input: TransactionInput): number {
 }
 
 export function deleteTransaction(db: AppDb, id: number): void {
+  const receipt = loadReceipt(db, id);
   db.delete(schema.transactions).where(eq(schema.transactions.id, id)).run();
+  cleanupReceipts(db, receipt ? [receipt] : []);
 }
 
 export function loadTransaction(db: AppDb, id: number): TransactionInput | null {

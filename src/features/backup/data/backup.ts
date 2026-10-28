@@ -4,6 +4,20 @@ import { parseStoredLoanSchedule } from '@/features/loans';
 import { parseInvestmentAssets } from '@/features/investments/domain/assets';
 import { parseSavedFilter } from '@/features/transactions/domain/savedFilters';
 import { validateGoal, validateValuation } from '@/features/planning/domain/goals';
+import {
+  exportReceipt,
+  stageReceipts,
+  discardReceipt,
+  sweepReceiptFiles,
+} from '@/features/receipts/data/files';
+import {
+  checkBackupJsonSize,
+  MAX_BACKUP_RECEIPT_BYTES,
+  base64Size,
+  ReceiptError,
+  validatePortableReceipts,
+  type PortableReceipt,
+} from '@/features/receipts/domain/receipt';
 import { CALENDAR_STATE_KEY } from '@/features/calendar/domain/state';
 
 const TABLES = [
@@ -34,10 +48,11 @@ type BackupRow = Record<string, BackupValue>;
 
 export type CashioBackup = {
   format: 'cashio-backup';
-  version: 1 | 2 | 3;
+  version: 1 | 2 | 3 | 4;
   schemaVersion: number;
   createdAt: number;
   tables: Record<(typeof TABLES)[number], BackupRow[]>;
+  receipts?: PortableReceipt[];
 };
 
 const PRE_PLANNING_TABLES = TABLES.filter(
@@ -66,11 +81,12 @@ function isBackupValue(value: unknown): value is BackupValue {
 }
 
 export function parseCashioBackup(json: string): CashioBackup {
+  checkBackupJsonSize(json);
   const parsed: unknown = JSON.parse(json);
   if (
     !isRecord(parsed) ||
     parsed.format !== 'cashio-backup' ||
-    (parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3)
+    (parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3 && parsed.version !== 4)
   ) {
     throw new Error('Unsupported backup format or version.');
   }
@@ -90,7 +106,7 @@ export function parseCashioBackup(json: string): CashioBackup {
     tableNames.length === PRE_PLANNING_TABLES.length &&
     PRE_PLANNING_TABLES.every((table) => Object.hasOwn(parsed.tables as object, table));
   if (
-    (parsed.version === 3 && !hasCurrentTables) ||
+    ((parsed.version === 3 || parsed.version === 4) && !hasCurrentTables) ||
     (parsed.version === 2 && !hasCurrentTables && !hasPrePlanningTables)
   )
     throw new Error('The backup does not contain the expected Cashio tables.');
@@ -239,12 +255,27 @@ export function parseCashioBackup(json: string): CashioBackup {
     parseInvestmentAssets(investmentAssets);
   }
 
+  if (parsed.version === 4) {
+    validatePortableReceipts(
+      parsed.receipts,
+      new Set(tables.transactions.map((row) => Number(row.id))),
+    );
+  } else if (parsed.receipts !== undefined) {
+    throw new ReceiptError('invalidBackup');
+  }
   return { ...parsed, tables } as CashioBackup;
+}
+
+export function serializeCashioBackup(backup: CashioBackup): string {
+  const json = JSON.stringify(backup);
+  checkBackupJsonSize(json);
+  return json;
 }
 
 export async function createCashioBackup(db: SQLiteDatabase): Promise<CashioBackup> {
   const version = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   const tables = {} as CashioBackup['tables'];
+  const receipts: PortableReceipt[] = [];
 
   await db.withExclusiveTransactionAsync(async (transaction) => {
     for (const table of TABLES) {
@@ -259,14 +290,25 @@ export async function createCashioBackup(db: SQLiteDatabase): Promise<CashioBack
             )
           : rows;
     }
+    const links = await transaction.getAllAsync<{ transaction_id: number; filename: string }>(
+      'SELECT transaction_id, filename FROM "transaction_receipts"',
+    );
+    let total = 0;
+    for (const link of links) {
+      const base64 = exportReceipt(link.filename);
+      total += base64Size(base64);
+      if (total > MAX_BACKUP_RECEIPT_BYTES) throw new ReceiptError('backupLimit');
+      receipts.push({ transactionId: link.transaction_id, base64 });
+    }
   });
 
   return {
     format: 'cashio-backup',
-    version: 3,
+    version: 4,
     schemaVersion: version?.user_version ?? 0,
     createdAt: Date.now(),
     tables,
+    receipts,
   };
 }
 
@@ -280,6 +322,7 @@ export function isSupportedBackupSchemaVersion(
 }
 
 export async function restoreCashioBackup(db: SQLiteDatabase, backup: CashioBackup): Promise<void> {
+  backup = parseCashioBackup(JSON.stringify(backup));
   const current = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   const currentVersion = current?.user_version ?? 0;
   if (!isSupportedBackupSchemaVersion(backup.schemaVersion, currentVersion)) {
@@ -297,42 +340,63 @@ export async function restoreCashioBackup(db: SQLiteDatabase, backup: CashioBack
     }
   }
 
-  await db.withExclusiveTransactionAsync(async (transaction) => {
-    // Calendar IDs and consent belong to this installation, not to an imported backup.
-    // Keep its ownership journal so existing phone events can still be cleaned up.
-    const calendarState = await transaction.getFirstAsync<{ key: string; value: string }>(
-      'SELECT key, value FROM app_settings WHERE key = ?',
-      [CALENDAR_STATE_KEY],
-    );
-    await transaction.execAsync('PRAGMA defer_foreign_keys = ON;');
-    for (const table of [...TABLES].reverse()) {
-      await transaction.execAsync(`DELETE FROM "${table}";`);
-    }
+  // Stage under new names before touching the database. A failed restore keeps old files/rows.
+  const staged = stageReceipts(backup.receipts ?? []);
+  try {
+    await db.withExclusiveTransactionAsync(async (transaction) => {
+      // Calendar IDs and consent belong to this installation, not to an imported backup.
+      // Keep its ownership journal so existing phone events can still be cleaned up.
+      const calendarState = await transaction.getFirstAsync<{ key: string; value: string }>(
+        'SELECT key, value FROM app_settings WHERE key = ?',
+        [CALENDAR_STATE_KEY],
+      );
+      await transaction.execAsync('PRAGMA defer_foreign_keys = ON;');
+      await transaction.execAsync('DELETE FROM transaction_receipts;');
+      for (const table of [...TABLES].reverse()) {
+        await transaction.execAsync(`DELETE FROM "${table}";`);
+      }
 
-    for (const table of TABLES) {
-      const columns = columnsByTable.get(table);
-      if (!columns) throw new Error(`Database table "${table}" is unavailable.`);
+      for (const table of TABLES) {
+        const columns = columnsByTable.get(table);
+        if (!columns) throw new Error(`Database table "${table}" is unavailable.`);
 
-      for (const row of backup.tables[table]) {
-        if (table === 'app_settings' && row.key === CALENDAR_STATE_KEY) continue;
-        const names = Object.keys(row);
-        if (names.length === 0) throw new Error(`A row in "${table}" has no columns.`);
-        if (names.some((name) => !columns.has(name))) {
-          throw new Error(`The backup contains unknown columns in "${table}".`);
+        for (const row of backup.tables[table]) {
+          if (table === 'app_settings' && row.key === CALENDAR_STATE_KEY) continue;
+          const names = Object.keys(row);
+          if (names.length === 0) throw new Error(`A row in "${table}" has no columns.`);
+          if (names.some((name) => !columns.has(name))) {
+            throw new Error(`The backup contains unknown columns in "${table}".`);
+          }
+          const quotedNames = names.map((name) => `"${name}"`).join(', ');
+          const placeholders = names.map(() => '?').join(', ');
+          await transaction.runAsync(
+            `INSERT INTO "${table}" (${quotedNames}) VALUES (${placeholders})`,
+            names.map((name) => row[name]),
+          );
         }
-        const quotedNames = names.map((name) => `"${name}"`).join(', ');
-        const placeholders = names.map(() => '?').join(', ');
+      }
+      for (const row of staged) {
         await transaction.runAsync(
-          `INSERT INTO "${table}" (${quotedNames}) VALUES (${placeholders})`,
-          names.map((name) => row[name]),
+          'INSERT INTO transaction_receipts (transaction_id, filename) VALUES (?, ?)',
+          [row.transaction_id, row.filename],
         );
       }
-    }
-    if (calendarState) {
-      await transaction.runAsync('INSERT INTO app_settings (key, value) VALUES (?, ?)', [
-        calendarState.key,
-        calendarState.value,
-      ]);
-    }
-  });
+      if (calendarState) {
+        await transaction.runAsync('INSERT INTO app_settings (key, value) VALUES (?, ?)', [
+          calendarState.key,
+          calendarState.value,
+        ]);
+      }
+      const violations = await transaction.getAllAsync('PRAGMA foreign_key_check');
+      if (violations.length) throw new Error('The backup contains invalid references.');
+    });
+  } catch (error) {
+    for (const row of staged) discardReceipt(row.filename);
+    throw error;
+  }
+  try {
+    sweepReceiptFiles(new Set(staged.map((row) => row.filename)));
+  } catch {
+    throw new ReceiptError('restoreCleanupFailed');
+  }
 }

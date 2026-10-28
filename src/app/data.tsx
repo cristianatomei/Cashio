@@ -42,10 +42,12 @@ import {
   createCashioBackup,
   IngCsvImportCard,
   parseCashioBackup,
+  serializeCashioBackup,
   restoreCashioBackup,
   backupAgeDays,
   backupSettingKeys,
 } from '@/features/backup';
+import { MAX_BACKUP_JSON_BYTES, ReceiptError } from '@/features/receipts/domain/receipt';
 
 export default function DataScreen() {
   const { t, i18n } = useTranslation();
@@ -294,9 +296,10 @@ export default function DataScreen() {
     setBusy(true);
     try {
       const backup = await createCashioBackup(sqlite);
+      const json = serializeCashioBackup(backup);
       const file = new File(Paths.cache, `cashio-backup-${Date.now()}.json`);
       file.create({ overwrite: true });
-      file.write(JSON.stringify(backup));
+      file.write(json);
       if (!(await Sharing.isAvailableAsync())) {
         throw new Error('File sharing is unavailable on this device.');
       }
@@ -306,7 +309,10 @@ export default function DataScreen() {
       });
     } catch (error) {
       console.error('Failed to export Cashio backup', error);
-      Alert.alert(t('errors.generic'), t('data.exportError'));
+      Alert.alert(
+        t('errors.generic'),
+        error instanceof ReceiptError ? t(`receipts.${error.code}`) : t('data.exportError'),
+      );
     } finally {
       setBusy(false);
     }
@@ -320,45 +326,62 @@ export default function DataScreen() {
         copyToCacheDirectory: true,
       });
       if (result.canceled) return;
-      const source = new File(result.assets[0].uri).textSync();
+      const file = new File(result.assets[0].uri);
+      if (file.size > MAX_BACKUP_JSON_BYTES) throw new ReceiptError('backupLimit');
+      const source = file.textSync();
       const backup = parseCashioBackup(source);
-      Alert.alert(t('data.restoreAction'), t('data.restoreWarning'), [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('data.restoreAction'),
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await restoreCashioBackup(sqlite, backup);
-                const savedLanguage = db
-                  .select({ value: schema.appSettings.value })
-                  .from(schema.appSettings)
-                  .where(eq(schema.appSettings.key, 'language'))
-                  .get()?.value;
-                if (savedLanguage === 'ro' || savedLanguage === 'en') {
-                  await i18n.changeLanguage(savedLanguage);
+      Alert.alert(
+        t('data.restoreAction'),
+        `${t('data.restoreWarning')}\n\n${t('receipts.restorePolicy')}`,
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('data.restoreAction'),
+            style: 'destructive',
+            onPress: () => {
+              void (async () => {
+                setBusy(true);
+                try {
+                  await restoreCashioBackup(sqlite, backup);
+                  const savedLanguage = db
+                    .select({ value: schema.appSettings.value })
+                    .from(schema.appSettings)
+                    .where(eq(schema.appSettings.key, 'language'))
+                    .get()?.value;
+                  if (savedLanguage === 'ro' || savedLanguage === 'en') {
+                    await i18n.changeLanguage(savedLanguage);
+                  }
+                  const savedTheme = db
+                    .select({ value: schema.appSettings.value })
+                    .from(schema.appSettings)
+                    .where(eq(schema.appSettings.key, 'theme'))
+                    .get()?.value;
+                  if (savedTheme === 'system' || savedTheme === 'light' || savedTheme === 'dark') {
+                    setPreference(savedTheme);
+                  }
+                  Alert.alert(t('data.restoreAction'), t('data.restoreSuccess'));
+                } catch (error) {
+                  console.error('Failed to restore Cashio backup', error);
+                  Alert.alert(
+                    t('errors.generic'),
+                    error instanceof ReceiptError
+                      ? t(`receipts.${error.code}`)
+                      : t('data.restoreError'),
+                  );
+                } finally {
+                  setBusy(false);
                 }
-                const savedTheme = db
-                  .select({ value: schema.appSettings.value })
-                  .from(schema.appSettings)
-                  .where(eq(schema.appSettings.key, 'theme'))
-                  .get()?.value;
-                if (savedTheme === 'system' || savedTheme === 'light' || savedTheme === 'dark') {
-                  setPreference(savedTheme);
-                }
-                Alert.alert(t('data.restoreAction'), t('data.restoreSuccess'));
-              } catch (error) {
-                console.error('Failed to restore Cashio backup', error);
-                Alert.alert(t('errors.generic'), t('data.restoreError'));
-              }
-            })();
+              })();
+            },
           },
-        },
-      ]);
+        ],
+      );
     } catch (error) {
       console.error('Failed to read Cashio backup', error);
-      Alert.alert(t('errors.generic'), t('data.restoreError'));
+      Alert.alert(
+        t('errors.generic'),
+        error instanceof ReceiptError ? t(`receipts.${error.code}`) : t('data.restoreError'),
+      );
     } finally {
       setBusy(false);
     }
@@ -417,6 +440,7 @@ export default function DataScreen() {
   return (
     <Screen title={t('data.title')} onRefresh={refresh}>
       <SectionHeader title={t('data.backupTitle')} />
+      <AppText>{t('receipts.backupPolicy')}</AppText>
       <Card>
         <AppText color="textSecondary">{t('data.backupHint')}</AppText>
         <AppText color="textSecondary">

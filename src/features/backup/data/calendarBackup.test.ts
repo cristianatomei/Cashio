@@ -23,6 +23,7 @@ function database() {
     ),
     getAllAsync: jest.fn(async (sql: string) => {
       if (sql.includes('table_info')) return [{ name: 'key' }, { name: 'value' }];
+      if (sql.includes('foreign_key_check')) return [];
       return [...(tables.get(sql.match(/FROM "([^"]+)"/)![1]) ?? [])];
     }),
     execAsync: jest.fn(async (sql: string) => {

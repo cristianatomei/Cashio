@@ -13,6 +13,7 @@ import {
 import { deleteGoal, saveGoal, saveValuation } from './repo';
 
 jest.mock('expo-sqlite', () => ({}));
+jest.mock('expo-file-system', () => jest.requireActual('@/features/receipts/testing/fileSystem'));
 
 // Real SQLite in memory, exposing only the Expo methods used by migrations/repos/backup.
 function fixture() {
@@ -131,7 +132,7 @@ describe('planning migration, local persistence and backup restore', () => {
       })
       .run();
     const backup = parseCashioBackup(JSON.stringify(await createCashioBackup(context.expo)));
-    expect(backup.version).toBe(3);
+    expect(backup.version).toBe(4);
     expect(backup.tables.savings_goals[0]).toMatchObject({
       name: 'Synthetic goal',
       current_minor: 2500,
@@ -148,7 +149,7 @@ describe('planning migration, local persistence and backup restore', () => {
 
   it('accepts pre-planning backups and restores empty planning tables', async () => {
     await migrate(context.expo);
-    const old = await createCashioBackup(context.expo);
+    const { receipts: _receipts, ...old } = await createCashioBackup(context.expo);
     const { savings_goals: _goals, investment_valuations: _valuations, ...tables } = old.tables;
     const parsed = parseCashioBackup(
       JSON.stringify({ ...old, version: 2, schemaVersion: 10, tables }),

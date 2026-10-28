@@ -20,7 +20,12 @@ import {
   saveMerchantRule,
   undoBatch,
 } from './workflowsRepo';
-import { saveTransaction } from './transactionsRepo';
+import { deleteTransaction, saveTransaction } from './transactionsRepo';
+import { files, failures, resetFiles, syntheticJpeg } from '@/features/receipts/testing/fileSystem';
+import { exportReceipt, importReceipt, receiptFile } from '@/features/receipts/data/files';
+import { cleanupReceipts, loadReceipt, saveReceipt } from '@/features/receipts/data/repo';
+
+jest.mock('expo-file-system', () => jest.requireActual('@/features/receipts/testing/fileSystem'));
 
 jest.mock('expo-sqlite', () => ({ addDatabaseChangeListener: jest.fn() }));
 jest.mock('@/core/db', () => ({
@@ -80,6 +85,7 @@ function database() {
 describe('transaction workflows on real SQLite', () => {
   let connection: ReturnType<typeof database>;
   beforeEach(async () => {
+    resetFiles();
     connection = database();
     await migrate(connection.client);
     const { db } = connection;
@@ -131,6 +137,186 @@ describe('transaction workflows on real SQLite', () => {
       .run();
   });
   afterEach(() => connection.native.close());
+
+  const attach = (db: ReturnType<typeof database>['db']) => {
+    files.set('file:///picker/synthetic.jpg', syntheticJpeg);
+    const filename = importReceipt('file:///picker/synthetic.jpg');
+    saveReceipt(db, 1, filename);
+    return filename;
+  };
+
+  it('keeps receipt links through edits/reloads, FK deletion, undo and final cleanup', () => {
+    const { db } = connection;
+    const filename = attach(db);
+    saveTransaction(db, {
+      id: 1,
+      type: 'expense',
+      accountId: 1,
+      transferAccountId: null,
+      amountMinor: 1300,
+      currency: 'RON',
+      categoryId: 1,
+      merchantId: 1,
+      note: 'Synthetic edit',
+      tagIds: [],
+      occurredAt: 200,
+    });
+    expect(loadReceipt(db, 1)).toBe(filename);
+    expect(() => saveReceipt(db, 999, filename)).toThrow();
+    const undo = applyBatch(db, [1], { kind: 'delete' });
+    expect(loadReceipt(db, 1)).toBeNull();
+    expect(receiptFile(filename).exists).toBe(true);
+    undoBatch(db, undo);
+    expect(loadReceipt(db, 1)).toBe(filename);
+    cleanupReceipts(db, [filename]);
+    expect(receiptFile(filename).exists).toBe(true);
+    deleteTransaction(db, 1);
+    expect(loadReceipt(db, 1)).toBeNull();
+    expect(receiptFile(filename).exists).toBe(false);
+  });
+
+  it('cleans replacement/removal only after commit, protecting other receipts and rollback', () => {
+    const { db } = connection;
+    const old = attach(db);
+    const replacement = importReceipt('file:///picker/synthetic.jpg');
+    expect(() =>
+      db.transaction((tx) => {
+        saveReceipt(tx, 1, replacement);
+        throw new Error('Synthetic database failure');
+      }),
+    ).toThrow('Synthetic');
+    expect(loadReceipt(db, 1)).toBe(old);
+    cleanupReceipts(db, [replacement]);
+    expect(receiptFile(old).exists).toBe(true);
+    expect(receiptFile(replacement).exists).toBe(false);
+    saveReceipt(db, 1, null);
+    cleanupReceipts(db, [old]);
+    expect(receiptFile(old).exists).toBe(false);
+  });
+
+  it('never shares a receipt file between transactions or deletes another transaction’s image', () => {
+    const { db } = connection;
+    const first = attach(db);
+    const second = importReceipt('file:///picker/synthetic.jpg');
+    const row = db.select().from(schema.transactions).get()!;
+    db.insert(schema.transactions)
+      .values({ ...row, id: 2, rawNotificationId: null, dedupeHash: null })
+      .run();
+    saveReceipt(db, 2, second);
+    expect(() => saveReceipt(db, 1, second)).toThrow();
+    expect(loadReceipt(db, 1)).toBe(first);
+    deleteTransaction(db, 1);
+    expect(receiptFile(first).exists).toBe(false);
+    expect(loadReceipt(db, 2)).toBe(second);
+    expect(exportReceipt(second)).toBe(syntheticJpeg.toString('base64'));
+  });
+
+  it('roundtrips receipts without local paths, using fresh files and cleaning old files', async () => {
+    const { db, client } = connection;
+    const old = attach(db);
+    const backup = parseCashioBackup(JSON.stringify(await createCashioBackup(client)));
+    expect(backup.version).toBe(4);
+    expect(backup.receipts).toEqual([
+      { transactionId: 1, base64: syntheticJpeg.toString('base64') },
+    ]);
+    expect(JSON.stringify(backup)).not.toContain('file:///');
+    await restoreCashioBackup(client, backup);
+    const restored = loadReceipt(db, 1)!;
+    expect(restored).not.toBe(old);
+    expect(exportReceipt(restored)).toBe(syntheticJpeg.toString('base64'));
+    expect(receiptFile(old).exists).toBe(false);
+  });
+
+  it('restores legacy backups without leaving receipts attached to reused transaction IDs', async () => {
+    const { db, client } = connection;
+    const filename = attach(db);
+    const { receipts: _receipts, ...backup } = await createCashioBackup(client);
+    await restoreCashioBackup(client, { ...backup, version: 3 });
+    expect(loadReceipt(db, 1)).toBeNull();
+    expect(receiptFile(filename).exists).toBe(false);
+  });
+
+  it('aborts backups on missing/unreadable receipts rather than silently dropping images', async () => {
+    const { db, client } = connection;
+    const filename = attach(db);
+    failures.read = true;
+    await expect(createCashioBackup(client)).rejects.toThrow('missing');
+    failures.read = false;
+    receiptFile(filename).delete();
+    await expect(createCashioBackup(client)).rejects.toThrow('missing');
+    expect(loadReceipt(db, 1)).toBe(filename);
+  });
+
+  it('preserves old database/files on staging or database restore failure', async () => {
+    const { db, client } = connection;
+    const filename = attach(db);
+    const backup = await createCashioBackup(client);
+    failures.write = true;
+    await expect(restoreCashioBackup(client, backup)).rejects.toThrow('saveFailed');
+    failures.write = false;
+    expect(loadReceipt(db, 1)).toBe(filename);
+    expect(receiptFile(filename).exists).toBe(true);
+    backup.tables.transactions[0].account_id = 9999;
+    await expect(restoreCashioBackup(client, backup)).rejects.toThrow('invalid references');
+    expect(loadReceipt(db, 1)).toBe(filename);
+    expect(receiptFile(filename).exists).toBe(true);
+    expect([...files.keys()].filter((uri) => uri.includes('/receipts/'))).toHaveLength(1);
+  });
+
+  it('rejects missing, duplicate and unlinked receipt payloads before changing data', async () => {
+    const { db, client } = connection;
+    const filename = attach(db);
+    const backup = await createCashioBackup(client);
+    for (const receipts of [
+      undefined,
+      [...backup.receipts!, ...backup.receipts!],
+      [{ ...backup.receipts![0], transactionId: 999 }],
+    ]) {
+      await expect(restoreCashioBackup(client, { ...backup, receipts })).rejects.toThrow(
+        'invalidBackup',
+      );
+      expect(loadReceipt(db, 1)).toBe(filename);
+      expect(receiptFile(filename).exists).toBe(true);
+    }
+  });
+
+  it('reports post-delete cleanup failure without undoing referential cleanup, and retries', () => {
+    const { db } = connection;
+    const filename = attach(db);
+    failures.delete = true;
+    expect(() => deleteTransaction(db, 1)).toThrow('cleanupFailed');
+    expect(loadReceipt(db, 1)).toBeNull();
+    failures.delete = false;
+    cleanupReceipts(db, [filename]);
+    expect(receiptFile(filename).exists).toBe(false);
+  });
+
+  it('distinguishes successful restore with cleanup failure from failed restore', async () => {
+    const { db, client } = connection;
+    const old = attach(db);
+    const backup = await createCashioBackup(client);
+    failures.delete = true;
+    await expect(restoreCashioBackup(client, backup)).rejects.toThrow('restoreCleanupFailed');
+    const restored = loadReceipt(db, 1)!;
+    expect(restored).not.toBe(old);
+    expect(exportReceipt(restored)).toBe(syntheticJpeg.toString('base64'));
+    expect(receiptFile(old).exists).toBe(true);
+    failures.delete = false;
+    cleanupReceipts(db, [old]);
+    expect(receiptFile(old).exists).toBe(false);
+  });
+
+  it('does not resurrect a stale receipt link through Undo after restore removed its file', async () => {
+    const { db, client } = connection;
+    const filename = attach(db);
+    const undo = applyBatch(db, [1], { kind: 'delete' });
+    const backup = await createCashioBackup(client);
+    await restoreCashioBackup(client, backup);
+    expect(receiptFile(filename).exists).toBe(false);
+    expect(() => undoBatch(db, undo)).toThrow('missing');
+    expect(db.select().from(schema.transactions).all()).toEqual([]);
+    expect(db.select().from(schema.transactionReceipts).all()).toEqual([]);
+  });
 
   it('deletes and restores exact rows, tags, allocations, raw state and loan links atomically', () => {
     const { db, native } = connection;

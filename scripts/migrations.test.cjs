@@ -64,7 +64,7 @@ function snapshot(native) {
   );
 }
 
-for (let version = 0; version <= 9; version++) {
+for (let version = 0; version <= migrations.length; version++) {
   test(`real SQLite migration v${version} -> v${migrations.length} preserves supported synthetic data and FKs`, async () => {
     const { native, adapter } = createDatabase();
     try {
@@ -105,7 +105,15 @@ for (let version = 0; version <= 9; version++) {
         /FOREIGN KEY/,
       );
       if (version >= 2) {
+        native.exec(`
+          INSERT OR IGNORE INTO transaction_receipts (transaction_id, filename)
+          VALUES (41, 'synthetic-41.jpg'), (42, 'synthetic-42.png')
+        `);
         native.exec('DELETE FROM transactions WHERE id=41');
+        assert.deepEqual(
+          native.prepare('SELECT * FROM transaction_receipts').all().map((row) => ({ ...row })),
+          [{ transaction_id: 42, filename: 'synthetic-42.png' }],
+        );
         assert.equal(native.prepare('SELECT count(*) AS n FROM transaction_tags').get().n, 0);
         assert.equal(
           native.prepare('SELECT count(*) AS n FROM transaction_allocations').get().n,

@@ -1,6 +1,28 @@
 import type { Resources } from './ro';
 
 export const en: Resources = {
+  receipts: {
+    title: 'Receipt',
+    hint: 'One local-only image per transaction. JPEG, PNG or WebP, up to 5 MiB. Changes apply when you save the transaction.',
+    view: 'View receipt',
+    remove: 'Remove receipt',
+    library: 'Choose / replace photo',
+    camera: 'Photograph / replace receipt',
+    permission: 'Camera permission was denied. Allow camera access for Cashio in system settings to photograph a receipt. You can still choose a photo.',
+    unsupported: 'Use a JPEG, PNG or WebP image on Android or iOS. Convert other formats before attaching them.',
+    tooLarge: 'The receipt exceeds 5 MiB. Choose a smaller image.',
+    backupLimit: 'Backup stopped: receipts exceed 20 MiB in total, or the JSON file exceeds 64 MiB. Nothing was omitted. Keep an existing backup and reduce receipt sizes before trying again.',
+    missing: 'The receipt is missing or cannot be displayed. Replace or remove it and save. Backups stop rather than omit missing receipts.',
+    importFailed: 'The photo could not be imported. Try selecting it again from this device.',
+    saveFailed: 'The receipt could not be saved. Your previous transaction and receipt were kept. Check free space and try again.',
+    cleanupFailed: 'Some unused receipt files could not be removed. Saved data is retained. Restart Cashio to retry cleanup.',
+    restoreCleanupFailed: 'Restore completed, but some old receipt files could not be removed. Restart Cashio to retry cleanup.',
+    backupFailed: 'Automatic backup failed. Check destination permissions and free space. Existing backups were kept.',
+    invalidBackup: 'The backup contains invalid, duplicate or unlinked receipt data. Nothing was restored.',
+    interrupted: 'Android interrupted the photo picker. No saved receipt was changed. Choose the image again to attach it to the correct transaction.',
+    backupPolicy: 'Manual and automatic backups include every receipt (5 MiB each, 20 MiB total; JSON up to 64 MiB). A missing or unreadable image or exceeded limit stops the backup, without omissions. Backups contain private photos: choose a safe destination. Cashio never uploads them itself.',
+    restorePolicy: 'Restore replaces all current receipts. Older backups contain no receipts and will remove current ones. Keep a complete backup before continuing.',
+  },
   calendarExport: {
     title: 'Phone calendar',
     privacy:
