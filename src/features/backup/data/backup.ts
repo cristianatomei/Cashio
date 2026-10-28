@@ -18,6 +18,7 @@ import {
   validatePortableReceipts,
   type PortableReceipt,
 } from '@/features/receipts/domain/receipt';
+import { CALENDAR_STATE_KEY } from '@/features/calendar/domain/state';
 
 const TABLES = [
   'raw_notifications',
@@ -281,11 +282,16 @@ export async function createCashioBackup(db: SQLiteDatabase): Promise<CashioBack
       const rows = await transaction.getAllAsync<BackupRow>(`SELECT * FROM "${table}"`);
       tables[table] =
         table === 'app_settings'
-          ? rows.filter((row) => row.key !== 'backup_folder_uri' && row.key !== 'backup_last_at')
+          ? rows.filter(
+              (row) =>
+                row.key !== 'backup_folder_uri' &&
+                row.key !== 'backup_last_at' &&
+                row.key !== CALENDAR_STATE_KEY,
+            )
           : rows;
     }
     const links = await transaction.getAllAsync<{ transaction_id: number; filename: string }>(
-      'SELECT transaction_id, filename FROM transaction_receipts',
+      'SELECT transaction_id, filename FROM "transaction_receipts"',
     );
     let total = 0;
     for (const link of links) {
@@ -338,6 +344,12 @@ export async function restoreCashioBackup(db: SQLiteDatabase, backup: CashioBack
   const staged = stageReceipts(backup.receipts ?? []);
   try {
     await db.withExclusiveTransactionAsync(async (transaction) => {
+      // Calendar IDs and consent belong to this installation, not to an imported backup.
+      // Keep its ownership journal so existing phone events can still be cleaned up.
+      const calendarState = await transaction.getFirstAsync<{ key: string; value: string }>(
+        'SELECT key, value FROM app_settings WHERE key = ?',
+        [CALENDAR_STATE_KEY],
+      );
       await transaction.execAsync('PRAGMA defer_foreign_keys = ON;');
       await transaction.execAsync('DELETE FROM transaction_receipts;');
       for (const table of [...TABLES].reverse()) {
@@ -349,6 +361,7 @@ export async function restoreCashioBackup(db: SQLiteDatabase, backup: CashioBack
         if (!columns) throw new Error(`Database table "${table}" is unavailable.`);
 
         for (const row of backup.tables[table]) {
+          if (table === 'app_settings' && row.key === CALENDAR_STATE_KEY) continue;
           const names = Object.keys(row);
           if (names.length === 0) throw new Error(`A row in "${table}" has no columns.`);
           if (names.some((name) => !columns.has(name))) {
@@ -367,6 +380,12 @@ export async function restoreCashioBackup(db: SQLiteDatabase, backup: CashioBack
           'INSERT INTO transaction_receipts (transaction_id, filename) VALUES (?, ?)',
           [row.transaction_id, row.filename],
         );
+      }
+      if (calendarState) {
+        await transaction.runAsync('INSERT INTO app_settings (key, value) VALUES (?, ?)', [
+          calendarState.key,
+          calendarState.value,
+        ]);
       }
       const violations = await transaction.getAllAsync('PRAGMA foreign_key_check');
       if (violations.length) throw new Error('The backup contains invalid references.');

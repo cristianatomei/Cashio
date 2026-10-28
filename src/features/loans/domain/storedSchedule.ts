@@ -6,6 +6,34 @@ export type StoredLoanSchedule = {
   installments: LoanInstallment[];
 };
 
+export type LoanPaymentProjection = {
+  scheduleId: number;
+  dueAt: number;
+  amountMinor: number;
+  currency: string;
+};
+
+export function projectStoredLoanPayments(
+  schedules: readonly { id: number; currency: string; installmentsJson: string }[],
+  from: number,
+  to: number,
+): LoanPaymentProjection[] {
+  if (from >= to) return [];
+
+  return schedules.flatMap((schedule) => {
+    const stored = parseStoredLoanSchedule(schedule.installmentsJson);
+    return stored.installments
+      .filter((installment) => installment.dueAt >= from && installment.dueAt < to)
+      .map((installment) => ({
+        scheduleId: schedule.id,
+        dueAt: installment.dueAt,
+        amountMinor:
+          installment.paymentMinor + (stored.includeInsurance ? installment.insuranceMinor : 0),
+        currency: schedule.currency,
+      }));
+  });
+}
+
 export function parseStoredLoanSchedule(value: string): StoredLoanSchedule {
   const parsed: unknown = JSON.parse(value);
   if (
