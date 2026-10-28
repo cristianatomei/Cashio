@@ -4,6 +4,7 @@ import { parseStoredLoanSchedule } from '@/features/loans';
 import { parseInvestmentAssets } from '@/features/investments/domain/assets';
 import { parseSavedFilter } from '@/features/transactions/domain/savedFilters';
 import { validateGoal, validateValuation } from '@/features/planning/domain/goals';
+import { CALENDAR_STATE_KEY } from '@/features/calendar/domain/state';
 
 const TABLES = [
   'raw_notifications',
@@ -250,7 +251,12 @@ export async function createCashioBackup(db: SQLiteDatabase): Promise<CashioBack
       const rows = await transaction.getAllAsync<BackupRow>(`SELECT * FROM "${table}"`);
       tables[table] =
         table === 'app_settings'
-          ? rows.filter((row) => row.key !== 'backup_folder_uri' && row.key !== 'backup_last_at')
+          ? rows.filter(
+              (row) =>
+                row.key !== 'backup_folder_uri' &&
+                row.key !== 'backup_last_at' &&
+                row.key !== CALENDAR_STATE_KEY,
+            )
           : rows;
     }
   });
@@ -292,6 +298,12 @@ export async function restoreCashioBackup(db: SQLiteDatabase, backup: CashioBack
   }
 
   await db.withExclusiveTransactionAsync(async (transaction) => {
+    // Calendar IDs and consent belong to this installation, not to an imported backup.
+    // Keep its ownership journal so existing phone events can still be cleaned up.
+    const calendarState = await transaction.getFirstAsync<{ key: string; value: string }>(
+      'SELECT key, value FROM app_settings WHERE key = ?',
+      [CALENDAR_STATE_KEY],
+    );
     await transaction.execAsync('PRAGMA defer_foreign_keys = ON;');
     for (const table of [...TABLES].reverse()) {
       await transaction.execAsync(`DELETE FROM "${table}";`);
@@ -302,6 +314,7 @@ export async function restoreCashioBackup(db: SQLiteDatabase, backup: CashioBack
       if (!columns) throw new Error(`Database table "${table}" is unavailable.`);
 
       for (const row of backup.tables[table]) {
+        if (table === 'app_settings' && row.key === CALENDAR_STATE_KEY) continue;
         const names = Object.keys(row);
         if (names.length === 0) throw new Error(`A row in "${table}" has no columns.`);
         if (names.some((name) => !columns.has(name))) {
@@ -314,6 +327,12 @@ export async function restoreCashioBackup(db: SQLiteDatabase, backup: CashioBack
           names.map((name) => row[name]),
         );
       }
+    }
+    if (calendarState) {
+      await transaction.runAsync('INSERT INTO app_settings (key, value) VALUES (?, ?)', [
+        calendarState.key,
+        calendarState.value,
+      ]);
     }
   });
 }

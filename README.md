@@ -495,6 +495,84 @@ Estimarea lunii următoare este suma obligațiilor scadente în acea lună plus 
 4. Verificări reale pentru captare/top-up, recurente, bugete, repartizări, CSV, backup/restaurare și paletă.
 5. Widget Android și polish. Pentru fiecare versiune nouă, build APK după integrarea schimbărilor; nu confunda generarea reușită cu validarea pe telefon.
 
+## Export opțional în calendarul telefonului (#43)
+
+Setări → Calendarul telefonului explică acordul și permite alegerea explicită a unui calendar
+editabil Android/iOS. Nimic nu se cere sau se exportă înainte de opt-in. Apasă
+**Sincronizează acum** pentru export; nu există sincronizare automată/background sau apeluri
+backend Cashio. Furnizorul calendarului poate sincroniza evenimentele în cloud, iar persoanele
+cu acces la un calendar partajat le pot vedea.
+
+- Intervalul este **azi, ora locală 00:00 inclusiv → aceeași zi peste 12 luni exclusiv**;
+  29 februarie se limitează la 28 februarie în anul următor. Reexportă periodic și după modificări,
+  dezactivări sau ștergeri în Cashio; acestea se reflectă la următoarea sincronizare manuală.
+- Sursa este cea existentă pe `master`: `recurringPaymentsInRange` pentru cheltuielile recurente
+  active și `loan_schedules.installmentsJson` pentru **fiecare dată și sumă individuală**.
+  Încasările recurente nu sunt obligații exportate. Un scadențar legat de o regulă recurentă
+  înlocuiește acea regulă în export, fără dublare. Asigurarea respectă opțiunea scadențarului.
+  Sumele recurente variabile sunt marcate ca estimări. Nu se folosește ramura draft de forecast.
+- Evenimentele sunt individuale, de o zi întreagă, fără recurențe native și fără alarme
+  solicitate de Cashio. Titlul generic conține tipul plății și suma/moneda, nu conturi, nume de
+  credite/comercianți, solduri, principal/dobândă sau notițe din tranzacții.
+- Tagul tehnic din notițe identifică instalarea și obligația. Jurnalul local păstrează ID-urile
+  evenimentelor și intervalele înainte de scriere. Reexportul actualizează evenimentele,
+  elimină duplicatele etichetate și șterge evenimentele gestionate care nu mai sunt în selecție.
+  Un export întrerupt poate fi reluat. Evenimentele personale sau ale altei instalări nu sunt
+  adoptate ori șterse. Nu modifica tagul dacă dorești administrarea ulterioară din Cashio.
+- **Dezactivează și șterge evenimentele Cashio** oprește exportul înainte de curățare.
+  Refuzul/revocarea permisiunii sau indisponibilitatea calendarului lasă jurnalul pentru
+  reîncercare, fără pierderea evidenței. După curățare poți alege alt calendar.
+  Dacă ai mutat un eveniment în alt calendar sau i-ai eliminat tagul, gestionează-l manual.
+  Curăță înainte de dezinstalare/ștergerea datelor aplicației: fără jurnalul local, acea
+  instalare nu mai poate gestiona evenimentele vechi.
+- Acordul și ID-urile native nu intră în backupuri; restaurarea ignoră astfel de setări
+  importate și păstrează jurnalul local existent pentru curățare. Reminderele locale existente
+  și programarea lor nu sunt modificate de export.
+
+### Build și verificări native încă necesare
+
+`expo-calendar` **57.0.6** (interval SDK `~57.0.5`, instalat cu `npx expo install expo-calendar`)
+necesită **un build nou de dezvoltare/producție**, nu Expo Go și nu doar un update OTA.
+Pluginul cere acces complet (citire/scriere, nu doar adăugare) și configurează permisiunile
+Android și mesajele iOS RO/EN; nu au fost editate directoare native generate.
+Build: `npx eas-cli@latest build --platform android --profile development`, respectiv
+`--platform ios --profile development` pentru iOS, cu profilul EAS potrivit dispozitivului.
+
+Documentație oficială SDK57 consultată:
+`https://raw.githubusercontent.com/expo/expo/main/docs/pages/versions/v57.0.0/sdk/calendar.mdx`
+(domeniul docs.expo.dev nu se rezolvă în acest mediu). API-urile au fost verificate în
+tipurile/sursele instalate: `requestCalendarPermissions(false)`, `getCalendars(EVENT)`,
+`calendar.listEvents/createEvent`, `ExpoCalendarEvent.get`, `event.update/delete`.
+Adaptorul tratează și cazul SDK57 Android „ID inexistent”: returnare nativă `null` urmată de
+eroarea specifică `setPrototypeOf` a wrapperului; alte erori nu sunt interpretate ca ștergere.
+
+**Nerulate aici — necesită telefoane fizice și exclusiv date sintetice:**
+
+- [ ] Android și iOS (inclusiv iOS 17+): instalare/upgrade cu modulul nou, interfață RO/EN,
+  VoiceOver/TalkBack, font mare, confirmarea și mesajele native localizate.
+- [ ] Înainte de opt-in: zero prompturi și evenimente. Refuz/acord/revocare, acces limitat iOS,
+  listă fără calendare editabile, calendar read-only sau selectat dispărut: eroare explicită,
+  fără fallback către alt calendar.
+- [ ] Calendar local și calendar sincronizat (Google/iCloud), calendare cu nume identice:
+  alegere corectă, vizibilitate/partajare, nicio atingere a evenimentelor personale.
+- [ ] Recurente active/inactive/încasări, scadențar sintetic cu rate variabile și date neregulate,
+  asigurare pornită/oprită, limita exactă a intervalului. Compară fiecare dată/sumă.
+- [ ] Reexport fără duplicate; modifică sume/date, șterge/dezactivează obligații, schimbă limba,
+  repornește aplicația și reexportă. Șterge manual un eveniment, mută altul în afara intervalului,
+  întrerupe procesul în timpul exportului și verifică reluarea fără duplicate.
+- [ ] Fusuri Europe/Bucharest și America/Los_Angeles, schimbare DST și călătorie între fusuri:
+  evenimente de o zi pe scadența corectă. Android folosește UTC pentru all-day, iOS zile locale.
+- [ ] Dezactivare și curățare, inclusiv refuz/revocare în timpul operației și reîncercare.
+  Verifică păstrarea evenimentelor personale/reminderelor existente și schimbarea destinației
+  numai după curățare. Restore pe aceeași instalare păstrează jurnalul; pe alta nu activează exportul.
+
+Testele Jest verifică proiecția, selecția sigură și adaptorul cu API nativ simulat, inclusiv
+relansare după eșec și backup/restore. Nu dovedesc livrarea nativă sau sincronizarea furnizorului.
+Validare locală pe această ramură: lint/typecheck trecute, **60 suite Jest / 479 teste**
+trecute, **17 teste Node/SQLite** trecute; proiecția datelor trece cu
+`TZ=Europe/Bucharest` și `TZ=America/Los_Angeles`. `expo config --type introspect` confirmă
+mesajele de acces complet iOS și permisiunile READ_CALENDAR/WRITE_CALENDAR Android.
+
 ## Cursuri opționale și verificări automate — propuse, neintegrate
 
 Implementarea din `feat/rates-quality` este în așteptarea revizuirii/integrării; această secțiune nu certifică un APK instalat.

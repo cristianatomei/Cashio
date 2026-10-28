@@ -23,6 +23,7 @@ import {
 import { APP_LOCK_TIMEOUT_MINUTES, useAppLock } from '@/features/app-lock';
 import { ProductivitySettings } from '@/features/productivity/ui/ProductivitySettings';
 import { PublicRatesSettings } from '@/features/exchange-rates/ui/PublicRatesSettings';
+import { CalendarSettings } from '@/features/calendar/ui/CalendarSettings';
 
 const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
 const LANGUAGES = ['ro', 'en'] as const;
@@ -172,6 +173,7 @@ export default function SettingsScreen() {
     <Screen topInset={false} onRefresh={refresh}>
       <ProductivitySettings />
       <PublicRatesSettings />
+      <CalendarSettings />
       <AppText variant="heading">{t('settings.appearance')}</AppText>
       <AppText color="textSecondary">{t('settings.themeHint')}</AppText>
       <Card>
