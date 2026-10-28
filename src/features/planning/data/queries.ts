@@ -31,7 +31,21 @@ export function useNetWorth(asOf: number) {
     data: transactions,
     updatedAt: transactionsAt,
     error: transactionsError,
-  } = useLiveQuery(db.select().from(schema.transactions));
+  } = useLiveQuery(
+    db
+      .select({
+        accountId: schema.transactions.accountId,
+        type: schema.transactions.type,
+        status: schema.transactions.status,
+        amountMinor: schema.transactions.amountMinor,
+        currency: schema.transactions.currency,
+        transferAccountId: schema.transactions.transferAccountId,
+        transferAmountMinor: schema.transactions.transferAmountMinor,
+        occurredAt: schema.transactions.occurredAt,
+      })
+      .from(schema.transactions)
+      .where(eq(schema.transactions.status, 'confirmed')),
+  );
   const {
     data: settings,
     updatedAt: settingsAt,

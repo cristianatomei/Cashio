@@ -62,10 +62,10 @@ export default function NetWorthScreen() {
         </AppText>
         <AppText color="textSecondary">
           {t(
-            worth.loading
-              ? 'planning.loading'
-              : worth.error
-                ? 'planning.loadError'
+            worth.error
+              ? 'planning.loadError'
+              : worth.loading
+                ? 'planning.loading'
                 : `planning.status.${worth.status}`,
           )}
         </AppText>

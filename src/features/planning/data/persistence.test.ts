@@ -131,6 +131,7 @@ describe('planning migration, local persistence and backup restore', () => {
       })
       .run();
     const backup = parseCashioBackup(JSON.stringify(await createCashioBackup(context.expo)));
+    expect(backup.version).toBe(3);
     expect(backup.tables.savings_goals[0]).toMatchObject({
       name: 'Synthetic goal',
       current_minor: 2500,
@@ -183,6 +184,30 @@ describe('planning migration, local persistence and backup restore', () => {
     }
     expect(context.db.select().from(schema.savingsGoals).all()).toHaveLength(1);
     expect(context.db.select().from(schema.investmentValuations).all()).toHaveLength(1);
+  });
+
+  it('rejects incomplete new-format table sets and duplicate planning identifiers', async () => {
+    await migrate(context.expo);
+    saveGoal(context.db, goal);
+    saveValuation(context.db, valuation);
+    const backup = await createCashioBackup(context.expo);
+    const { savings_goals: _goals, ...incomplete } = backup.tables;
+    expect(() => parseCashioBackup(JSON.stringify({ ...backup, tables: incomplete }))).toThrow(
+      'expected Cashio tables',
+    );
+    for (const table of ['savings_goals', 'investment_valuations'] as const) {
+      expect(() =>
+        parseCashioBackup(
+          JSON.stringify({
+            ...backup,
+            tables: {
+              ...backup.tables,
+              [table]: [...backup.tables[table], ...backup.tables[table]],
+            },
+          }),
+        ),
+      ).toThrow('invalid');
+    }
   });
 
   it('rolls back a failed restore instead of losing durable goals', async () => {
