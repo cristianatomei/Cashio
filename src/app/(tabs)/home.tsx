@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,14 +16,11 @@ import {
   Screen,
   SectionHeader,
   spacing,
+  useTheme,
 } from '@/core/ui';
 import { addMonths, monthRange } from '@/core/utils/dates';
 import { formatMinor } from '@/core/utils/money';
-<<<<<<< HEAD
-=======
-import { useAccountBalances, useAccounts } from '@/features/accounts';
 import { PlanningCards } from '@/features/planning/ui/PlanningCards';
->>>>>>> origin/master
 import { useBudgetViews } from '@/features/budgets';
 import {
   CaptureHealthBanner,
@@ -31,17 +29,8 @@ import {
   useCaptureRefresh,
 } from '@/features/capture';
 import { backupSettingKeys, isBackupStale } from '@/features/backup';
+import { useNextMonthEstimate } from '@/features/recurring';
 import {
-<<<<<<< HEAD
-=======
-  recurringPaymentsInRange,
-  useNextMonthEstimate,
-  useRecurringRules,
-} from '@/features/recurring';
-import { eq } from 'drizzle-orm';
-import { ratePreferenceOrder } from '@/features/exchange-rates/data/rateOrder';
-import {
->>>>>>> origin/master
   SummaryCard,
   TransactionRow,
   summarize,
@@ -64,19 +53,10 @@ export default function HomeScreen() {
   const router = useRouter();
   const refreshCapture = useCaptureRefresh();
   const captureHealth = useCaptureHealth();
+  const { colors } = useTheme();
   const db = useDb();
-<<<<<<< HEAD
+  const forecast = useNextMonthEstimate();
   const [now, setNow] = useState(() => Date.now());
-=======
-  const { data: exchangeRates } = useLiveQuery(
-    db
-      .select()
-      .from(schema.exchangeRates)
-      .orderBy(...ratePreferenceOrder()),
-  );
-  const [now] = useState(() => Date.now());
-  const [backupCheckAt, setBackupCheckAt] = useState(now);
->>>>>>> origin/master
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') setNow(Date.now());
@@ -115,45 +95,6 @@ export default function HomeScreen() {
     currency: baseCurrency,
     signDisplay: 'always',
   });
-<<<<<<< HEAD
-=======
-  const locale = i18n.language === 'en' ? 'en-GB' : 'ro-RO';
-  const upcomingPayments = useMemo(() => {
-    const from = startOfDay(now);
-    const to = from + UPCOMING_DAYS * DAY_MS;
-    const recurring = recurringPaymentsInRange(
-      recurringRules.map((rule) => ({
-        id: rule.id,
-        name: rule.note || rule.merchantName || rule.categoryName || t('recurring.obligation'),
-        amountMinor: rule.amountMinor,
-        currency: rule.currency,
-        frequency: rule.frequency,
-        interval: rule.interval,
-        nextDue: rule.nextDue,
-        endAt: rule.endAt,
-        active: rule.active,
-      })),
-      from,
-      to,
-    ).map((payment) => ({ ...payment, source: 'recurring' as const }));
-    const loans = loanSchedules.flatMap((schedule) => {
-      const stored = parseStoredLoanSchedule(schedule.installmentsJson);
-      return stored.installments
-        .filter((installment) => installment.dueAt >= from && installment.dueAt < to)
-        .map((installment) => ({
-          key: `loan-${schedule.id}-${installment.dueAt}`,
-          name: schedule.name,
-          dueAt: installment.dueAt,
-          amountMinor: installmentTotal(installment, stored.includeInsurance),
-          currency: schedule.currency,
-          source: 'loan' as const,
-        }));
-    });
-    return [...recurring, ...loans]
-      .sort((left, right) => left.dueAt - right.dueAt || left.key.localeCompare(right.key))
-      .slice(0, UPCOMING_COUNT);
-  }, [loanSchedules, now, recurringRules, t]);
->>>>>>> origin/master
   const lastBackupValue = appSettings.find(
     (setting) => setting.key === backupSettingKeys.lastAt,
   )?.value;
@@ -162,12 +103,7 @@ export default function HomeScreen() {
       ? Number(lastBackupValue)
       : null;
   const priorityBudgets = useMemo(
-<<<<<<< HEAD
     () => [...budgets].sort((a, b) => b.progress - a.progress).slice(0, PRIORITY_COUNT),
-=======
-    () =>
-      [...budgets].sort((left, right) => right.progress - left.progress).slice(0, UPCOMING_COUNT),
->>>>>>> origin/master
     [budgets],
   );
   const upcomingPayments = overview.obligations.slice(0, PRIORITY_COUNT);
@@ -176,33 +112,17 @@ export default function HomeScreen() {
     await refreshCapture();
   };
 
-<<<<<<< HEAD
   if (overview.loading) {
     return (
       <Screen title={t('home.title')}>
         <HomeSkeleton label={copy.loading} />
       </Screen>
     );
-=======
-  const latestRates = new Map<string, number>();
-  for (const rate of exchangeRates) {
-    if (
-      !latestRates.has(rate.currency) &&
-      rate.effectiveAt <= now &&
-      (rate.source === 'manual' || rate.source === `frankfurter:ECB:${baseCurrency}`)
-    ) {
-      latestRates.set(rate.currency, rate.rateToBase);
-    }
->>>>>>> origin/master
   }
 
   return (
     <Screen title={t('home.title')} headerAction={<NotificationBellButton />} onRefresh={refresh}>
-<<<<<<< HEAD
       {overview.error ? (
-=======
-      {isBackupStale(lastBackupAt, backupCheckAt) ? (
->>>>>>> origin/master
         <Card>
           <AppText accessibilityRole="alert">{copy.error}</AppText>
         </Card>
@@ -247,7 +167,6 @@ export default function HomeScreen() {
         />
       </Card>
 
-<<<<<<< HEAD
       <SectionHeader title={t('home.upcomingPayments')} />
       <Card>
         {upcomingPayments.length > 0 ? (
@@ -256,38 +175,6 @@ export default function HomeScreen() {
               <HomeAction
                 title={payment.name || t('recurring.obligation')}
                 hint={`${new Date(payment.dueAt).toLocaleDateString(locale)} · ${t(payment.source === 'loan' ? 'recurring.monthlyScheduleLoan' : 'recurring.monthlyScheduleRecurring')}`}
-=======
-      <AppText variant="heading" style={styles.section}>
-        {t('home.thisMonth')}
-      </AppText>
-      <SummaryCard totals={totals} currency={baseCurrency} />
-      <PlanningCards />
-      <AppText variant="caption" color="textSecondary">
-        {t('home.monthComparison', {
-          income: comparisonMoney.format((totals.income - previousTotals.income) / 100),
-          expenses: comparisonMoney.format((totals.expense - previousTotals.expense) / 100),
-        })}
-      </AppText>
-
-      {forecast.length > 0 ? (
-        <>
-          <AppText variant="heading" style={styles.section}>
-            {t('recurring.forecast')}
-          </AppText>
-          <Card>
-            {forecast.map((item) => (
-              <ListRow
-                key={item.currency}
-                title={t('recurring.forecastTotal')}
-                leading={<Ionicons name="calendar-outline" size={24} color={colors.primary} />}
-                trailing={
-                  <AmountText
-                    amountMinor={item.totalMinor}
-                    currency={item.currency}
-                    type="expense"
-                  />
-                }
->>>>>>> origin/master
                 onPress={() => router.push('/recurring')}
               />
               <AmountText
@@ -357,12 +244,35 @@ export default function HomeScreen() {
 
       <SectionHeader title={t('home.thisMonth')} />
       <SummaryCard totals={totals} currency={baseCurrency} />
+      <PlanningCards />
       <AppText variant="caption" color="textSecondary">
         {t('home.monthComparison', {
           income: comparisonMoney.format((totals.income - previousTotals.income) / 100),
           expenses: comparisonMoney.format((totals.expense - previousTotals.expense) / 100),
         })}
       </AppText>
+      {forecast.length > 0 ? (
+        <>
+          <SectionHeader title={t('recurring.forecast')} />
+          <Card>
+            {forecast.map((item) => (
+              <ListRow
+                key={item.currency}
+                title={t('recurring.forecastTotal')}
+                leading={<Ionicons name="calendar-outline" size={24} color={colors.primary} />}
+                trailing={
+                  <AmountText
+                    amountMinor={item.totalMinor}
+                    currency={item.currency}
+                    type="expense"
+                  />
+                }
+                onPress={() => router.push('/recurring')}
+              />
+            ))}
+          </Card>
+        </>
+      ) : null}
       <SectionHeader title={t('home.accounts')} />
       <Card>
         {accounts.length > 0 ? (
