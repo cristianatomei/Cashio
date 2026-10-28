@@ -4,12 +4,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button, Card, EmptyState, ListRow, Screen, TextField, useTheme } from '@/core/ui';
-import {
-  MerchantFormModal,
-  useMerchants,
-  type Merchant,
-} from '@/features/merchants';
+import { MerchantFormModal, useMerchants, type Merchant } from '@/features/merchants';
 import { useCaptureRefresh } from '@/features/capture';
+import { MerchantRulesCard } from '@/features/transactions';
 
 export default function MerchantsScreen() {
   const { t } = useTranslation();
@@ -55,6 +52,7 @@ export default function MerchantsScreen() {
           onClose={() => setEditing(null)}
         />
       ) : null}
+      <MerchantRulesCard />
     </Screen>
   );
 }

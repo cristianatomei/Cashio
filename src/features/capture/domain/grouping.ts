@@ -22,7 +22,7 @@ export function bucketDrafts(drafts: readonly TransactionView[]): DraftBuckets {
 
   for (const draft of drafts) {
     if (!draft.merchant && draft.merchantRaw && draft.type !== 'transfer') {
-      const key = normalizeMerchant(draft.merchantRaw) || draft.merchantRaw;
+      const key = `${normalizeMerchant(draft.merchantRaw) || draft.merchantRaw}|${draft.type}|${draft.currency}`;
       const group = groups.get(key) ?? {
         key,
         merchantRaw: draft.merchantRaw,

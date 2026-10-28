@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, View, type AccessibilityProps } from 'react-native';
 
-import { radius, spacing, useTheme } from '../theme';
+import { minimumTouchTarget, radius, spacing, useTheme } from '../theme';
 import { AppText } from './AppText';
 
-type Props = {
+type Props = Pick<AccessibilityProps, 'accessibilityLabel' | 'accessibilityHint'> & {
   label: string;
   selected?: boolean;
   /** Tints the chip; falls back to the primary color. */
@@ -13,7 +13,15 @@ type Props = {
   onPress?: () => void;
 };
 
-export function Chip({ label, selected, color, leading, onPress }: Props) {
+export function Chip({
+  label,
+  selected,
+  color,
+  leading,
+  onPress,
+  accessibilityLabel,
+  accessibilityHint,
+}: Props) {
   const { colors } = useTheme();
   const tint = color ?? colors.primary;
 
@@ -21,16 +29,25 @@ export function Chip({ label, selected, color, leading, onPress }: Props) {
     <Pressable
       onPress={onPress}
       disabled={!onPress}
+      accessible={!!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={onPress && selected !== undefined ? { selected } : undefined}
       style={[
         styles.chip,
         {
-          borderColor: selected ? tint : colors.border,
+          borderColor: selected ? colors.textSecondary : colors.controlBorder,
           backgroundColor: selected ? `${tint}26` : colors.surface,
         },
       ]}
     >
-      {leading}
-      <AppText variant="body" color={selected ? 'text' : 'textSecondary'}>
+      {leading ? (
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          {leading}
+        </View>
+      ) : null}
+      <AppText variant="body" color={selected ? 'text' : 'textSecondary'} style={styles.label}>
         {label}
       </AppText>
     </Pressable>
@@ -42,9 +59,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    minHeight: 36,
+    minHeight: minimumTouchTarget,
+    minWidth: minimumTouchTarget,
+    maxWidth: '100%',
     paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radius.pill,
     borderWidth: 1,
   },
+  label: { flexShrink: 1 },
 });

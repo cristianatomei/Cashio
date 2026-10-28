@@ -177,6 +177,9 @@ export default function SettingsScreen() {
           <ListRow
             key={theme}
             title={t(`settings.${theme}`)}
+            accessibilityRole="radio"
+            accessibilityLabel={t(`settings.${theme}`)}
+            accessibilityState={{ checked: preference === theme }}
             subtitle={preference === theme ? t('common.selected') : undefined}
             trailing={
               preference === theme ? (
@@ -238,6 +241,9 @@ export default function SettingsScreen() {
       <Card>
         <ListRow
           title={t('settings.appLock.title')}
+          accessibilityRole="switch"
+          accessibilityLabel={t('settings.appLock.title')}
+          accessibilityState={{ checked: appLockSettings.enabled }}
           subtitle={
             appLockSettings.enabled ? t('settings.appLock.enabled') : t('settings.appLock.disabled')
           }
@@ -255,6 +261,11 @@ export default function SettingsScreen() {
               <ListRow
                 key={timeoutMinutes}
                 title={t(`settings.appLock.timeouts.${APP_LOCK_TIMEOUT_KEYS[timeoutMinutes]}`)}
+                accessibilityRole="radio"
+                accessibilityLabel={t(
+                  `settings.appLock.timeouts.${APP_LOCK_TIMEOUT_KEYS[timeoutMinutes]}`,
+                )}
+                accessibilityState={{ checked: appLockSettings.timeoutMinutes === timeoutMinutes }}
                 subtitle={
                   appLockSettings.timeoutMinutes === timeoutMinutes
                     ? t('common.selected')
@@ -278,6 +289,9 @@ export default function SettingsScreen() {
           <ListRow
             key={language}
             title={t(`settings.languages.${language}`)}
+            accessibilityRole="radio"
+            accessibilityLabel={t(`settings.languages.${language}`)}
+            accessibilityState={{ checked: i18n.resolvedLanguage === language }}
             subtitle={i18n.resolvedLanguage === language ? t('common.selected') : undefined}
             trailing={
               i18n.resolvedLanguage === language ? (
@@ -295,6 +309,9 @@ export default function SettingsScreen() {
           <ListRow
             key={days}
             title={t('settings.captureInactivityDays', { count: days })}
+            accessibilityRole="radio"
+            accessibilityLabel={t('settings.captureInactivityDays', { count: days })}
+            accessibilityState={{ checked: captureInactivityDays === days }}
             subtitle={captureInactivityDays === days ? t('common.selected') : undefined}
             trailing={
               captureInactivityDays === days ? (

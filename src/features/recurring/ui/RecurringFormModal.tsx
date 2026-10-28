@@ -1,7 +1,7 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Switch, View } from 'react-native';
+import { Alert } from 'react-native';
 
 import { syncRecurringReminder } from '@/features/recurring/data/reminders';
 import { DEFAULT_CURRENCY, useDb } from '@/core/db';
@@ -12,8 +12,8 @@ import {
   FormRow,
   SegmentedControl,
   SheetModal,
+  SwitchRow,
   TextField,
-  useTheme,
 } from '@/core/ui';
 import { minorToInput } from '@/core/utils/money';
 import { AccountPickerModal, useAccounts } from '@/features/accounts';
@@ -32,7 +32,6 @@ type Picker = 'account' | 'category' | 'merchant' | null;
 
 export function RecurringFormModal({ rule, onClose }: Props) {
   const { t, i18n } = useTranslation();
-  const { colors } = useTheme();
   const db = useDb();
   const accounts = useAccounts();
   const merchants = useMerchants();
@@ -111,14 +110,11 @@ export function RecurringFormModal({ rule, onClose }: Props) {
         onChangeText={setAmount}
         keyboardType="numbers-and-punctuation"
       />
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <AppText>{t('recurring.variableAmount')}</AppText>
-        <Switch
-          value={amountVariable}
-          onValueChange={setAmountVariable}
-          trackColor={{ false: colors.border, true: colors.primary }}
-        />
-      </View>
+      <SwitchRow
+        label={t('recurring.variableAmount')}
+        value={amountVariable}
+        onValueChange={setAmountVariable}
+      />
       <TextField
         label={t('accounts.currency')}
         value={currency}
