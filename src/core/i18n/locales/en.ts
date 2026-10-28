@@ -137,8 +137,9 @@ export const en: Resources = {
     restoreWarning: 'Restoring replaces all current data. This action cannot be undone.',
     restoreSuccess: 'Your data has been restored.',
     restoreError: 'The backup could not be validated or restored.',
-    csvTitle: 'ING Home’Bank import',
-    csvHint: 'Import a CSV file with the transaction date, description, and amount.',
+    csvTitle: 'Import ING Home’Bank payments',
+    csvHint:
+      'Import an ING transaction report CSV to add completed payments. This is separate from the repayment schedule.',
     csvAction: 'Choose CSV file',
     csvError: 'The file could not be read or does not have recognizable ING columns.',
     csvPreview: '{{count}} valid transactions found · {{skipped}} rows skipped.',
@@ -153,9 +154,9 @@ export const en: Resources = {
     saveRate: 'Save rate',
     rateInvalid: 'Enter a 3-letter currency code and a positive exchange rate.',
     rateError: 'The exchange rate could not be saved.',
-    loanTitle: 'Loan repayment schedules',
+    loanTitle: 'Import ING repayment schedule',
     loanHint:
-      'Import an ING PDF schedule to review every future instalment and optionally set payment reminders.',
+      'Import the ING PDF schedule separately to review future instalments and optionally set reminders. Completed payments are imported from the Home’Bank report.',
     loanAndroidOnly: 'PDF schedule import is currently available on Android only.',
     loanChoosePdf: 'Choose loan PDF',
     loanName: 'Schedule name',
@@ -191,6 +192,9 @@ export const en: Resources = {
     loanDeleteError: 'The schedule could not be deleted.',
     loanDeleteReminderError: 'The schedule was deleted, but its reminders could not be refreshed.',
     loanNoUpcoming: 'There are no upcoming instalments.',
+    loanPaymentCheckTitle: 'Imported payment check',
+    loanPaymentMatched: 'Payment found for {{date}} · {{amount}}',
+    loanPaymentConflict: 'Amount differs for {{date}} · expected {{expected}}, paid {{actual}}',
   },
   captured: {
     title: 'Captured notifications',
