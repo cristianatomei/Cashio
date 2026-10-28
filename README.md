@@ -133,9 +133,9 @@ Datele inițiale se creează la prima inițializare. Migrările ulterioare trebu
 
 ## Ce conține aplicația acum
 
+- **Acasă:** sold total, rezumatul lunii, comparație cu luna trecută, conturi cu sold real, ultimele tranzacții și estimarea obligațiilor; un banner semnalează accesul revocat sau lipsa notificărilor bancare, cu prag configurabil în Setări (3/7/14/30 zile).
 - **La prima pornire:** ghid RO/EN pentru accesul la notificări, optimizarea bateriei Samsung, conturile active, moneda de bază și limbă; configurarea se poate relua din Setări și este salvată local.
 - **Setări (Mai mult → Setări):** temă Sistem / Deschis / Întunecat și limbă Română / English, persistente; blocare opțională cu biometrie sau codul telefonului la pornire și după un timeout de 0, 1, 5 sau 15 minute în fundal. Dezactivată implicit. Paleta aleasă este albastru ocean + turcoaz; culorile deja personalizate pentru conturi/categorii nu sunt modificate.
-- **Acasă:** sold total, rezumatul lunii, comparație cu luna trecută, conturi cu sold real, ultimele tranzacții și estimarea obligațiilor.
 - **Tranzacții:** lună cu săgetăi, rezumat, căutare (comerciant, categorie, etichetă, notă), filtre pe tip, grupare pe zile cu total pe zi; atingere = editare. La filtrul Cheltuieli este disponibil și importul CSV ING, cu previzualizare și selectarea contului.
 - **Adaugare/editare (butonul +):** Cheltuială / Venit / Transfer, sumă cu calculator (+ − × ÷), categorie (grupuri cu iconițe), cont, comerciant (creat din căutare; completează categoria implicită), dată și oră, etichete (create din selector), notă.
 - **Transfer:** între conturi (retragere ATM = ING → Numerar); nu intră în cheltuieli.

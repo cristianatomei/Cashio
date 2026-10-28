@@ -23,7 +23,12 @@ import { convertToBaseMinor } from '@/core/utils/currency';
 import { formatMinor } from '@/core/utils/money';
 import { useAccountBalances, useAccounts } from '@/features/accounts';
 import { useBudgetViews } from '@/features/budgets';
-import { NotificationBellButton, useCaptureRefresh } from '@/features/capture';
+import {
+  CaptureHealthBanner,
+  NotificationBellButton,
+  useCaptureHealth,
+  useCaptureRefresh,
+} from '@/features/capture';
 import { installmentTotal, parseStoredLoanSchedule } from '@/features/loans';
 import { backupSettingKeys, isBackupStale } from '@/features/backup';
 import {
@@ -49,6 +54,7 @@ export default function HomeScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const refresh = useCaptureRefresh();
+  const captureHealth = useCaptureHealth();
   const { colors } = useTheme();
   const db = useDb();
   const { data: exchangeRates } = useLiveQuery(
@@ -202,6 +208,7 @@ export default function HomeScreen() {
           />
         </Card>
       ) : null}
+      <CaptureHealthBanner status={captureHealth} />
       <Card>
         <AppText variant="caption" color="textSecondary">
           {t('home.totalBalance')}
