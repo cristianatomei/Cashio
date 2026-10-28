@@ -14,9 +14,16 @@ import {
   runScheduledBackup,
   saveBackupSetting,
 } from '@/features/backup';
+import { APP_LOCK_TIMEOUT_MINUTES, useAppLock } from '@/features/app-lock';
 
 const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
 const LANGUAGES = ['ro', 'en'] as const;
+const APP_LOCK_TIMEOUT_KEYS = {
+  0: 'immediately',
+  1: 'oneMinute',
+  5: 'fiveMinutes',
+  15: 'fifteenMinutes',
+} as const;
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
@@ -34,6 +41,11 @@ export default function SettingsScreen() {
   const backupFolderSelected = appSettings.some(
     (setting) => setting.key === backupSettingKeys.folder && setting.value.length > 0,
   );
+  const {
+    settings: appLockSettings,
+    updateSettings: updateAppLockSettings,
+    authenticate,
+  } = useAppLock();
 
   const selectTheme = (next: ThemePreference) => {
     try {
@@ -45,10 +57,12 @@ export default function SettingsScreen() {
   };
 
   const selectBackupFrequency = (frequency: 'daily' | 'weekly') => {
-    void saveBackupSetting(sqlite, backupSettingKeys.frequency, frequency).catch((error: unknown) => {
-      console.error('Failed to save backup frequency', error);
-      Alert.alert(t('errors.generic'), t('settings.backupSaveError'));
-    });
+    void saveBackupSetting(sqlite, backupSettingKeys.frequency, frequency).catch(
+      (error: unknown) => {
+        console.error('Failed to save backup frequency', error);
+        Alert.alert(t('errors.generic'), t('settings.backupSaveError'));
+      },
+    );
   };
 
   const chooseBackupRetention = () => {
@@ -78,6 +92,38 @@ export default function SettingsScreen() {
     } catch (error) {
       console.error('Failed to choose backup folder', error);
       Alert.alert(t('errors.generic'), t('settings.backupFolderError'));
+    }
+  };
+
+  const toggleAppLock = async () => {
+    if (appLockSettings.enabled) {
+      try {
+        updateAppLockSettings({ ...appLockSettings, enabled: false });
+      } catch (error) {
+        console.error('Failed to disable app lock', error);
+        Alert.alert(t('errors.generic'), t('settings.appLock.saveError'));
+      }
+      return;
+    }
+
+    if (!(await authenticate())) {
+      Alert.alert(t('settings.appLock.setupFailedTitle'), t('settings.appLock.setupFailed'));
+      return;
+    }
+    try {
+      updateAppLockSettings({ ...appLockSettings, enabled: true });
+    } catch (error) {
+      console.error('Failed to enable app lock', error);
+      Alert.alert(t('errors.generic'), t('settings.appLock.saveError'));
+    }
+  };
+
+  const selectAppLockTimeout = (timeoutMinutes: number) => {
+    try {
+      updateAppLockSettings({ ...appLockSettings, timeoutMinutes });
+    } catch (error) {
+      console.error('Failed to save app lock timeout', error);
+      Alert.alert(t('errors.generic'), t('settings.appLock.saveError'));
     }
   };
 
@@ -158,6 +204,44 @@ export default function SettingsScreen() {
         ) : (
           <ListRow title={t('settings.backupFolder')} subtitle={t('settings.backupDocuments')} />
         )}
+      </Card>
+      <AppText variant="heading">{t('settings.appLock.sectionTitle')}</AppText>
+      <AppText color="textSecondary">{t('settings.appLock.hint')}</AppText>
+      <Card>
+        <ListRow
+          title={t('settings.appLock.title')}
+          subtitle={
+            appLockSettings.enabled ? t('settings.appLock.enabled') : t('settings.appLock.disabled')
+          }
+          trailing={
+            appLockSettings.enabled ? (
+              <Ionicons name="checkmark" size={24} color={colors.primary} />
+            ) : null
+          }
+          onPress={() => void toggleAppLock()}
+        />
+        {appLockSettings.enabled ? (
+          <>
+            <ListRow title={t('settings.appLock.timeoutTitle')} />
+            {APP_LOCK_TIMEOUT_MINUTES.map((timeoutMinutes) => (
+              <ListRow
+                key={timeoutMinutes}
+                title={t(`settings.appLock.timeouts.${APP_LOCK_TIMEOUT_KEYS[timeoutMinutes]}`)}
+                subtitle={
+                  appLockSettings.timeoutMinutes === timeoutMinutes
+                    ? t('common.selected')
+                    : undefined
+                }
+                trailing={
+                  appLockSettings.timeoutMinutes === timeoutMinutes ? (
+                    <Ionicons name="checkmark" size={24} color={colors.primary} />
+                  ) : null
+                }
+                onPress={() => selectAppLockTimeout(timeoutMinutes)}
+              />
+            ))}
+          </>
+        ) : null}
       </Card>
       <AppText variant="heading">{t('settings.language')}</AppText>
       <AppText color="textSecondary">{t('settings.languageHint')}</AppText>

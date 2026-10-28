@@ -13,3 +13,9 @@ export {
   deleteLoanSchedule,
   type StoredLoanSchedule,
 } from './data/loanScheduleRepo';
+export {
+  reconcileLoanPayments,
+  type LoanPaymentMatch,
+  type LoanPaymentForReconciliation,
+  type LoanScheduleForReconciliation,
+} from './domain/reconciliation';

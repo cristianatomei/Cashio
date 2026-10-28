@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 
 import { schema, useDb } from '@/core/db';
 import { addMonths, startOfMonth } from '@/core/utils/dates';
+import { installmentTotal, parseStoredLoanSchedule } from '@/features/loans';
 
 import { estimateNextMonth } from '../domain/forecast';
 
@@ -27,6 +28,7 @@ export function useNextMonthEstimate() {
   const db = useDb();
   const { data: rules } = useLiveQuery(db.select().from(schema.recurringRules));
   const { data: transactions } = useLiveQuery(db.select().from(schema.transactions));
+  const { data: loanSchedules } = useLiveQuery(db.select().from(schema.loanSchedules));
   const [now] = useState(() => Date.now());
   const targetFrom = addMonths(startOfMonth(now), 1);
   const targetTo = addMonths(targetFrom, 1);
@@ -44,6 +46,14 @@ export function useNextMonthEstimate() {
         endAt: rule.endAt,
         active: rule.active,
       })),
+      loanPayments: loanSchedules.flatMap((schedule) => {
+        const stored = parseStoredLoanSchedule(schedule.installmentsJson);
+        return stored.installments.map((installment) => ({
+          amountMinor: installmentTotal(installment, stored.includeInsurance),
+          currency: schedule.currency,
+          dueAt: installment.dueAt,
+        }));
+      }),
       transactions: transactions.map((transaction) => ({
         amountMinor: transaction.amountMinor,
         currency: transaction.currency,
@@ -57,6 +67,6 @@ export function useNextMonthEstimate() {
       historyFrom,
       historyTo,
     }),
-    [rules, transactions, targetFrom, targetTo, historyFrom, historyTo],
+    [rules, loanSchedules, transactions, targetFrom, targetTo, historyFrom, historyTo],
   );
 }
