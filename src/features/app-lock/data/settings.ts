@@ -1,4 +1,5 @@
 import { inArray } from 'drizzle-orm';
+import { Productivity } from '@modules/productivity';
 
 import { schema, type AppDb } from '@/core/db';
 
@@ -29,6 +30,7 @@ export function loadAppLockSettings(db: AppDb): AppLockSettings {
 }
 
 export function saveAppLockSettings(db: AppDb, settings: AppLockSettings): void {
+  if (settings.enabled) Productivity?.update('', '', true);
   const values = [
     { key: APP_LOCK_ENABLED_SETTING, value: String(settings.enabled) },
     { key: APP_LOCK_TIMEOUT_SETTING, value: String(settings.timeoutMinutes) },

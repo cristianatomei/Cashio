@@ -12,6 +12,7 @@ import { AppLockProvider } from '@/features/app-lock';
 import { useCaptureSync } from '@/features/capture';
 import { syncLoanScheduleReminders } from '@/features/loans/data/loanReminders';
 import { runScheduledBackup } from '@/features/backup';
+import { useProductivity } from '@/features/productivity/ui/useProductivity';
 
 async function initializeDatabase(db: SQLiteDatabase) {
   try {
@@ -37,6 +38,7 @@ function RootStack() {
   const db = useDb();
   const sqlite = useSQLiteContext();
   useCaptureSync();
+  useProductivity();
 
   useEffect(() => {
     let leftForeground = false;

@@ -1,5 +1,39 @@
 # Cashio
 
+## Pending merge: capture actions and Android productivity (#13, #20)
+
+This branch implements optional captured-payment notifications (off by default), frequent-category
+actions and Open, plus a native Android widget, launcher shortcut and Quick Settings tile.
+These changes are **pending merge**, not part of an integrated/released APK.
+
+- Enable notifications in Settings. Permission denial and delivery/action failures are explicit.
+  At most five capture alerts per local day are delivered, only when scheduled + presented
+  notifications remain below 50; existing loan/reminder limits and schedules are untouched.
+  Notification content never includes payment amounts or merchants. App lock hides category
+  buttons; authenticated foreground actions re-check records and never silently confirm drafts.
+- Capture is processed when Cashio runs/returns to foreground, not continuously in a killed JS
+  process. Category actions intentionally foreground the app for reliable cross-platform handling;
+  no unsupported headless/background-response guarantee is made.
+- Android: add the widget through the launcher, long-press the app icon for Add transaction,
+  or add Cashio's tile from Quick Settings editing. All shortcuts target `cashio:///add-transaction`
+  through Expo Router and the existing app-lock overlay.
+- The widget shows this local month's **confirmed income minus expenses, separately by currency**,
+  not account balances or a misleading mixed-currency total. Drafts/transfers are excluded.
+  It refreshes after database changes, foregrounding and while the app runs; an expired month
+  shows “Open Cashio to refresh” until a fresh snapshot is available. App lock redacts and clears
+  the private native snapshot even while unlocked. Native chrome follows the Android language
+  (RO/EN), while the formatted snapshot follows the app language.
+- No dependencies or schema migrations added. Preferences/counters/error state use existing
+  `app_settings` and existing backup/restore handling; the private widget cache is regenerated.
+  The local Kotlin module is autolinked like the notification-listener module; no generated
+  `android/` or `ios/` files are edited. `expo-widgets` SDK 57 is officially iOS-only and is not used.
+- SDK 57 official docs were verified through the Expo GitHub docs mirror when docs.expo.dev
+  DNS was unavailable (`docs/pages/versions/v57.0.0/sdk/{notifications,widgets,sqlite}.mdx`).
+  A new Android development/release build is required; Expo Go cannot load this native module.
+  **Issue #3 native validation remains open**: Android compilation, widget placement/resize,
+  shortcut/tile cold starts, notification permissions/actions, app-lock privacy, reboot/month
+  rollover and physical-device behavior must be checked before release. No native success is claimed.
+
 Aplicație mobilă (Expo / React Native, Android-first) pentru urmărirea cheltuielilor. Ideea: cheltuielile se captează automat din notificările băncilor (ING, Revolut, Salt Bank), fără introducere manuală și fără abonament. Datele rămân local, în SQLite.
 
 ## Punct de reluare — 19.10.2026 (actualizat)
