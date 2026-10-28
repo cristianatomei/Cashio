@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { SQLiteProvider, type SQLiteDatabase } from 'expo-sqlite';
+import { SQLiteProvider, useSQLiteContext, type SQLiteDatabase } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,7 @@ import { currentLanguage, i18nReady, i18next } from '@/core/i18n';
 import { ThemeProvider, useTheme } from '@/core/ui';
 import { useCaptureSync } from '@/features/capture';
 import { syncLoanScheduleReminders } from '@/features/loans/data/loanReminders';
+import { runScheduledBackup } from '@/features/backup';
 
 async function initializeDatabase(db: SQLiteDatabase) {
   try {
@@ -33,10 +34,20 @@ function RootStack() {
   const { t, i18n } = useTranslation();
   const { colors, scheme } = useTheme();
   const db = useDb();
+  const sqlite = useSQLiteContext();
   useCaptureSync();
 
   useEffect(() => {
     let leftForeground = false;
+    const runBackup = () => {
+      void runScheduledBackup(sqlite).catch((error: unknown) => {
+        console.error('Failed to run scheduled Cashio backup', error);
+      });
+    };
+    runBackup();
+    const backupSubscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') runBackup();
+    });
     const syncReminders = () => {
       void syncLoanScheduleReminders(db, {
         title: t('recurring.reminderTitle'),
@@ -54,8 +65,11 @@ function RootStack() {
         syncReminders();
       }
     });
-    return () => subscription.remove();
-  }, [db, i18n.language, t]);
+    return () => {
+      subscription.remove();
+      backupSubscription.remove();
+    };
+  }, [db, i18n.language, sqlite, t]);
 
   return (
     <>

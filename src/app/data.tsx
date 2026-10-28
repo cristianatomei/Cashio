@@ -41,6 +41,8 @@ import {
   IngCsvImportCard,
   parseCashioBackup,
   restoreCashioBackup,
+  backupAgeDays,
+  backupSettingKeys,
 } from '@/features/backup';
 
 export default function DataScreen() {
@@ -51,6 +53,7 @@ export default function DataScreen() {
   const db = useDb();
   const { data: rates } = useLiveQuery(db.select().from(schema.exchangeRates));
   const { data: loanSchedules } = useLiveQuery(db.select().from(schema.loanSchedules));
+  const { data: appSettings } = useLiveQuery(db.select().from(schema.appSettings));
   const [busy, setBusy] = useState(false);
   const [currency, setCurrency] = useState('');
   const [rate, setRate] = useState('');
@@ -72,6 +75,13 @@ export default function DataScreen() {
   });
 
   const locale = i18n.language === 'en' ? 'en-GB' : 'ro-RO';
+  const lastBackupValue = appSettings.find((setting) => setting.key === backupSettingKeys.lastAt)
+    ?.value;
+  const lastBackupAt =
+    lastBackupValue && Number.isSafeInteger(Number(lastBackupValue))
+      ? Number(lastBackupValue)
+      : null;
+  const lastBackupAge = backupAgeDays(lastBackupAt, renderedAt);
 
   const chooseLoanPdf = async () => {
     if (Platform.OS !== 'android') {
@@ -380,6 +390,11 @@ export default function DataScreen() {
       <SectionHeader title={t('data.backupTitle')} />
       <Card>
         <AppText color="textSecondary">{t('data.backupHint')}</AppText>
+        <AppText color="textSecondary">
+          {lastBackupAge === null
+            ? t('data.backupNever')
+            : t('data.backupAge', { days: lastBackupAge })}
+        </AppText>
         <Button title={t('data.exportAction')} onPress={exportBackup} loading={busy} />
         <Button
           title={t('data.restoreAction')}
