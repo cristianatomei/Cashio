@@ -1,6 +1,40 @@
 import type { Resources } from './ro';
 
 export const en: Resources = {
+  calendarExport: {
+    title: 'Phone calendar',
+    privacy:
+      'Optional: export payment amounts and due dates to a calendar you choose. Its provider may sync these events to its servers and shared calendars may expose them to others. Cashio makes no backend calls. Account, merchant, loan names and transaction notes are not exported. Existing reminders stay unchanged.',
+    range:
+      'Manual sync: today through the next 12 months (end date excluded). Active recurring expenses and each dated loan installment are exported separately, with its own amount and optional insurance. Variable recurring amounts are estimates. Sync again after edits or deletions; events outside the new range are removed.',
+    nativeHint:
+      'Android/iOS only. Requires a new development or production build, not Expo Go. Full calendar access is needed to update and remove Cashio events.',
+    enable: 'I agree — choose calendar and enable',
+    choose: 'Use calendar {{calendar}}',
+    selected: 'Enabled for: {{calendar}}',
+    stopped: 'Disabled for: {{calendar}}. Cleanup pending; retry when access is restored.',
+    ready: 'Calendar chosen. Tap Sync now to export. No automatic background sync.',
+    sync: 'Sync now',
+    disable: 'Disable and remove Cashio events',
+    cleanupHint:
+      'Only events tagged by this Cashio installation in the chosen calendar will be removed. Other events are not changed. Restore calendar access if cleanup fails. After cleanup you can choose another calendar.',
+    working: 'Working…',
+    success: '{{count}} payments synced.',
+    cleaned: 'Cashio events removed. Calendar export disabled.',
+    permission:
+      'Calendar access was denied or limited. Allow full calendar access in phone settings, then retry.',
+    noCalendar:
+      'No writable calendar or the chosen calendar is unavailable. Add or restore it in your phone calendar settings, then retry.',
+    native:
+      'Calendar export needs an Android/iOS build with expo-calendar. Install a new development or production build.',
+    busy: 'A calendar sync is already running. Please wait.',
+    error:
+      'Calendar sync failed. Some events may have been updated. Retry safely; Cashio keeps its cleanup records.',
+    recurring: 'Recurring payment',
+    loan: 'Loan installment',
+    estimate: ' (estimate)',
+    event: 'Cashio · {{kind}} · {{amount}}{{estimate}}',
+  },
   productivity: {
     title: 'Capture and quick access',
     open: 'Open',

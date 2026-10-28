@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "NSCalendarsUsageDescription": "Cashio are nevoie de acces complet la calendar pentru a exporta, actualiza și șterge doar evenimentele proprii de plată în calendarul ales.",
+    "NSCalendarsFullAccessUsageDescription": "Cashio are nevoie de acces complet la calendar pentru a exporta, actualiza și șterge doar evenimentele proprii de plată în calendarul ales."
+  }
+}

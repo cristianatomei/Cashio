@@ -1,4 +1,40 @@
 export const ro = {
+  calendarExport: {
+    title: 'Calendarul telefonului',
+    privacy:
+      'Opțional: exportă sumele și scadențele într-un calendar ales de tine. Furnizorul său poate sincroniza evenimentele pe serverele proprii, iar calendarele partajate le pot expune altor persoane. Cashio nu apelează un backend. Nu exportăm conturi, comercianți, nume de credite sau notițe din tranzacții. Reminderele existente rămân neschimbate.',
+    range:
+      'Sincronizare manuală: de azi pentru următoarele 12 luni (data finală exclusă). Cheltuielile recurente active și fiecare rată datată sunt exportate separat, cu suma proprie și asigurarea opțională. Sumele recurente variabile sunt estimări. Sincronizează din nou după modificări sau ștergeri; evenimentele din afara noului interval sunt eliminate.',
+    nativeHint:
+      'Doar Android/iOS. Necesită un build nou de dezvoltare sau producție, nu Expo Go. Accesul complet la calendar este necesar pentru actualizarea și ștergerea evenimentelor Cashio.',
+    enable: 'Sunt de acord — aleg calendarul și activez',
+    choose: 'Folosește calendarul {{calendar}}',
+    selected: 'Activat pentru: {{calendar}}',
+    stopped:
+      'Dezactivat pentru: {{calendar}}. Curățare în așteptare; reîncearcă după restabilirea accesului.',
+    ready:
+      'Calendar ales. Apasă Sincronizează acum pentru export. Nu există sincronizare automată în fundal.',
+    sync: 'Sincronizează acum',
+    disable: 'Dezactivează și șterge evenimentele Cashio',
+    cleanupHint:
+      'Vor fi șterse doar evenimentele etichetate de această instalare Cashio în calendarul ales. Celelalte nu sunt modificate. Restabilește accesul dacă ștergerea eșuează. După curățare poți alege alt calendar.',
+    working: 'Se procesează…',
+    success: '{{count}} plăți sincronizate.',
+    cleaned: 'Evenimentele Cashio au fost șterse. Exportul este dezactivat.',
+    permission:
+      'Accesul la calendar a fost refuzat sau este limitat. Permite accesul complet din setările telefonului, apoi reîncearcă.',
+    noCalendar:
+      'Nu există un calendar editabil sau calendarul ales nu este disponibil. Adaugă-l sau restabilește-l din setările calendarului telefonului, apoi reîncearcă.',
+    native:
+      'Exportul necesită un build Android/iOS cu expo-calendar. Instalează un build nou de dezvoltare sau producție.',
+    busy: 'O sincronizare este deja în curs. Așteaptă.',
+    error:
+      'Sincronizarea a eșuat. Unele evenimente pot fi deja actualizate. Poți reîncerca în siguranță; Cashio păstrează evidența pentru curățare.',
+    recurring: 'Plată recurentă',
+    loan: 'Rată credit',
+    estimate: ' (estimare)',
+    event: 'Cashio · {{kind}} · {{amount}}{{estimate}}',
+  },
   productivity: {
     title: 'Captare și acces rapid',
     open: 'Deschide',

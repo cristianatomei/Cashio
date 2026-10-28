@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "NSCalendarsUsageDescription": "Cashio needs full calendar access to export, update and remove only its payment events in your chosen calendar.",
+    "NSCalendarsFullAccessUsageDescription": "Cashio needs full calendar access to export, update and remove only its payment events in your chosen calendar."
+  }
+}
