@@ -10,8 +10,10 @@ import {
 
 export {
   parseStoredLoanSchedule,
+  projectStoredLoanPayments,
   updateStoredLoanScheduleSettings,
   type StoredLoanSchedule,
+  type LoanPaymentProjection,
 } from '../domain/storedSchedule';
 
 export type LoanScheduleInput = {

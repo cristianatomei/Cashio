@@ -1,4 +1,5 @@
 export type RecurringProjection = {
+  name?: string;
   amountMinor: number;
   currency: string;
   frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -9,6 +10,7 @@ export type RecurringProjection = {
 };
 
 export type SpendingSample = {
+  loanPayment?: boolean;
   amountMinor: number;
   currency: string;
   occurredAt: number;
@@ -25,9 +27,11 @@ export type CurrencyEstimate = {
 };
 
 export type LoanPaymentProjection = {
+  scheduleId?: number;
   amountMinor: number;
   currency: string;
   dueAt: number;
+  paid?: boolean;
 };
 
 export type RecurringMatchRule = RecurringProjection & {
@@ -164,16 +168,93 @@ export function estimateNextMonth({
   historyTo: number;
 }): CurrencyEstimate[] {
   const obligations = new Map<string, number>();
-  for (const rule of rules) {
-    if (rule.currency === '' || !rule.active) continue;
-    const count = occurrencesInRange(rule, targetFrom, targetTo);
-    obligations.set(
-      rule.currency,
-      (obligations.get(rule.currency) ?? 0) + count * rule.amountMinor,
+  const recurringOccurrences = rules.flatMap((rule, ruleIndex) => {
+    if (
+      !rule.active ||
+      rule.interval < 1 ||
+      rule.amountMinor <= 0 ||
+      !rule.currency ||
+      targetFrom >= targetTo
+    ) {
+      return [];
+    }
+
+    const occurrences: {
+      ruleIndex: number;
+      currency: string;
+      amountMinor: number;
+      dueAt: number;
+    }[] = [];
+    let dueAt = rule.nextDue;
+    while (dueAt < targetFrom && (rule.endAt === null || dueAt <= rule.endAt)) {
+      const nextDue = advanceRecurringDate(dueAt, rule.frequency, rule.interval);
+      if (nextDue <= dueAt) return occurrences;
+      dueAt = nextDue;
+    }
+    while (dueAt < targetTo && (rule.endAt === null || dueAt <= rule.endAt)) {
+      if (dueAt >= targetFrom) {
+        occurrences.push({
+          ruleIndex,
+          currency: rule.currency,
+          amountMinor: rule.amountMinor,
+          dueAt,
+        });
+      }
+      const nextDue = advanceRecurringDate(dueAt, rule.frequency, rule.interval);
+      if (nextDue <= dueAt) break;
+      dueAt = nextDue;
+    }
+    return occurrences;
+  });
+  const loanRecurringRuleNames = rules.map((rule) =>
+    (rule.name ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('ro-RO'),
+  );
+  const loanRulePattern =
+    /\b(?:rata|rate|credit(?:ului)?|ipotecar(?:a|e)?|rambursare|loan|mortgage)\b/;
+  const loanRecurringCandidates = recurringOccurrences.flatMap((occurrence, occurrenceIndex) => {
+    if (!loanRulePattern.test(loanRecurringRuleNames[occurrence.ruleIndex])) return [];
+    return loanPayments.flatMap((payment, paymentIndex) => {
+      const daysApart =
+        Math.abs(localDay(payment.dueAt) - localDay(occurrence.dueAt)) / (24 * 60 * 60 * 1000);
+      return payment.currency === occurrence.currency && daysApart <= 5
+        ? [{ occurrenceIndex, paymentIndex }]
+        : [];
+    });
+  });
+  const occurrenceCandidateCounts = new Map<number, number>();
+  const paymentCandidateCounts = new Map<number, number>();
+  for (const candidate of loanRecurringCandidates) {
+    occurrenceCandidateCounts.set(
+      candidate.occurrenceIndex,
+      (occurrenceCandidateCounts.get(candidate.occurrenceIndex) ?? 0) + 1,
+    );
+    paymentCandidateCounts.set(
+      candidate.paymentIndex,
+      (paymentCandidateCounts.get(candidate.paymentIndex) ?? 0) + 1,
     );
   }
+  const duplicateOccurrenceIndexes = new Set(
+    loanRecurringCandidates
+      .filter(
+        ({ occurrenceIndex, paymentIndex }) =>
+          occurrenceCandidateCounts.get(occurrenceIndex) === 1 &&
+          paymentCandidateCounts.get(paymentIndex) === 1,
+      )
+      .map(({ occurrenceIndex }) => occurrenceIndex),
+  );
+  recurringOccurrences.forEach((occurrence, index) => {
+    if (duplicateOccurrenceIndexes.has(index)) return;
+    obligations.set(
+      occurrence.currency,
+      (obligations.get(occurrence.currency) ?? 0) + occurrence.amountMinor,
+    );
+  });
   for (const payment of loanPayments) {
     if (
+      payment.paid === true ||
       payment.currency === '' ||
       !Number.isSafeInteger(payment.amountMinor) ||
       payment.amountMinor <= 0 ||
@@ -195,11 +276,13 @@ export function estimateNextMonth({
       transaction.type !== 'expense' ||
       transaction.status !== 'confirmed' ||
       transaction.source === 'recurring' ||
+      transaction.loanPayment === true ||
       transaction.occurredAt < historyFrom ||
       transaction.occurredAt >= historyTo
     ) {
       continue;
     }
+
     variableTotals.set(
       transaction.currency,
       (variableTotals.get(transaction.currency) ?? 0) + transaction.amountMinor,
@@ -217,4 +300,9 @@ export function estimateNextMonth({
       totalMinor: obligationsMinor + variableAverageMinor,
     };
   });
+}
+
+function localDay(value: number): number {
+  const date = new Date(value);
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 }

@@ -77,7 +77,7 @@ describe('reconcileLoanPayments', () => {
         id: 2,
         type: 'expense',
         status: 'confirmed',
-        amountMinor: 90000,
+        amountMinor: 101000,
         currency: 'RON',
         occurredAt: dueAt,
         merchantRaw: 'Rata credit ING',
@@ -111,16 +111,43 @@ describe('reconcileLoanPayments', () => {
       installments: [{ ...schedules[0].installments[0], dueAt: before }],
     };
     expect(
-      reconcileLoanPayments([schedule], [{
-        id: 2,
-        type: 'expense',
-        status: 'confirmed',
-        amountMinor: 101000,
-        currency: 'RON',
-        occurredAt: after,
-        merchantRaw: 'Rata credit ING',
-        note: null,
-      }]),
+      reconcileLoanPayments(
+        [schedule],
+        [
+          {
+            id: 2,
+            type: 'expense',
+            status: 'confirmed',
+            amountMinor: 101000,
+            currency: 'RON',
+            occurredAt: after,
+            merchantRaw: 'Rata credit ING',
+            note: null,
+          },
+        ],
+      ),
     ).toHaveLength(1);
+  });
+
+  it('accepts small amount variance at the date-window boundary and rejects larger differences', () => {
+    const withinTolerance = {
+      id: 2,
+      type: 'expense',
+      status: 'confirmed',
+      amountMinor: 100000,
+      currency: 'RON',
+      occurredAt: new Date(2026, 9, 15).getTime(),
+      merchantRaw: 'Rata credit ING',
+      note: null,
+    };
+    expect(reconcileLoanPayments(schedules, [withinTolerance])).toHaveLength(1);
+    expect(reconcileLoanPayments(schedules, [{ ...withinTolerance, amountMinor: 99989 }])).toEqual(
+      [],
+    );
+    expect(
+      reconcileLoanPayments(schedules, [
+        { ...withinTolerance, occurredAt: new Date(2026, 9, 16).getTime() },
+      ]),
+    ).toEqual([]);
   });
 });
