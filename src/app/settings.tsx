@@ -3,12 +3,17 @@ import { useRouter } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useTranslation } from 'react-i18next';
+import { eq } from 'drizzle-orm';
 import { Alert, Platform } from 'react-native';
 
 import { schema, useDb } from '@/core/db';
 import { AppText, Card, ListRow, Screen, useTheme } from '@/core/ui';
 import type { ThemePreference } from '@/core/ui/theme/preferences';
-import { useCaptureRefresh } from '@/features/capture';
+import {
+  CAPTURE_INACTIVITY_DAY_OPTIONS,
+  parseCaptureInactivityDays,
+  useCaptureRefresh,
+} from '@/features/capture';
 import {
   backupSettingKeys,
   chooseBackupFolder,
@@ -34,6 +39,13 @@ export default function SettingsScreen() {
   const sqlite = useSQLiteContext();
   const { data: appSettings } = useLiveQuery(db.select().from(schema.appSettings));
   const refresh = useCaptureRefresh();
+  const { data: captureSettings } = useLiveQuery(
+    db
+      .select({ value: schema.appSettings.value })
+      .from(schema.appSettings)
+      .where(eq(schema.appSettings.key, 'capture_inactivity_days')),
+  );
+  const captureInactivityDays = parseCaptureInactivityDays(captureSettings[0]?.value);
   const backupFrequency =
     appSettings.find((setting) => setting.key === backupSettingKeys.frequency)?.value === 'weekly'
       ? 'weekly'
@@ -55,6 +67,18 @@ export default function SettingsScreen() {
     } catch (error) {
       console.error('Failed to save theme preference', error);
       Alert.alert(t('errors.generic'), t('settings.saveError'));
+    }
+  };
+
+  const selectCaptureInactivityDays = (days: number) => {
+    try {
+      db.insert(schema.appSettings)
+        .values({ key: 'capture_inactivity_days', value: String(days) })
+        .onConflictDoUpdate({ target: schema.appSettings.key, set: { value: String(days) } })
+        .run();
+    } catch (error) {
+      console.error('Failed to save capture inactivity preference', error);
+      Alert.alert(t('errors.generic'), t('settings.captureSaveError'));
     }
   };
 
@@ -259,6 +283,23 @@ export default function SettingsScreen() {
               ) : null
             }
             onPress={() => void selectLanguage(language)}
+          />
+        ))}
+      </Card>
+      <AppText variant="heading">{t('settings.captureMonitoring')}</AppText>
+      <AppText color="textSecondary">{t('settings.captureMonitoringHint')}</AppText>
+      <Card>
+        {CAPTURE_INACTIVITY_DAY_OPTIONS.map((days) => (
+          <ListRow
+            key={days}
+            title={t('settings.captureInactivityDays', { count: days })}
+            subtitle={captureInactivityDays === days ? t('common.selected') : undefined}
+            trailing={
+              captureInactivityDays === days ? (
+                <Ionicons name="checkmark" size={24} color={colors.primary} />
+              ) : null
+            }
+            onPress={() => selectCaptureInactivityDays(days)}
           />
         ))}
       </Card>
