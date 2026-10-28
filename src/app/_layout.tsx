@@ -96,6 +96,8 @@ function RootStack() {
         <Stack.Screen name="recurring" options={{ title: t('recurring.title') }} />
         <Stack.Screen name="investments" options={{ title: t('investments.title') }} />
         <Stack.Screen name="budgets" options={{ title: t('budgets.title') }} />
+        <Stack.Screen name="goals" options={{ title: t('planning.goals') }} />
+        <Stack.Screen name="net-worth" options={{ title: t('planning.netWorth') }} />
         <Stack.Screen name="data" options={{ title: t('data.title') }} />
         <Stack.Screen name="settings" options={{ title: t('more.settings') }} />
         <Stack.Screen name="onboarding" options={{ title: t('onboarding.title') }} />

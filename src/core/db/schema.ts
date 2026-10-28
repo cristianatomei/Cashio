@@ -261,3 +261,20 @@ export const captureRules = sqliteTable('capture_rules', {
   priority: integer('priority').notNull().default(0),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
 });
+
+export const savingsGoals = sqliteTable('savings_goals', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  currency: text('currency').notNull(),
+  targetMinor: integer('target_minor').notNull(),
+  currentMinor: integer('current_minor').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+export const investmentValuations = sqliteTable('investment_valuations', {
+  assetId: text('asset_id').primaryKey().notNull(),
+  amountMinor: integer('amount_minor').notNull(),
+  currency: text('currency').notNull(),
+  valuedAt: integer('valued_at').notNull(),
+});
