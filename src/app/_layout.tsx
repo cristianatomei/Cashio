@@ -8,6 +8,7 @@ import { AppState } from 'react-native';
 import { DATABASE_NAME, migrate, seedDefaults, useDb } from '@/core/db';
 import { currentLanguage, i18nReady, i18next } from '@/core/i18n';
 import { ThemeProvider, useTheme } from '@/core/ui';
+import { AppLockProvider } from '@/features/app-lock';
 import { useCaptureSync } from '@/features/capture';
 import { syncLoanScheduleReminders } from '@/features/loans/data/loanReminders';
 
@@ -94,7 +95,9 @@ export default function RootLayout() {
       options={{ enableChangeListener: true }}
     >
       <ThemeProvider>
-        <RootStack />
+        <AppLockProvider>
+          <RootStack />
+        </AppLockProvider>
       </ThemeProvider>
     </SQLiteProvider>
   );
