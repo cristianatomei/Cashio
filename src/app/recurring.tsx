@@ -270,6 +270,9 @@ export default function RecurringScreen() {
               />
             );
           })}
+          {loanSchedules.length > 0 ? (
+            <AppText color="textSecondary">{t('recurring.forecastLoanWarning')}</AppText>
+          ) : null}
         </Card>
       )}
 

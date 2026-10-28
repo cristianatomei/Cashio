@@ -61,6 +61,11 @@ describe('estimateNextMonth', () => {
             active: true,
           },
         ],
+        loanPayments: [
+          { amountMinor: 123450, currency: 'RON', dueAt: timestamp(2026, 11, 10) },
+          { amountMinor: 124650, currency: 'RON', dueAt: timestamp(2026, 11, 10) },
+          { amountMinor: 99900, currency: 'EUR', dueAt: timestamp(2026, 12, 1) },
+        ],
         transactions: [
           {
             amountMinor: 10000,
@@ -101,7 +106,7 @@ describe('estimateNextMonth', () => {
         historyTo: timestamp(2026, 11, 1),
       }),
     ).toEqual([
-      { currency: 'RON', obligationsMinor: 20000, variableAverageMinor: 20000, totalMinor: 40000 },
+      { currency: 'RON', obligationsMinor: 268100, variableAverageMinor: 20000, totalMinor: 288100 },
     ]);
   });
 });
