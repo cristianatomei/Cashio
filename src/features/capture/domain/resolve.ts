@@ -22,7 +22,12 @@ export type CaptureContext = {
   /** User-owned bank accounts; an IBAN match can link a transfer to another account. */
   ownAccounts: readonly { id: number; iban: string | null }[];
   aliases: readonly MerchantAlias[];
-  merchants: readonly { id: number; defaultCategoryId: number | null }[];
+  merchants: readonly { id: number; name?: string; defaultCategoryId: number | null }[];
+  merchantCategoryRules?: readonly {
+    merchantId: number;
+    type: 'expense' | 'income';
+    categoryId: number;
+  }[];
   /** Category ids keyed by normalizeText(name). */
   categoryIdsByName: ReadonlyMap<string, number>;
   rules: readonly KeywordRule[];
@@ -97,13 +102,25 @@ export function resolveCapture(
 
   const merchantRaw = type === 'transfer' ? null : parsed.merchantRaw;
   const alias = merchantRaw ? matchAlias(normalizeMerchant(merchantRaw), ctx.aliases) : null;
-  const merchantId = alias?.merchantId ?? null;
+  const merchantId =
+    alias?.merchantId ??
+    (merchantRaw
+      ? ctx.merchants.find(
+          (merchant) =>
+            merchant.name && normalizeMerchant(merchant.name) === normalizeMerchant(merchantRaw),
+        )?.id
+      : null) ??
+    null;
+  const learnedCategory = ctx.merchantCategoryRules?.find(
+    (item) => item.merchantId === merchantId && item.type === type,
+  )?.categoryId;
   const merchantCategory =
     ctx.merchants.find((m) => m.id === merchantId)?.defaultCategoryId ?? null;
   const ruleCategory = rule?.category
     ? (ctx.categoryIdsByName.get(normalizeText(rule.category[ctx.language])) ?? null)
     : null;
-  const categoryId = type === 'transfer' ? null : (merchantCategory ?? ruleCategory);
+  const categoryId =
+    type === 'transfer' ? null : (learnedCategory ?? merchantCategory ?? ruleCategory);
 
   const complete =
     type === 'transfer'

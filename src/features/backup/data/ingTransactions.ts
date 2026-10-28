@@ -1,7 +1,8 @@
-import { and, desc, eq, gte, lt, lte, or } from 'drizzle-orm';
+import { and, eq, gte, lt, lte, or } from 'drizzle-orm';
 
 import { DEFAULT_CURRENCY, schema, type AppDb } from '@/core/db';
 import { convertToBaseMinor } from '@/core/utils/currency';
+import { ratePreferenceOrder } from '@/features/exchange-rates/data/rateOrder';
 import { findUnusedCapturedPayment } from '../domain/capturedPaymentMatch';
 import type { IngTransactionRow } from '../domain/ingCsv';
 
@@ -104,9 +105,13 @@ export function importIngTransactions(
                 and(
                   eq(schema.exchangeRates.currency, row.currency),
                   lte(schema.exchangeRates.effectiveAt, row.date),
+                  or(
+                    eq(schema.exchangeRates.source, 'manual'),
+                    eq(schema.exchangeRates.source, `frankfurter:ECB:${baseCurrency}`),
+                  ),
                 ),
               )
-              .orderBy(desc(schema.exchangeRates.effectiveAt))
+              .orderBy(...ratePreferenceOrder())
               .limit(1)
               .get()?.rateToBase;
 

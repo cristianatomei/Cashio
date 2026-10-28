@@ -13,11 +13,17 @@ import { useCaptureSync } from '@/features/capture';
 import { syncLoanScheduleReminders } from '@/features/loans/data/loanReminders';
 import { runScheduledBackup } from '@/features/backup';
 import { useProductivity } from '@/features/productivity/ui/useProductivity';
+import { isDisposableTestBuild } from '@/core/db/testBuild';
 
 async function initializeDatabase(db: SQLiteDatabase) {
   try {
     await i18nReady;
     await migrate(db);
+    if (isDisposableTestBuild) {
+      await db.runAsync(
+        "INSERT INTO app_settings (key,value) VALUES ('language','en') ON CONFLICT(key) DO UPDATE SET value='en'",
+      );
+    }
     const savedLanguage = await db.getFirstAsync<{ value: string }>(
       'SELECT value FROM app_settings WHERE key = ?',
       ['language'],

@@ -3,8 +3,9 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useMemo } from 'react';
 
 import * as schema from './schema';
+import { isDisposableTestBuild } from './testBuild';
 
-export const DATABASE_NAME = 'cashio.db';
+export const DATABASE_NAME = isDisposableTestBuild ? 'cashio.e2e.synthetic.db' : 'cashio.db';
 
 export { migrate } from './migrations';
 export { seedDefaults } from './seed';

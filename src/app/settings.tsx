@@ -22,6 +22,7 @@ import {
 } from '@/features/backup';
 import { APP_LOCK_TIMEOUT_MINUTES, useAppLock } from '@/features/app-lock';
 import { ProductivitySettings } from '@/features/productivity/ui/ProductivitySettings';
+import { PublicRatesSettings } from '@/features/exchange-rates/ui/PublicRatesSettings';
 
 const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
 const LANGUAGES = ['ro', 'en'] as const;
@@ -170,6 +171,7 @@ export default function SettingsScreen() {
   return (
     <Screen topInset={false} onRefresh={refresh}>
       <ProductivitySettings />
+      <PublicRatesSettings />
       <AppText variant="heading">{t('settings.appearance')}</AppText>
       <AppText color="textSecondary">{t('settings.themeHint')}</AppText>
       <Card>
@@ -177,6 +179,9 @@ export default function SettingsScreen() {
           <ListRow
             key={theme}
             title={t(`settings.${theme}`)}
+            accessibilityRole="radio"
+            accessibilityLabel={t(`settings.${theme}`)}
+            accessibilityState={{ checked: preference === theme }}
             subtitle={preference === theme ? t('common.selected') : undefined}
             trailing={
               preference === theme ? (
@@ -238,6 +243,9 @@ export default function SettingsScreen() {
       <Card>
         <ListRow
           title={t('settings.appLock.title')}
+          accessibilityRole="switch"
+          accessibilityLabel={t('settings.appLock.title')}
+          accessibilityState={{ checked: appLockSettings.enabled }}
           subtitle={
             appLockSettings.enabled ? t('settings.appLock.enabled') : t('settings.appLock.disabled')
           }
@@ -255,6 +263,11 @@ export default function SettingsScreen() {
               <ListRow
                 key={timeoutMinutes}
                 title={t(`settings.appLock.timeouts.${APP_LOCK_TIMEOUT_KEYS[timeoutMinutes]}`)}
+                accessibilityRole="radio"
+                accessibilityLabel={t(
+                  `settings.appLock.timeouts.${APP_LOCK_TIMEOUT_KEYS[timeoutMinutes]}`,
+                )}
+                accessibilityState={{ checked: appLockSettings.timeoutMinutes === timeoutMinutes }}
                 subtitle={
                   appLockSettings.timeoutMinutes === timeoutMinutes
                     ? t('common.selected')
@@ -278,6 +291,9 @@ export default function SettingsScreen() {
           <ListRow
             key={language}
             title={t(`settings.languages.${language}`)}
+            accessibilityRole="radio"
+            accessibilityLabel={t(`settings.languages.${language}`)}
+            accessibilityState={{ checked: i18n.resolvedLanguage === language }}
             subtitle={i18n.resolvedLanguage === language ? t('common.selected') : undefined}
             trailing={
               i18n.resolvedLanguage === language ? (
@@ -295,6 +311,9 @@ export default function SettingsScreen() {
           <ListRow
             key={days}
             title={t('settings.captureInactivityDays', { count: days })}
+            accessibilityRole="radio"
+            accessibilityLabel={t('settings.captureInactivityDays', { count: days })}
+            accessibilityState={{ checked: captureInactivityDays === days }}
             subtitle={captureInactivityDays === days ? t('common.selected') : undefined}
             trailing={
               captureInactivityDays === days ? (

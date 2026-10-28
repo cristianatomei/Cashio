@@ -43,35 +43,50 @@ describe('filterTransactions', () => {
       },
     }),
     view({
-        id: 3,
-        note: 'Cadou pentru Ana',
-        account: { id: 1, name: 'Cash', color: '#000', icon: 'cash' },
-        category: {
-          id: 2,
-          name: 'Cadouri',
-          icon: 'gift',
-          color: '#abc',
-          groupId: 2,
-          groupName: 'Dorințe',
-        },
-        allocations: [
-          {
-            amountMinor: 1000,
-            category: {
-              id: 2,
-              name: 'Cadouri',
-              icon: 'gift',
-              color: '#abc',
-              groupId: 2,
-              groupName: 'Dorințe',
-            },
+      id: 3,
+      note: 'Cadou pentru Ana',
+      account: { id: 1, name: 'Cash', color: '#000', icon: 'cash' },
+      category: {
+        id: 2,
+        name: 'Cadouri',
+        icon: 'gift',
+        color: '#abc',
+        groupId: 2,
+        groupName: 'Dorințe',
+      },
+      allocations: [
+        {
+          amountMinor: 1000,
+          category: {
+            id: 2,
+            name: 'Cadouri',
+            icon: 'gift',
+            color: '#abc',
+            groupId: 2,
+            groupName: 'Dorințe',
           },
-        ],
+        },
+      ],
     }),
   ];
 
   it('keeps everything with no filter', () => {
     expect(filterTransactions(rows, { query: '', type: 'all' })).toHaveLength(3);
+  });
+
+  it('filters drilldown group, uncategorized, currency and tag scopes', () => {
+    expect(
+      filterTransactions(rows, { query: '', type: 'all', groupId: 2 }).map((row) => row.id),
+    ).toEqual([3]);
+    expect(
+      filterTransactions(rows, { query: '', type: 'all', categoryId: 'uncategorized' }).map(
+        (row) => row.id,
+      ),
+    ).toEqual([1]);
+    expect(
+      filterTransactions(rows, { query: '', type: 'all', tagId: 1 }).map((row) => row.id),
+    ).toEqual([1]);
+    expect(filterTransactions(rows, { query: '', type: 'all', currency: 'EUR' })).toEqual([]);
   });
 
   it('filters by type', () => {
@@ -88,11 +103,11 @@ describe('filterTransactions', () => {
   });
 
   it('filters by account and category, including split allocations', () => {
-    expect(filterTransactions(rows, { query: '', type: 'all', accountId: 2 }).map((r) => r.id)).toEqual([
-      2,
-    ]);
-    expect(filterTransactions(rows, { query: '', type: 'all', categoryId: 2 }).map((r) => r.id)).toEqual([
-      3,
-    ]);
+    expect(
+      filterTransactions(rows, { query: '', type: 'all', accountId: 2 }).map((r) => r.id),
+    ).toEqual([2]);
+    expect(
+      filterTransactions(rows, { query: '', type: 'all', categoryId: 2 }).map((r) => r.id),
+    ).toEqual([3]);
   });
 });

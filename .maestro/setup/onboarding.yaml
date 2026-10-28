@@ -1,0 +1,22 @@
+appId: com.cashio.app.e2e
+---
+# This is a separate, disposable application ID. Never substitute com.cashio.app.
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Enable notification capture'
+    timeout: 30000
+- scrollUntilVisible:
+    element: 'Continue'
+- tapOn: 'Continue'
+- assertVisible: 'Choose active accounts'
+- scrollUntilVisible:
+    element: 'Continue'
+- tapOn: 'Continue'
+- assertVisible: 'Choose your base currency'
+- scrollUntilVisible:
+    element: 'Continue'
+- tapOn: 'Continue'
+- assertVisible: 'You’re all set'
+- tapOn: 'Start using Cashio'
+- assertVisible: 'Total balance'

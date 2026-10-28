@@ -1,0 +1,31 @@
+appId: com.cashio.app.e2e
+name: Synthetic expense create, restart, edit and delete
+---
+- runFlow: ../setup/onboarding.yaml
+- tapOn: 'Add'
+- assertVisible: 'New transaction'
+- tapOn:
+    id: 'amount-key-1'
+- tapOn:
+    id: 'amount-key-2'
+- tapOn: 'Choose a category'
+- tapOn: 'Groceries'
+- tapOn: 'Save'
+- tapOn: 'Transactions'
+- assertVisible: 'Groceries'
+- stopApp
+- launchApp
+- tapOn: 'Transactions'
+- assertVisible: 'Groceries'
+- tapOn: 'Groceries'
+- tapOn:
+    id: 'amount-key-3'
+- tapOn: 'Save'
+- assertVisible: 'Groceries'
+- tapOn: 'Groceries'
+- scrollUntilVisible:
+    element: 'Delete'
+- tapOn: 'Delete'
+- assertVisible: 'Delete transaction?'
+- tapOn: 'Delete'
+- assertVisible: 'No transactions'

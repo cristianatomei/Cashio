@@ -38,6 +38,7 @@ import { TagPickerModal, useTags } from '@/features/tags';
 import { deleteTransaction, loadTransaction, saveTransaction } from '../data/transactionsRepo';
 import { validateTransaction } from '../domain/validation';
 import { AmountKeypad } from './AmountKeypad';
+import { saveMerchantRule } from '../data/workflowsRepo';
 
 type Picker =
   | 'category'
@@ -86,9 +87,16 @@ export function TransactionForm({ transactionId }: Props) {
   const [occurredAt, setOccurredAt] = useState(() => initial?.occurredAt ?? Date.now());
   const [picker, setPicker] = useState<Picker>(null);
   const [noteFocused, setNoteFocused] = useState(false);
+  const [learnCategory, setLearnCategory] = useState(false);
+  const [retroactive, setRetroactive] = useState(false);
 
   const accounts = useAccounts({ includeArchived: true });
   const merchants = useMerchants();
+  const { data: learnedRules } = useLiveQuery(db.select().from(schema.merchantCategoryRules));
+  const defaultMerchantCategory = (id: number) =>
+    learnedRules.find((rule) => rule.merchantId === id && rule.type === type)?.categoryId ??
+    merchants.find((item) => item.id === id)?.defaultCategoryId ??
+    null;
   const tags = useTags();
   const { data: recentTransactions } = useLiveQuery(
     db
@@ -98,12 +106,7 @@ export function TransactionForm({ transactionId }: Props) {
         merchantId: schema.transactions.merchantId,
       })
       .from(schema.transactions)
-      .where(
-        and(
-          eq(schema.transactions.status, 'confirmed'),
-          eq(schema.transactions.type, type),
-        ),
-      )
+      .where(and(eq(schema.transactions.status, 'confirmed'), eq(schema.transactions.type, type)))
       .orderBy(desc(schema.transactions.occurredAt))
       .limit(60),
     [type],
@@ -168,13 +171,18 @@ export function TransactionForm({ transactionId }: Props) {
   const splitIsValid =
     splitAllocations.length >= 2 &&
     splitAllocations.every(
-      (allocation) => allocation.categoryId !== null && allocation.amountMinor !== null && allocation.amountMinor > 0,
+      (allocation) =>
+        allocation.categoryId !== null &&
+        allocation.amountMinor !== null &&
+        allocation.amountMinor > 0,
     ) &&
     splitTotal === amountMinor;
   const effectiveCategoryId = splitting ? (allocations[0]?.categoryId ?? null) : categoryId;
   const isTransfer = type === 'transfer';
   const allocationCategory = (id: number | null) =>
-    id === null ? undefined : groups.flatMap((group) => group.categories).find((item) => item.id === id);
+    id === null
+      ? undefined
+      : groups.flatMap((group) => group.categories).find((item) => item.id === id);
 
   const toggleSplit = () => {
     if (splitting) {
@@ -238,31 +246,48 @@ export function TransactionForm({ transactionId }: Props) {
       return;
     }
 
-    const savedId = saveTransaction(db, {
-      id: transactionId,
-      type,
-      accountId: effectiveAccountId,
-      transferAccountId,
-      amountMinor,
-      currency,
-      categoryId: effectiveCategoryId,
-      merchantId,
-      note,
-      tagIds,
-      allocations: splitting
-        ? splitAllocations.map((allocation) => ({
-            categoryId: allocation.categoryId,
-            amountMinor: allocation.amountMinor ?? 0,
-          }))
-        : undefined,
-      occurredAt,
-    });
+    let savedId: number;
+    try {
+      savedId = db.transaction((tx) => {
+        const id = saveTransaction(tx, {
+          id: transactionId,
+          type,
+          accountId: effectiveAccountId,
+          transferAccountId,
+          amountMinor,
+          currency,
+          categoryId: effectiveCategoryId,
+          merchantId,
+          note,
+          tagIds,
+          allocations: splitting
+            ? splitAllocations.map((allocation) => ({
+                categoryId: allocation.categoryId,
+                amountMinor: allocation.amountMinor ?? 0,
+              }))
+            : undefined,
+          occurredAt,
+        });
+        if (
+          learnCategory &&
+          !splitting &&
+          type !== 'transfer' &&
+          merchantId !== null &&
+          effectiveCategoryId !== null
+        ) {
+          saveMerchantRule(tx, merchantId, type, effectiveCategoryId, retroactive);
+        }
+        return id;
+      });
+    } catch (error) {
+      console.error('Failed to save transaction or merchant rule', error);
+      Alert.alert(t('errors.generic'), t('workflows.saveError'));
+      return;
+    }
     void notifyBudgetThresholds(db, savedId, (name, threshold) => ({
       title: t('budgets.thresholdTitle'),
       body:
-        threshold === 80
-          ? t('budgets.threshold80', { name })
-          : t('budgets.threshold100', { name }),
+        threshold === 80 ? t('budgets.threshold80', { name }) : t('budgets.threshold100', { name }),
     })).catch((error: unknown) => {
       console.error('Failed to send budget threshold alert', error);
       Alert.alert(t('errors.generic'), t('budgets.notificationError'));
@@ -301,6 +326,32 @@ export function TransactionForm({ transactionId }: Props) {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {!isTransfer &&
+        !splitting &&
+        merchantId !== null &&
+        categoryId !== null &&
+        categoryId !== initial?.categoryId ? (
+          <Card>
+            <Chip
+              label={t('workflows.learnFuture')}
+              selected={learnCategory}
+              onPress={() => {
+                setLearnCategory(!learnCategory);
+                setRetroactive(false);
+              }}
+            />
+            {learnCategory ? (
+              <>
+                <Chip
+                  label={t('workflows.retroactive')}
+                  selected={retroactive}
+                  onPress={() => setRetroactive(!retroactive)}
+                />
+                <AppText variant="caption">{t('workflows.retroactiveHint')}</AppText>
+              </>
+            ) : null}
+          </Card>
+        ) : null}
         <SegmentedControl
           value={type}
           onChange={changeType}
@@ -362,8 +413,9 @@ export function TransactionForm({ transactionId }: Props) {
                       selected={merchantId === item.id}
                       onPress={() => {
                         setMerchantId(item.id);
-                        if (categoryId === null && item.defaultCategoryId !== null) {
-                          setCategoryId(item.defaultCategoryId);
+                        const defaultCategory = defaultMerchantCategory(item.id);
+                        if (categoryId === null && defaultCategory !== null) {
+                          setCategoryId(defaultCategory);
                         }
                       }}
                     />
@@ -476,10 +528,7 @@ export function TransactionForm({ transactionId }: Props) {
                 variant="secondary"
                 title={t('form.addSplit')}
                 onPress={() =>
-                  setAllocations((current) => [
-                    ...current,
-                    { categoryId: null, amount: '0.00' },
-                  ])
+                  setAllocations((current) => [...current, { categoryId: null, amount: '0.00' }])
                 }
               />
             </View>
@@ -623,7 +672,9 @@ export function TransactionForm({ transactionId }: Props) {
           selectedId={accountId}
           onSelect={(id) => {
             setAccountId(id);
-            setUnassignedCurrency(accounts.find((item) => item.id === id)?.currency ?? unassignedCurrency);
+            setUnassignedCurrency(
+              accounts.find((item) => item.id === id)?.currency ?? unassignedCurrency,
+            );
           }}
           onClear={!isTransfer ? () => setAccountId(null) : undefined}
           onClose={() => setPicker(null)}
@@ -643,7 +694,7 @@ export function TransactionForm({ transactionId }: Props) {
           onSelect={(id) => {
             setMerchantId(id);
             // A merchant with a default category fills it in when none was chosen yet.
-            const defaultCategory = merchants.find((m) => m.id === id)?.defaultCategoryId;
+            const defaultCategory = id === null ? null : defaultMerchantCategory(id);
             if (categoryId === null && defaultCategory) setCategoryId(defaultCategory);
           }}
           onClose={() => setPicker(null)}

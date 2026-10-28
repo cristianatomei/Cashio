@@ -149,10 +149,13 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
               onPress={() => void authenticate()}
               style={({ pressed }) => [
                 styles.button,
-                { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
+                {
+                  backgroundColor: colors.primary,
+                  borderColor: pressed ? colors.textSecondary : colors.primary,
+                },
               ]}
             >
-              <AppText variant="heading" color="onPrimary">
+              <AppText variant="heading" color="onPrimary" style={styles.centered}>
                 {t('settings.appLock.unlock')}
               </AppText>
             </Pressable>
@@ -179,10 +182,13 @@ const styles = StyleSheet.create({
   centered: { textAlign: 'center' },
   button: {
     minHeight: 48,
+    minWidth: 48,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
+    borderWidth: 1,
     paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
     marginTop: spacing.sm,
   },
 });
