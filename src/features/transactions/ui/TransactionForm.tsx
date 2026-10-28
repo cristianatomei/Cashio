@@ -39,6 +39,10 @@ import { deleteTransaction, loadTransaction, saveTransaction } from '../data/tra
 import { validateTransaction } from '../domain/validation';
 import { AmountKeypad } from './AmountKeypad';
 import { saveMerchantRule } from '../data/workflowsRepo';
+import { ReceiptField, type ReceiptDraft } from '@/features/receipts/ui/ReceiptField';
+import { cleanupReceipts, loadReceipt, saveReceipt } from '@/features/receipts/data/repo';
+import { discardReceipt, importReceipt, receiptUri } from '@/features/receipts/data/files';
+import { ReceiptError } from '@/features/receipts/domain/receipt';
 
 type Picker =
   | 'category'
@@ -89,6 +93,11 @@ export function TransactionForm({ transactionId }: Props) {
   const [noteFocused, setNoteFocused] = useState(false);
   const [learnCategory, setLearnCategory] = useState(false);
   const [retroactive, setRetroactive] = useState(false);
+  const [originalReceipt] = useState(() => loadReceipt(db, transactionId));
+  const [receipt, setReceipt] = useState<ReceiptDraft>(
+    originalReceipt ? { filename: originalReceipt } : null,
+  );
+  const [receiptBusy, setReceiptBusy] = useState(false);
 
   const accounts = useAccounts({ includeArchived: true });
   const merchants = useMerchants();
@@ -224,6 +233,7 @@ export function TransactionForm({ transactionId }: Props) {
   };
 
   const save = () => {
+    if (receiptBusy) return;
     const error = validateTransaction({
       type,
       accountId: effectiveAccountId,
@@ -247,7 +257,11 @@ export function TransactionForm({ transactionId }: Props) {
     }
 
     let savedId: number;
+    let imported: string | null = null;
     try {
+      if (receipt && 'uri' in receipt) imported = importReceipt(receipt.uri);
+      const filename = receipt && 'filename' in receipt ? receipt.filename : imported;
+      if (filename) receiptUri(filename);
       savedId = db.transaction((tx) => {
         const id = saveTransaction(tx, {
           id: transactionId,
@@ -268,6 +282,7 @@ export function TransactionForm({ transactionId }: Props) {
             : undefined,
           occurredAt,
         });
+        saveReceipt(tx, id, filename);
         if (
           learnCategory &&
           !splitting &&
@@ -280,9 +295,24 @@ export function TransactionForm({ transactionId }: Props) {
         return id;
       });
     } catch (error) {
+      if (imported) {
+        try {
+          discardReceipt(imported);
+        } catch {
+          Alert.alert(t('errors.generic'), t('receipts.cleanupFailed'));
+        }
+      }
       console.error('Failed to save transaction or merchant rule', error);
-      Alert.alert(t('errors.generic'), t('workflows.saveError'));
+      Alert.alert(
+        t('errors.generic'),
+        error instanceof ReceiptError ? t(`receipts.${error.code}`) : t('workflows.saveError'),
+      );
       return;
+    }
+    try {
+      cleanupReceipts(db, originalReceipt ? [originalReceipt] : []);
+    } catch {
+      Alert.alert(t('errors.generic'), t('receipts.cleanupFailed'));
     }
     void notifyBudgetThresholds(db, savedId, (name, threshold) => ({
       title: t('budgets.thresholdTitle'),
@@ -317,8 +347,16 @@ export function TransactionForm({ transactionId }: Props) {
       confirmLabel: t('common.delete'),
       cancelLabel: t('common.cancel'),
       onConfirm: () => {
-        deleteTransaction(db, transactionId);
-        router.back();
+        try {
+          deleteTransaction(db, transactionId);
+          router.back();
+        } catch (error) {
+          Alert.alert(
+            t('errors.generic'),
+            error instanceof ReceiptError ? t(`receipts.${error.code}`) : t('workflows.batchError'),
+          );
+          if (error instanceof ReceiptError && error.code === 'cleanupFailed') router.back();
+        }
       },
     });
   };
@@ -618,6 +656,8 @@ export function TransactionForm({ transactionId }: Props) {
           />
         </Card>
 
+        <ReceiptField value={receipt} onChange={setReceipt} onBusy={setReceiptBusy} />
+
         <TextField
           label={t('form.note')}
           value={note}
@@ -641,7 +681,7 @@ export function TransactionForm({ transactionId }: Props) {
           ]}
         >
           <AmountKeypad expression={expression} onChange={setExpression} />
-          <Button title={t('common.save')} onPress={save} />
+          <Button title={t('common.save')} onPress={save} disabled={receiptBusy} />
         </View>
       ) : null}
 

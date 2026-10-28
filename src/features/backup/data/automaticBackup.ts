@@ -2,7 +2,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { Platform } from 'react-native';
 
-import { createCashioBackup } from './backup';
+import { createCashioBackup, serializeCashioBackup } from './backup';
 import {
   backupFilesToDelete,
   isBackupDue,
@@ -123,7 +123,7 @@ export async function runScheduledBackup(
     const retention = retentionValue === null ? DEFAULT_RETENTION : Number(retentionValue);
     const backup = await createCashioBackup(db);
     const fileName = `cashio-backup-${backup.createdAt}.json`;
-    await writeBackup(directoryUri, fileName, JSON.stringify(backup));
+    await writeBackup(directoryUri, fileName, serializeCashioBackup(backup));
     try {
       await pruneBackups(directoryUri, retention);
     } catch (error) {

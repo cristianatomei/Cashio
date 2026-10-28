@@ -43,7 +43,7 @@ describe('parseCashioBackup', () => {
   });
 
   it('rejects incompatible formats and missing tables', () => {
-    expect(() => parseCashioBackup(JSON.stringify({ ...backup, version: 4 }))).toThrow(
+    expect(() => parseCashioBackup(JSON.stringify({ ...backup, version: 99 }))).toThrow(
       'Unsupported backup format or version.',
     );
     const { capture_rules: _captureRules, ...tables } = backup.tables;

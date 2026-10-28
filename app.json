@@ -34,7 +34,15 @@
       "@react-native-community/datetimepicker",
       "expo-notifications",
       "expo-sharing",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cashio selects receipt photos to store privately on this device. Cashio selectează fotografii de bonuri păstrate privat pe acest dispozitiv.",
+          "cameraPermission": "Cashio uses the camera only to photograph receipts stored on this device. Cashio folosește camera doar pentru bonuri păstrate pe acest dispozitiv.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "extra": {
       "router": {},

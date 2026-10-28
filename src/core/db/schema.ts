@@ -34,6 +34,13 @@ export const appSettings = sqliteTable('app_settings', {
   value: text('value').notNull(),
 });
 
+export const transactionReceipts = sqliteTable('transaction_receipts', {
+  transactionId: integer('transaction_id')
+    .primaryKey()
+    .references(() => transactions.id, { onDelete: 'cascade' }),
+  filename: text('filename').notNull().unique(),
+});
+
 export const accounts = sqliteTable('accounts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),

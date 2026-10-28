@@ -309,6 +309,12 @@ export const migrations: readonly string[] = [
     valued_at INTEGER NOT NULL
   );
   `,
+  `
+  CREATE TABLE transaction_receipts (
+    transaction_id INTEGER PRIMARY KEY REFERENCES transactions (id) ON DELETE CASCADE,
+    filename TEXT NOT NULL UNIQUE
+  );
+  `,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {

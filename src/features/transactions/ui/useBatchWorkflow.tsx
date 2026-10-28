@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
@@ -16,6 +16,9 @@ import {
 import type { AssociateInput } from '@/features/capture/data/associate';
 import { transactionTitle, type TransactionView } from '../domain/views';
 import { TransactionRow } from './TransactionRow';
+import { cleanupReceipts } from '@/features/receipts/data/repo';
+import { i18next } from '@/core/i18n';
+import { ReceiptError } from '@/features/receipts/domain/receipt';
 
 export function useBatchWorkflow(visibleIds: number[]) {
   const { t } = useTranslation();
@@ -23,6 +26,36 @@ export function useBatchWorkflow(visibleIds: number[]) {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
   const [undo, setUndo] = useState<BatchUndo | null>(null);
+  const pendingUndo = useRef<BatchUndo | null>(null);
+  useEffect(() => {
+    pendingUndo.current = undo;
+  }, [undo]);
+  const finish = (action: BatchUndo | null) => {
+    if (!action) return;
+    try {
+      cleanupReceipts(
+        db,
+        action.before.receipts.map((row) => row.filename),
+      );
+    } catch {
+      Alert.alert(i18next.t('errors.generic'), i18next.t('receipts.cleanupFailed'));
+    }
+  };
+  useEffect(
+    () => () => {
+      const action = pendingUndo.current;
+      if (!action) return;
+      try {
+        cleanupReceipts(
+          db,
+          action.before.receipts.map((row) => row.filename),
+        );
+      } catch {
+        Alert.alert(i18next.t('errors.generic'), i18next.t('receipts.cleanupFailed'));
+      }
+    },
+    [db],
+  );
   const ids = selected.filter((id) => visibleIds.includes(id));
   const haptic = () => {
     void Haptics.selectionAsync().catch((error: unknown) =>
@@ -55,11 +88,23 @@ export function useBatchWorkflow(visibleIds: number[]) {
             haptic();
           } catch (error) {
             console.error('Undo failed', error);
-            Alert.alert(t('errors.generic'), t('workflows.undoError'));
+            Alert.alert(
+              t('errors.generic'),
+              error instanceof ReceiptError
+                ? t(`receipts.${error.code}`)
+                : t('workflows.undoError'),
+            );
           }
         }}
       />
-      <Button title={t('common.done')} variant="secondary" onPress={() => setUndo(null)} />
+      <Button
+        title={t('common.done')}
+        variant="secondary"
+        onPress={() => {
+          finish(undo);
+          setUndo(null);
+        }}
+      />
     </View>
   ) : null;
   return {

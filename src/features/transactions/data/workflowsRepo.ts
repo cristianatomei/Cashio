@@ -4,6 +4,7 @@ import { schema, type AppDb } from '@/core/db';
 import { findRecurringMatch, nextDueAfterPayment } from '@/features/recurring';
 import { normalizeMerchant } from '@/features/parsing';
 import { associateMerchant, type AssociateInput } from '@/features/capture/data/associate';
+import { receiptUri } from '@/features/receipts/data/files';
 
 import { parseSavedFilter, type SavedFilter } from '../domain/savedFilters';
 import { validateTransaction } from '../domain/validation';
@@ -36,6 +37,11 @@ function snapshot(db: AppDb, ids: number[]) {
       .select()
       .from(schema.transactionAllocations)
       .where(inArray(schema.transactionAllocations.transactionId, ids))
+      .all(),
+    receipts: db
+      .select()
+      .from(schema.transactionReceipts)
+      .where(inArray(schema.transactionReceipts.transactionId, ids))
       .all(),
     raw: rawIds.length
       ? db
@@ -346,6 +352,7 @@ export function undoBatch(db: AppDb, undo: BatchUndo): void {
         throw new Error('The recurring schedule changed. Undo cannot overwrite newer data.');
       }
     }
+    for (const receipt of undo.before.receipts) receiptUri(receipt.filename);
     for (const row of undo.before.rows) {
       tx.insert(schema.transactions)
         .values(row)
@@ -361,6 +368,11 @@ export function undoBatch(db: AppDb, undo: BatchUndo): void {
     if (undo.before.tags.length) tx.insert(schema.transactionTags).values(undo.before.tags).run();
     if (undo.before.allocations.length)
       tx.insert(schema.transactionAllocations).values(undo.before.allocations).run();
+    tx.delete(schema.transactionReceipts)
+      .where(inArray(schema.transactionReceipts.transactionId, undo.ids))
+      .run();
+    if (undo.before.receipts.length)
+      tx.insert(schema.transactionReceipts).values(undo.before.receipts).run();
     for (const link of undo.before.loanLinks) {
       tx.run(
         sql`INSERT INTO loan_payment_links (id, schedule_id, due_at, transaction_id) VALUES (${link.id}, ${link.schedule_id}, ${link.due_at}, ${link.transaction_id}) ON CONFLICT(transaction_id) DO NOTHING`,

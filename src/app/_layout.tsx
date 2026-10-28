@@ -3,7 +3,7 @@ import { SQLiteProvider, useSQLiteContext, type SQLiteDatabase } from 'expo-sqli
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppState } from 'react-native';
+import { Alert, AppState } from 'react-native';
 
 import { DATABASE_NAME, migrate, seedDefaults, useDb } from '@/core/db';
 import { currentLanguage, i18nReady, i18next } from '@/core/i18n';
@@ -14,6 +14,8 @@ import { syncLoanScheduleReminders } from '@/features/loans/data/loanReminders';
 import { runScheduledBackup } from '@/features/backup';
 import { useProductivity } from '@/features/productivity/ui/useProductivity';
 import { isDisposableTestBuild } from '@/core/db/testBuild';
+import { sweepReceiptFiles } from '@/features/receipts/data/files';
+import { ReceiptError } from '@/features/receipts/domain/receipt';
 
 async function initializeDatabase(db: SQLiteDatabase) {
   try {
@@ -32,6 +34,14 @@ async function initializeDatabase(db: SQLiteDatabase) {
       await i18next.changeLanguage(savedLanguage.value);
     }
     await seedDefaults(db, currentLanguage());
+    try {
+      const receipts = await db.getAllAsync<{ filename: string }>(
+        'SELECT filename FROM transaction_receipts',
+      );
+      sweepReceiptFiles(new Set(receipts.map((row) => row.filename)));
+    } catch {
+      Alert.alert(i18next.t('errors.generic'), i18next.t('receipts.cleanupFailed'));
+    }
   } catch (error) {
     console.error('Database initialization failed', error);
     throw error;
@@ -48,9 +58,19 @@ function RootStack() {
 
   useEffect(() => {
     let leftForeground = false;
+    let warnedBackupError = false;
     const runBackup = () => {
       void runScheduledBackup(sqlite).catch((error: unknown) => {
         console.error('Failed to run scheduled Cashio backup', error);
+        if (!warnedBackupError) {
+          warnedBackupError = true;
+          Alert.alert(
+            t('data.backupTitle'),
+            error instanceof ReceiptError
+              ? t(`receipts.${error.code}`)
+              : t('receipts.backupFailed'),
+          );
+        }
       });
     };
     runBackup();
