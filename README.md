@@ -50,6 +50,14 @@ Utilizatorul dorește utilizare zilnică fără laptop/Metro și continuarea dez
 
 ## Stare pe faze
 
+### În lucru / PR neintegrat — statistici și rapoarte (#18, #21, #23)
+
+- Ramura `feat/insights-reporting`: segmente donut și legendă accesibilă deschid lista filtrată; cardurile de venituri/cheltuieli/sold au sparklines pe cele șase intervale ale perioadei. Contractul de rutare către Tranzacții (`categoryId`/`groupId`, inclusiv `uncategorized`, `from`/`to` locale inclusive, `type=expense`, `currency` opțional) necesită și PR-ul separat pentru fluxurile de tranzacții; nu este încă integrat în `master`.
+- În Statistici, sugestiile sunt locale și numai informative: o plată egală la același comerciant în trei luni consecutive poate sugera abonament; o plată cu peste 5% mai mare decât trei plăți lunare stabile poate semnala prețul; o plată de cel puțin două ori mediana comerciantului din cele trei luni precedente poate semnala cheltuială neobișnuită. Fiecare afișează motivul și ID-urile dovezilor. Nu se creează automat reguli. Monedele nu se amestecă; transferurile, veniturile, ciornele, sumele nepozitive și tranzacțiile viitoare sunt excluse. Rambursările trebuie înregistrate ca venit sau sumă negativă pentru a fi excluse din detecție.
+- Raport lunar PDF **și** CSV, cu selecția lunii și comparație față de aceeași lună din anul anterior. Zero/fără istoric nu produce un procent inventat; luna în curs este marcată incompletă. RON folosește conversiile deja salvate; sumele fără curs rămân vizibile în export, dar sunt excluse explicit din totaluri. Alte monede includ numai tranzacțiile în moneda selectată. Convenția existentă Cashio pentru sume este în sutimi de unitate monetară.
+- Generarea este pe dispozitiv, fără upload automat. Distribuirea se face numai prin aplicația aleasă în foaia sistemului; fișierele cache sunt șterse după închiderea distribuirii. CSV UTF-8 protejează formulele din numele comercianților/categoriilor; HTML-ul PDF escapează datele importate și nu încarcă resurse externe. Notele, conturile și IBAN-urile nu sunt exportate.
+- Dependență nouă: `expo-print`, rezolvată prin `expo install` pentru SDK 57; fără migrări sau date persistente noi. Documentația SDK 57 și indexul Expo nu au fost accesibile (DNS); API-urile au fost verificate în tipurile instalate efectiv. Este necesar un **build nativ nou**, apoi validare Android/iOS a atingerilor, scalării textului, PDF-ului multipagină/diacriticelor, CSV-ului, anulării și erorilor de distribuire. Exportul în browser afișează explicit că nu este suportat. Testele unitare nu substituie aceste verificări pe telefon.
+
 | Fază | Conținut | Stare |
 |---|---|---|
 | 0 | Scaffold Expo SDK 57, expo-router, SQLite + Drizzle, migrări, lint/test | Implementat; verificările curente trec |

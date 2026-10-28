@@ -1,11 +1,16 @@
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { useTheme } from '@/core/ui';
 import type { StatsSegment } from '../domain/analytics';
+import { donutArc } from '../domain/charts';
 
-type Props = { segments: readonly StatsSegment[]; size?: number };
+type Props = {
+  segments: readonly StatsSegment[];
+  size?: number;
+  onSelect?: (segment: StatsSegment) => void;
+};
 
-export function DonutChart({ segments, size = 176 }: Props) {
+export function DonutChart({ segments, size = 176, onSelect }: Props) {
   const { colors } = useTheme();
   const total = segments.reduce((sum, segment) => sum + segment.amountMinor, 0);
   if (total <= 0) return null;
@@ -41,18 +46,23 @@ export function DonutChart({ segments, size = 176 }: Props) {
         stroke={colors.border}
         strokeWidth={strokeWidth}
       />
-      {slices.map((slice) => (
-        <Circle
+      {slices.map((slice, index) => (
+        <Path
           key={slice.id}
-          cx={center}
-          cy={center}
-          r={radius}
+          d={donutArc(
+            center,
+            center,
+            radius,
+            (slice.offset / circumference) * 2 * Math.PI,
+            ((slice.offset + Math.min(slice.length, circumference - 0.001)) / circumference) *
+              2 *
+              Math.PI,
+          )}
           fill="none"
           stroke={slice.color}
           strokeWidth={strokeWidth}
-          strokeDasharray={`${slice.length} ${circumference}`}
-          strokeDashoffset={-slice.offset}
-          transform={`rotate(-90 ${center} ${center})`}
+          onPress={() => onSelect?.(segments[index])}
+          accessible={false}
         />
       ))}
     </Svg>
