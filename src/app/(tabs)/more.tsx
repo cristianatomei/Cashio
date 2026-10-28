@@ -17,6 +17,8 @@ type Href =
   | '/data'
   | '/recurring'
   | '/investments'
+  | '/goals'
+  | '/net-worth'
   | '/budgets';
 
 type Entry = {
@@ -28,6 +30,8 @@ type Entry = {
     | 'budgets'
     | 'recurring'
     | 'investments'
+    | 'goals'
+    | 'netWorth'
     | 'tags'
     | 'captured'
     | 'settings'
@@ -59,6 +63,8 @@ const SECTIONS: readonly {
   {
     key: 'plan',
     entries: [
+      { key: 'goals', icon: 'flag-outline', href: '/goals' },
+      { key: 'netWorth', icon: 'pie-chart-outline', href: '/net-worth' },
       { key: 'budgets', icon: 'speedometer-outline', href: '/budgets' },
       { key: 'recurring', icon: 'repeat-outline', href: '/recurring' },
       { key: 'investments', icon: 'trending-up-outline', href: '/investments' },

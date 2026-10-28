@@ -22,6 +22,7 @@ import { addMonths, monthRange, startOfDay } from '@/core/utils/dates';
 import { convertToBaseMinor } from '@/core/utils/currency';
 import { formatMinor } from '@/core/utils/money';
 import { useAccountBalances, useAccounts } from '@/features/accounts';
+import { PlanningCards } from '@/features/planning/ui/PlanningCards';
 import { useBudgetViews } from '@/features/budgets';
 import {
   CaptureHealthBanner,
@@ -235,6 +236,7 @@ export default function HomeScreen() {
         {t('home.thisMonth')}
       </AppText>
       <SummaryCard totals={totals} currency={baseCurrency} />
+      <PlanningCards />
       <AppText variant="caption" color="textSecondary">
         {t('home.monthComparison', {
           income: comparisonMoney.format((totals.income - previousTotals.income) / 100),
