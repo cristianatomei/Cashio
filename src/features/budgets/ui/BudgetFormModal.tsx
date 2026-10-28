@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Switch, View } from 'react-native';
+import { Alert } from 'react-native';
 
 import { DEFAULT_CURRENCY, useDb } from '@/core/db';
 import {
@@ -9,8 +9,8 @@ import {
   FormRow,
   SegmentedControl,
   SheetModal,
+  SwitchRow,
   TextField,
-  useTheme,
 } from '@/core/ui';
 import { minorToInput } from '@/core/utils/money';
 import { CategoryPickerModal, useTaxonomy } from '@/features/categories';
@@ -23,7 +23,6 @@ type Picker = 'category' | 'group' | null;
 
 export function BudgetFormModal({ budget, onClose }: Props) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
   const db = useDb();
   const groups = useTaxonomy({ kind: 'expense', includeArchived: true });
   const initialTargetType = budget?.categoryId === null ? 'group' : 'category';
@@ -117,14 +116,7 @@ export function BudgetFormModal({ budget, onClose }: Props) {
         maxLength={3}
         autoCapitalize="characters"
       />
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <AppText>{t('budgets.rollover')}</AppText>
-        <Switch
-          value={rollover}
-          onValueChange={setRollover}
-          trackColor={{ false: colors.border, true: colors.primary }}
-        />
-      </View>
+      <SwitchRow label={t('budgets.rollover')} value={rollover} onValueChange={setRollover} />
       {picker === 'category' ? (
         <CategoryPickerModal
           kind="expense"

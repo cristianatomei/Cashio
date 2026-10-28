@@ -9,7 +9,7 @@ type Props = { title: string; action?: ReactNode };
 export function SectionHeader({ title, action }: Props) {
   return (
     <View style={styles.row}>
-      <AppText variant="heading" style={styles.title}>
+      <AppText variant="heading" accessibilityRole="header" style={styles.title}>
         {title}
       </AppText>
       {action}

@@ -3,6 +3,7 @@ export type ThemeColors = {
   surface: string;
   surfaceElevated: string;
   border: string;
+  controlBorder: string;
   text: string;
   textSecondary: string;
   textMuted: string;
@@ -21,15 +22,16 @@ export const lightColors: ThemeColors = {
   surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
   border: '#E5E7EF',
+  controlBorder: '#81899B',
   text: '#10131A',
   textSecondary: '#4B5263',
-  textMuted: '#8A91A3',
+  textMuted: '#616A7D',
   primary: '#145DA0',
   primarySoft: '#E3F0FC',
   onPrimary: '#FFFFFF',
-  income: '#0FA99A',
-  expense: '#F0525A',
-  warning: '#F59E0B',
+  income: '#007567',
+  expense: '#C43140',
+  warning: '#935C00',
   tabBar: '#FFFFFF',
   overlay: 'rgba(16, 19, 26, 0.45)',
 };
@@ -39,9 +41,10 @@ export const darkColors: ThemeColors = {
   surface: '#171B22',
   surfaceElevated: '#1F2430',
   border: '#2A3040',
+  controlBorder: '#6E7A90',
   text: '#F3F5FA',
   textSecondary: '#B4BBCB',
-  textMuted: '#7E869A',
+  textMuted: '#939CAF',
   primary: '#60A5FA',
   primarySoft: '#152D47',
   onPrimary: '#08192B',

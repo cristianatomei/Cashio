@@ -12,6 +12,7 @@ import {
   ListRow,
   Screen,
   SegmentedControl,
+  minimumTouchTarget,
   spacing,
   useTheme,
 } from '@/core/ui';
@@ -51,10 +52,14 @@ export default function CategoriesScreen() {
       <Button title={t('categories.addGroup')} onPress={() => setEditor({ type: 'group' })} />
 
       {groups.map((group) => (
-        <Card key={group.id} style={group.archived ? styles.archived : undefined}>
+        <Card key={group.id}>
           <View style={styles.groupHeader}>
             <CategoryIcon name={group.icon} color={group.color} />
-            <Pressable style={styles.groupTitle} onPress={() => setEditor({ type: 'group', group })}>
+            <Pressable
+              style={styles.groupTitle}
+              accessibilityRole="button"
+              onPress={() => setEditor({ type: 'group', group })}
+            >
               <AppText variant="heading">{group.name}</AppText>
               {group.archived ? (
                 <AppText variant="caption" color="textMuted">
@@ -63,7 +68,9 @@ export default function CategoriesScreen() {
               ) : null}
             </Pressable>
             <Pressable
-              hitSlop={12}
+              style={styles.addButton}
+              accessibilityRole="button"
+              accessibilityLabel={t('accessibility.addCategory', { group: group.name })}
               onPress={() => setEditor({ type: 'category', groupId: group.id })}
             >
               <Ionicons name="add-circle-outline" size={26} color={colors.primary} />
@@ -109,6 +116,11 @@ export default function CategoriesScreen() {
 
 const styles = StyleSheet.create({
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  groupTitle: { flex: 1 },
-  archived: { opacity: 0.6 },
+  groupTitle: { flex: 1, minHeight: minimumTouchTarget, justifyContent: 'center' },
+  addButton: {
+    minWidth: minimumTouchTarget,
+    minHeight: minimumTouchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

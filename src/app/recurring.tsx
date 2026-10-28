@@ -14,6 +14,7 @@ import {
   ListRow,
   Screen,
   SectionHeader,
+  SwitchRow,
   confirmDestructive,
   useTheme,
 } from '@/core/ui';
@@ -30,7 +31,7 @@ import {
 import { RecurringFormModal } from '@/features/recurring';
 import { installmentTotal, parseStoredLoanSchedule } from '@/features/loans';
 import { MonthSwitcher } from '@/features/transactions';
-import { Alert, Switch, View } from 'react-native';
+import { Alert } from 'react-native';
 import { useCaptureRefresh } from '@/features/capture';
 
 export default function RecurringScreen() {
@@ -144,20 +145,12 @@ export default function RecurringScreen() {
   return (
     <Screen onRefresh={refresh}>
       <Card>
-        <View
-          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-        >
-          <View style={{ flex: 1, paddingRight: 12 }}>
-            <AppText variant="heading">{t('recurring.reminders')}</AppText>
-            <AppText variant="caption" color="textSecondary">
-              {t('recurring.remindersHint')}
-            </AppText>
-          </View>
-          <Switch
-            value={remindersEnabled}
-            onValueChange={(enabled) => void toggleReminders(enabled)}
-          />
-        </View>
+        <SwitchRow
+          label={t('recurring.reminders')}
+          description={t('recurring.remindersHint')}
+          value={remindersEnabled}
+          onValueChange={(enabled) => void toggleReminders(enabled)}
+        />
       </Card>
       <SectionHeader title={t('recurring.monthlySchedule')} />
       <MonthSwitcher monthStart={monthStart} onChange={setMonthStart} />
