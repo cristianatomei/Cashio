@@ -2,6 +2,18 @@
 
 Aplicație mobilă (Expo / React Native, Android-first) pentru urmărirea cheltuielilor. Ideea: cheltuielile se captează automat din notificările băncilor (ING, Revolut, Salt Bank), fără introducere manuală și fără abonament. Datele rămân local, în SQLite.
 
+## Fluxuri tranzacții — pregătite pentru integrare, 28.10.2026
+
+Branch-ul `feat/transaction-workflows` implementează #11, #12, #14 și #17; această secțiune nu declară modificările integrate în `master` sau validate pe telefon.
+
+- **De clasificat:** listă virtualizată, număr rămas, swipe dreapta pentru confirmare / stânga pentru ignorare, selecție multiplă, categorie în lot și butoane echivalente gesturilor. Asocierea grupurilor de comercianți necunoscuți rămâne disponibilă; grupurile separă tipul și moneda. Confirmarea refuză datele incomplete.
+- **Undo real:** operațiile sunt tranzacționale. Anularea reface rândurile, etichetele, repartizările, starea notificării, scadențele recurente schimbate și legăturile explicite cu ratele (dacă modulul de planificare este prezent). Asocierea reface și aliasul/regula/categoria implicită anterioară. Nu suprascrie modificări apărute ulterior.
+- **Tranzacții:** vizualizări numite cu căutare, tip, categorie/grup, cont, etichetă, monedă și perioadă; salvarea păstrează și luna afișată. Selecția lucrează numai pe rezultatele afișate. Editare categorie/cont, adăugare de etichete și ștergere cu snackbar Undo, fără confirmare modală. Contul nou trebuie să aibă aceeași monedă; repartizările multiple nu sunt înlocuite prin schimbarea categoriei în lot.
+- **Învățare:** formularul oferă explicit regula pentru plățile viitoare ale comerciantului, separat pentru venit/cheltuială. Aplicarea în istoric este un al doilea opt-in, exclude repartizările multiple și nu confirmă drafturi. Regula are prioritate în pipeline față de categoria implicită și cuvintele-cheie; administrare în Organizare → Comercianți. Ștergerea regulii nu elimină vechile categorii implicite/aliasuri.
+- **Zile și comercianți:** gruparea existentă este reutilizată într-un `SectionList`; totalurile zilnice și rezumatele lunare sunt separate pe monedă, excluzând drafturi și transferuri. Avatarul are inițiale Unicode și culoare deterministă; nu descarcă logo-uri.
+- **Persistență:** o singură migrare adăugată după v9 (v10 pe acest branch), cu `merchant_category_rules` și `saved_transaction_filters`. Backup JSON v2 include obligatoriu ambele; citirea v1 păstrează compatibilitatea cu seturile istorice cunoscute, iar restaurarea acceptă schemele 5 până la schema curentă și refuză versiunile viitoare. Migrările adăugate independent de alte branch-uri trebuie ordonate contiguu înainte de release.
+- **Limite/verificare:** Undo păstrează o singură acțiune în memoria ecranului; apasă Undo sau Gata înaintea următoarei operații. Plecarea din ecran/restartul finalizează acțiunea, fără istoric Undo persistent. Lint/typecheck și 39 suite / 219 teste Jest seriale trec; includ SQLite real pentru operații, relații, pipeline, upgrade și backup/restore. Gesturile, haptics, cititorul de ecran și randarea pe Android/iOS nu sunt verificate nativ aici. Documentația oficială Expo v57 nu a putut fi accesată (DNS); API-urile folosite au fost confruntate cu declarațiile instalate Expo 57 / RN 0.86.
+
 ## Punct de reluare — 19.10.2026 (actualizat)
 
 Utilizatorul dorește utilizare zilnică fără laptop/Metro și continuarea dezvoltării coordonate de pe telefon, prin GitHub. Începe cu această secțiune; [PLAN.md](PLAN.md) păstrează planul funcțional și limitările. Nu presupune că un build terminat este și instalat/testat.

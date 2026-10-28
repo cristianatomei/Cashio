@@ -26,6 +26,24 @@ export function processRawNotifications(db: AppDb, language: Language): number {
   const merchants = db.select().from(schema.merchants).all();
   const aliases = db.select().from(schema.merchantAliases).all();
   const categories = db.select().from(schema.categories).all();
+  const activeGroups = new Set(
+    db
+      .select()
+      .from(schema.categoryGroups)
+      .all()
+      .filter((group) => !group.archived)
+      .map((group) => group.id),
+  );
+  const activeCategoryIds = new Set(
+    categories
+      .filter((category) => !category.archived && activeGroups.has(category.groupId))
+      .map((category) => category.id),
+  );
+  const merchantCategoryRules = db
+    .select()
+    .from(schema.merchantCategoryRules)
+    .all()
+    .filter((rule) => activeCategoryIds.has(rule.categoryId));
   const recurringRules = db.select().from(schema.recurringRules).all();
 
   const categoryIdsByName = new Map(categories.map((c) => [normalizeText(c.name), c.id]));
@@ -60,6 +78,7 @@ export function processRawNotifications(db: AppDb, language: Language): number {
             .map(({ id, iban }) => ({ id, iban })),
           aliases,
           merchants,
+          merchantCategoryRules,
           categoryIdsByName,
           rules: DEFAULT_KEYWORD_RULES,
         });

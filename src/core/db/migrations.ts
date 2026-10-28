@@ -277,6 +277,21 @@ export const migrations: readonly string[] = [
   CREATE INDEX idx_raw_notifications_package_posted_at
     ON raw_notifications (package_name, posted_at);
   `,
+  `
+  CREATE TABLE merchant_category_rules (
+    merchant_id INTEGER NOT NULL REFERENCES merchants (id) ON DELETE CASCADE,
+    type TEXT NOT NULL CHECK (type IN ('expense', 'income')),
+    category_id INTEGER NOT NULL REFERENCES categories (id) ON DELETE CASCADE,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (merchant_id, type)
+  );
+  CREATE TABLE saved_transaction_filters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    filter_json TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  `,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {

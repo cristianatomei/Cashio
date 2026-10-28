@@ -496,6 +496,39 @@ export const en: Resources = {
     dismissTitle: 'Delete the payments?',
     dismissBody: '{{count}} captured payments will be deleted. This cannot be undone.',
   },
+  workflows: {
+    missingTransaction: 'The transaction does not exist or the link is invalid.',
+    select: 'Select',
+    selectAll: 'Select all visible',
+    selected: '{{count}} selected',
+    confirm: 'Confirm',
+    ignore: 'Ignore',
+    remaining: '{{count}} remaining · target: zero',
+    swipeHint: 'Swipe right to confirm, left to ignore. Or select payments and use the buttons.',
+    undo: 'Undo',
+    applied: 'Updated: {{count}}. Undo or tap Done before the next action.',
+    batchError:
+      'Nothing changed. Check category type, account and currency. Edit split payments individually; confirming requires a category or both transfer accounts.',
+    undoError:
+      'Could not undo. Data changed since the action or a relationship no longer exists. No data was overwritten.',
+    addTags: 'Add tags',
+    saveView: 'Save view',
+    savedViews: 'Saved views',
+    from: 'From (YYYY-MM-DD)',
+    to: 'Through, inclusive (YYYY-MM-DD)',
+    applyDates: 'Apply dates',
+    filterError: 'Check the unique name and valid date range (both dates or neither).',
+    learnFuture: 'Apply this category to future payments from this merchant?',
+    retroactive: 'Also apply to this merchant’s history',
+    retroactiveHint:
+      'Optional: changes existing payments of the same type. Split payments are excluded. Does not confirm drafts.',
+    saveError:
+      'Could not save. Check merchant, category and linked loan installments. Unlink the installment before changing payment type, currency, recurring obligation or moving payment into the future.',
+    rules: 'Merchant → category rules',
+    rulesHint:
+      'Tap to change the future category. Deleting stops this learned rule; merchant defaults and keyword rules still apply.',
+    noRules: 'No learned rules.',
+  },
   errors: {
     generic: 'Something went wrong. Please try again.',
   },
