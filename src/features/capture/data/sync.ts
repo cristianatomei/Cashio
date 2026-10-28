@@ -9,7 +9,7 @@ let inFlight: Promise<number> | null = null;
 export function syncCapture(db: AppDb, language: Language): Promise<number> {
   // Concurrent callers (app start, foreground, inbox screen) share one run to avoid duplicates.
   inFlight ??= (async () => {
-    applyCaptureSources();
+    applyCaptureSources(db);
     await drainPendingNotifications(db);
     return processRawNotifications(db, language);
   })().finally(() => {

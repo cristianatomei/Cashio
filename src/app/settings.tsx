@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 
@@ -12,6 +13,7 @@ const LANGUAGES = ['ro', 'en'] as const;
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const { colors, preference, setPreference } = useTheme();
   const db = useDb();
   const refresh = useCaptureRefresh();
@@ -73,6 +75,14 @@ export default function SettingsScreen() {
             onPress={() => void selectLanguage(language)}
           />
         ))}
+      </Card>
+      <AppText variant="heading">{t('onboarding.settingsTitle')}</AppText>
+      <AppText color="textSecondary">{t('onboarding.settingsHint')}</AppText>
+      <Card>
+        <ListRow
+          title={t('onboarding.title')}
+          onPress={() => router.push('/onboarding?revisit=1')}
+        />
       </Card>
     </Screen>
   );

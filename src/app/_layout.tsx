@@ -77,6 +77,7 @@ function RootStack() {
         <Stack.Screen name="budgets" options={{ title: t('budgets.title') }} />
         <Stack.Screen name="data" options={{ title: t('data.title') }} />
         <Stack.Screen name="settings" options={{ title: t('more.settings') }} />
+        <Stack.Screen name="onboarding" options={{ title: t('onboarding.title') }} />
         <Stack.Screen
           name="add-transaction"
           options={{ title: t('form.newTitle'), presentation: 'modal' }}
