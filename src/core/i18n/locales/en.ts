@@ -1,6 +1,58 @@
 import type { Resources } from './ro';
 
 export const en: Resources = {
+  insights: {
+    title: 'Suggestions to review',
+    disclaimer:
+      'Suggestions, not certainties. We never create recurring obligations automatically. Only positive confirmed expenses are analysed in their original currency; transfers, income and refunds recorded as income or negative amounts are excluded.',
+    empty: 'No suggestions with enough evidence this month.',
+    subscription: 'Possible subscription · {{merchant}}',
+    subscriptionReason:
+      'One payment of {{amount}} in each of the last 3 consecutive months, including this month, without a linked recurring rule.',
+    priceIncrease: 'Possible price increase · {{merchant}}',
+    priceIncreaseReason:
+      'The payment of {{amount}} is more than 5% above {{baseline}} paid once monthly in the previous 3 months. It could also be a different service.',
+    unusual: 'Unusual spending · {{merchant}}',
+    unusualReason:
+      'The payment of {{amount}} is at least twice the median of {{baseline}} at this merchant over the previous 3 months. This does not imply fraud.',
+    evidence: 'Transactions used: {{ids}}',
+    review: 'Review recurring rules',
+    drilldown: 'View transactions: {{label}}',
+    drilldownHint:
+      'Tap a slice or row for transactions in the selected period. Amounts shown are allocations; the list contains whole transactions in their original currency, including those without a rate.',
+    sparkline: '{{label}} · trend across 6 intervals in this period',
+    reports: 'Monthly report and year-on-year comparison',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
+    exportPdf: 'Share PDF',
+    exportCsv: 'Share CSV',
+    privacy:
+      'Generated locally. Financial data is shared only with the app you choose. Transfers and drafts are excluded. RON uses saved conversions; other currencies include only transactions in that currency.',
+    titleReport: 'Cashio · monthly report',
+    date: 'Date',
+    type: 'Type',
+    merchant: 'Merchant',
+    category: 'Categories',
+    originalCurrency: 'Original currency',
+    originalAmount: 'Original amount',
+    reportAmount: 'Report currency amount',
+    currency: 'Report currency',
+    missingRate: 'Missing rate · excluded from total',
+    excluded: 'Transactions without conversion, excluded from totals',
+    exclusions:
+      'Missing saved rates: {{current}} in the selected month, {{previous}} in the comparison month; excluded from totals.',
+    comparison: '{{month}} versus the same month last year',
+    change: '{{label}}: {{previous}} → {{current}} · difference {{delta}} ({{percent}})',
+    noPercent: 'percentage unavailable: baseline is zero',
+    noHistory:
+      'No comparable transactions in the same month last year. Zero does not prove there was no spending.',
+    partial: 'The current month is incomplete; the comparison uses available full calendar months.',
+    emptyReport: 'No comparable transactions for the selected month and currency.',
+    exportError:
+      'The report could not be generated or shared. Check available storage and try again. PDF requires an app build that includes the printing module.',
+    unavailable: 'File sharing is not available on this device.',
+    unsupported: 'PDF/CSV export is available in the Android/iOS app, not in the browser.',
+  },
   tabs: {
     home: 'Home',
     transactions: 'Transactions',
