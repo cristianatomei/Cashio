@@ -62,6 +62,25 @@ Anterior, pe alb, textul estompat avea 3,15:1, venitul 2,93:1, cheltuiala 3,47:1
 
 ## Progres și punct de reluare — 28.10.2026
 
+### Acasă: disponibil până la salariu (#15)
+
+- Data următorului salariu se introduce explicit în Acasă (`AAAA-LL-ZZ`); nu este dedusă din venituri și nu avansează automat. După ziua salariului trebuie actualizată. Fără o dată viitoare validă sau fără conturi, nu se afișează o sumă zilnică.
+- Calcul: soldurile conturilor ne-arhivate minus plățile cunoscute din intervalul `[azi, data salariului)`, împărțit la numărul de zile calendaristice (inclusiv azi). Suma zilnică este rotunjită în jos la bani și limitată la zero; deficitul rămâne vizibil separat. Nu se adaugă venituri viitoare și nu se scad din nou cheltuielile istorice.
+- Sunt rezervate doar recurentele de cheltuieli și ratele, cu asigurare dacă este activată. Scadențarul înlocuiește regula asociată prin `recurringId`; asocierea explicită unu-la-unu poate fi setată/eliminată din „Verifică duplicatele rate / recurente” în Acasă. Nu se deduce din sume similare și nu modifică reminderele sau estimarea separată din Recurente. Plățile confirmate cu asociere explicită și aceeași zi/monedă reduc obligația restantă; asocierile ambigue și sugestiile bazate pe text nu reduc rezerva.
+- Se folosesc cursurile salvate cele mai recente care nu sunt în viitor și conversia existentă în moneda de bază. Lipsa unui curs pentru un cont sau o obligație blochează suma zilnică, nu este tratată ca zero.
+- Estimarea nu include restanțe anterioare zilei curente, cheltuieli variabile nesalvate sau duplicate fără asociere explicită. Pentru recurente variabile se folosește suma salvată. Aceste limite sunt afișate și în interfață; verifică Recurente înainte de a te baza pe estimare.
+- Ordinea cardurilor este: sold/disponibil, De clasificat, Scadențe, Bugete. Fără o dată a salariului, Scadențe arată următoarele 30 de zile, fără calcul zilnic. Stările goale oferă acces la configurare; încărcarea inițială folosește un skeleton static, cu etichetă accesibilă și culori din tema activă.
+
+### Planificare: obiective și patrimoniu (#22, #24; pregătit în această ramură)
+
+- Mai mult → Planificare conține **Obiective de economisire** și **Patrimoniu net**, cu carduri pe Acasă și texte RO/EN.
+- Obiectivele au nume, valută, țintă și sumă economisită actualizată manual. Progresul se oprește la 100%, dar suma poate depăși ținta. Nu se creează tranzacții și nu se adună din nou economiile la patrimoniu.
+- Patrimoniul include soldurile tuturor conturilor (inclusiv arhivate), mișcări confirmate până acum, evaluările manuale ale activelor urmărite și principalul estimat al creditelor. Trackerul Revolut existent conține simboluri/alerte, nu cantități sau valoarea deținerilor; introdu valoarea totală a fiecărei dețineri, fără dublarea sumelor deja incluse în conturi. Se păstrează o singură evaluare, cea mai recent introdusă, per activ; eliminarea activului din tracker îl exclude din calcul.
+- Sunt folosite numai cursuri salvate cu dată cel târziu la evaluare (azi pentru conturi/credite, data evaluării pentru investiții). Cursurile viitoare, valorile lipsă și scadențarele fără sold utilizabil produc poziții necunoscute și un subtotal explicit parțial, nu zero implicit. Sumele rămân vizibile în valuta originală când lipsește conversia.
+- Soldul ING este capitalul **după** rată: înaintea următoarei scadențe se folosește soldul anterior sau soldul următor + principalul acelei rate, nu dobânda/asigurarea și nu suma ratelor unui fragment de scadențar. Scadența de azi este considerată încă neachitată. Zero după ultima rată este acceptat numai când apare explicit ca sold; lipsa soldului nu dovedește stingerea creditului. Calculul presupune plăți la termen, nu verifică restanțe/rambursări anticipate.
+- Migrarea **v11**, adăugată fără modificarea v1–v10, introduce `savings_goals` și `investment_valuations`. Exportul JSON folosește formatul v3, cu ambele tabele; backupurile în formatele v1/v2 (schemele acceptate v5–v10) rămân acceptate și primesc liste goale pentru datele noi. Nu există sincronizare sau acces la servicii financiare.
+- Validare: `npm run lint`, `npm run typecheck`, **49 suite / 344 teste**. Testele folosesc exclusiv date sintetice, SQLite în memorie pentru upgrade, CRUD, export/restaurare și rollback, plus randări RO/EN pentru progres, formulare, stări parțiale și navigarea cardurilor. Este necesară verificarea pe Android/iOS a navigării, tastaturii și cititorului de ecran; nu a fost validat un APK nou.
+
 Aceasta este situația curentă; secțiunile din 19.10 de mai jos sunt istorice. Actualizăm acest jurnal la integrarea fiecărui task. „Integrat” înseamnă cod în `master`, nu funcționare confirmată pe telefon. Tichetele se închid după integrarea implementării; verificarea nativă rămâne urmărită separat în #3.
 
 | Funcționalitate | Stare | Referință |

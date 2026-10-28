@@ -3,6 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { parseStoredLoanSchedule } from '@/features/loans';
 import { parseInvestmentAssets } from '@/features/investments/domain/assets';
 import { parseSavedFilter } from '@/features/transactions/domain/savedFilters';
+import { validateGoal, validateValuation } from '@/features/planning/domain/goals';
 
 const TABLES = [
   'raw_notifications',
@@ -23,6 +24,8 @@ const TABLES = [
   'capture_rules',
   'merchant_category_rules',
   'saved_transaction_filters',
+  'savings_goals',
+  'investment_valuations',
 ] as const;
 
 type BackupValue = string | number | null;
@@ -30,13 +33,16 @@ type BackupRow = Record<string, BackupValue>;
 
 export type CashioBackup = {
   format: 'cashio-backup';
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   schemaVersion: number;
   createdAt: number;
   tables: Record<(typeof TABLES)[number], BackupRow[]>;
 };
 
-const ORIGINAL_TABLES = TABLES.filter(
+const PRE_PLANNING_TABLES = TABLES.filter(
+  (table) => table !== 'savings_goals' && table !== 'investment_valuations',
+);
+const ORIGINAL_TABLES = PRE_PLANNING_TABLES.filter(
   (table) => table !== 'merchant_category_rules' && table !== 'saved_transaction_filters',
 );
 const LEGACY_TABLES = ORIGINAL_TABLES.filter(
@@ -63,7 +69,7 @@ export function parseCashioBackup(json: string): CashioBackup {
   if (
     !isRecord(parsed) ||
     parsed.format !== 'cashio-backup' ||
-    (parsed.version !== 1 && parsed.version !== 2)
+    (parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3)
   ) {
     throw new Error('Unsupported backup format or version.');
   }
@@ -79,7 +85,13 @@ export function parseCashioBackup(json: string): CashioBackup {
   const hasCurrentTables =
     tableNames.length === TABLES.length &&
     TABLES.every((table) => Object.hasOwn(parsed.tables as object, table));
-  if (parsed.version === 2 && !hasCurrentTables)
+  const hasPrePlanningTables =
+    tableNames.length === PRE_PLANNING_TABLES.length &&
+    PRE_PLANNING_TABLES.every((table) => Object.hasOwn(parsed.tables as object, table));
+  if (
+    (parsed.version === 3 && !hasCurrentTables) ||
+    (parsed.version === 2 && !hasCurrentTables && !hasPrePlanningTables)
+  )
     throw new Error('The backup does not contain the expected Cashio tables.');
   const hasLegacyTables =
     tableNames.length === LEGACY_TABLES.length &&
@@ -90,7 +102,13 @@ export function parseCashioBackup(json: string): CashioBackup {
   const hasOriginalTables =
     tableNames.length === ORIGINAL_TABLES.length &&
     ORIGINAL_TABLES.every((table) => Object.hasOwn(parsed.tables as object, table));
-  if (!hasCurrentTables && !hasLegacyTables && !hasPreAllocationTables && !hasOriginalTables) {
+  if (
+    !hasCurrentTables &&
+    !hasLegacyTables &&
+    !hasPreAllocationTables &&
+    !hasOriginalTables &&
+    !hasPrePlanningTables
+  ) {
     throw new Error('The backup does not contain the expected Cashio tables.');
   }
 
@@ -100,6 +118,8 @@ export function parseCashioBackup(json: string): CashioBackup {
     transaction_allocations: parsed.tables.transaction_allocations ?? [],
     merchant_category_rules: parsed.tables.merchant_category_rules ?? [],
     saved_transaction_filters: parsed.tables.saved_transaction_filters ?? [],
+    savings_goals: parsed.tables.savings_goals ?? [],
+    investment_valuations: parsed.tables.investment_valuations ?? [],
   } as CashioBackup['tables'];
 
   for (const table of TABLES) {
@@ -142,6 +162,50 @@ export function parseCashioBackup(json: string): CashioBackup {
         throw new Error('The backup contains an invalid merchant category rule.');
       }
     }
+  }
+
+  const goalIds = new Set<number>();
+  for (const row of tables.savings_goals) {
+    if (
+      typeof row.name !== 'string' ||
+      typeof row.currency !== 'string' ||
+      typeof row.target_minor !== 'number' ||
+      typeof row.current_minor !== 'number' ||
+      typeof row.id !== 'number' ||
+      !Number.isSafeInteger(row.id) ||
+      row.id <= 0 ||
+      goalIds.has(row.id) ||
+      !Number.isSafeInteger(row.created_at) ||
+      !Number.isSafeInteger(row.updated_at)
+    ) {
+      throw new Error('The backup contains an invalid savings goal.');
+    }
+    validateGoal({
+      name: row.name,
+      currency: row.currency,
+      targetMinor: row.target_minor,
+      currentMinor: row.current_minor,
+    });
+    goalIds.add(row.id);
+  }
+  const valuedAssets = new Set<string>();
+  for (const row of tables.investment_valuations) {
+    if (
+      typeof row.asset_id !== 'string' ||
+      typeof row.amount_minor !== 'number' ||
+      typeof row.currency !== 'string' ||
+      typeof row.valued_at !== 'number' ||
+      valuedAssets.has(row.asset_id)
+    ) {
+      throw new Error('The backup contains an invalid investment valuation.');
+    }
+    validateValuation({
+      assetId: row.asset_id,
+      amountMinor: row.amount_minor,
+      currency: row.currency,
+      valuedAt: row.valued_at,
+    });
+    valuedAssets.add(row.asset_id);
   }
 
   for (const row of tables.loan_schedules) {
@@ -193,7 +257,7 @@ export async function createCashioBackup(db: SQLiteDatabase): Promise<CashioBack
 
   return {
     format: 'cashio-backup',
-    version: 2,
+    version: 3,
     schemaVersion: version?.user_version ?? 0,
     createdAt: Date.now(),
     tables,
