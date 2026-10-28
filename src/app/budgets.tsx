@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Switch, View } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { schema, useDb } from '@/core/db';
 import {
@@ -14,6 +14,7 @@ import {
   ProgressBar,
   Screen,
   SectionHeader,
+  SwitchRow,
   confirmDestructive,
   useTheme,
 } from '@/core/ui';
@@ -71,21 +72,12 @@ export default function BudgetsScreen() {
     <Screen title={t('budgets.title')} onRefresh={refresh}>
       <MonthSwitcher monthStart={month} onChange={setMonth} />
       <Card>
-        <View
-          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-        >
-          <View style={{ flex: 1, paddingRight: 12 }}>
-            <AppText variant="heading">{t('budgets.alerts')}</AppText>
-            <AppText variant="caption" color="textSecondary">
-              {t('budgets.alertsHint')}
-            </AppText>
-          </View>
-          <Switch
-            value={alertsEnabled}
-            onValueChange={(enabled) => void setAlerts(enabled)}
-            trackColor={{ false: colors.border, true: colors.primary }}
-          />
-        </View>
+        <SwitchRow
+          label={t('budgets.alerts')}
+          description={t('budgets.alertsHint')}
+          value={alertsEnabled}
+          onValueChange={(enabled) => void setAlerts(enabled)}
+        />
       </Card>
 
       <SectionHeader title={t('budgets.monthly')} />

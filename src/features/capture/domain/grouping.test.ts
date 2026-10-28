@@ -30,8 +30,18 @@ describe('bucketDrafts', () => {
     ]);
     expect(others).toEqual([]);
     expect(unknownMerchants).toHaveLength(2);
-    expect(unknownMerchants[0]).toMatchObject({ key: 'grafrely', totalMinor: 3000 });
+    expect(unknownMerchants[0]).toMatchObject({ key: 'grafrely|expense|RON', totalMinor: 3000 });
     expect(unknownMerchants[0].items.map((i) => i.id)).toEqual([1, 2]);
+  });
+
+  it('keeps different currencies and income/expense separate for safe association totals', () => {
+    const { unknownMerchants } = bucketDrafts([
+      draft(1, 'Mega'),
+      draft(2, 'Mega', { currency: 'EUR' }),
+      draft(3, 'Mega', { type: 'income' }),
+    ]);
+    expect(unknownMerchants).toHaveLength(3);
+    expect(unknownMerchants.map((group) => group.items.length)).toEqual([1, 1, 1]);
   });
 
   it('keeps drafts without a raw merchant, with a merchant, or transfers in "others"', () => {
