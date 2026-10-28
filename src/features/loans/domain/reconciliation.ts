@@ -28,6 +28,8 @@ export type LoanPaymentMatch = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DATE_WINDOW_DAYS = 5;
+const AMOUNT_TOLERANCE_RATIO = 0.01;
+const MIN_AMOUNT_TOLERANCE_MINOR = 100;
 const LOAN_PAYMENT_TERMS =
   /\b(?:rata|rate|credit(?:ului)?|ipotecar(?:a|e)?|rambursare|loan|mortgage)\b/;
 
@@ -36,12 +38,16 @@ function localDay(value: number): number {
   return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function isLoanPayment(payment: LoanPaymentForReconciliation): boolean {
+export function isLoanPayment(payment: LoanPaymentForReconciliation): boolean {
   const description = `${payment.merchantRaw ?? ''} ${payment.note ?? ''}`
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLocaleLowerCase('ro-RO');
   return LOAN_PAYMENT_TERMS.test(description);
+}
+
+function amountTolerance(expectedMinor: number): number {
+  return Math.max(MIN_AMOUNT_TOLERANCE_MINOR, Math.round(expectedMinor * AMOUNT_TOLERANCE_RATIO));
 }
 
 export function reconcileLoanPayments(
@@ -51,20 +57,31 @@ export function reconcileLoanPayments(
   const candidates = schedules.flatMap((schedule) =>
     schedule.installments.flatMap((installment) => {
       const expectedMinor =
-        installment.paymentMinor +
-        (schedule.includeInsurance ? installment.insuranceMinor : 0);
+        installment.paymentMinor + (schedule.includeInsurance ? installment.insuranceMinor : 0);
       return payments.flatMap((payment) => {
         if (
           payment.type !== 'expense' ||
           payment.status !== 'confirmed' ||
           payment.currency !== schedule.currency ||
+          !Number.isSafeInteger(payment.amountMinor) ||
+          payment.amountMinor <= 0 ||
           !isLoanPayment(payment)
         ) {
           return [];
         }
-        const daysApart = Math.abs(localDay(payment.occurredAt) - localDay(installment.dueAt)) / DAY_MS;
-        return daysApart <= DATE_WINDOW_DAYS
-          ? [{ scheduleId: schedule.id, dueAt: installment.dueAt, payment, expectedMinor, daysApart }]
+        const daysApart =
+          Math.abs(localDay(payment.occurredAt) - localDay(installment.dueAt)) / DAY_MS;
+        return daysApart <= DATE_WINDOW_DAYS &&
+          Math.abs(payment.amountMinor - expectedMinor) <= amountTolerance(expectedMinor)
+          ? [
+              {
+                scheduleId: schedule.id,
+                dueAt: installment.dueAt,
+                payment,
+                expectedMinor,
+                daysApart,
+              },
+            ]
           : [];
       });
     }),

@@ -106,8 +106,93 @@ describe('estimateNextMonth', () => {
         historyTo: timestamp(2026, 11, 1),
       }),
     ).toEqual([
-      { currency: 'RON', obligationsMinor: 268100, variableAverageMinor: 20000, totalMinor: 288100 },
+      {
+        currency: 'RON',
+        obligationsMinor: 268100,
+        variableAverageMinor: 20000,
+        totalMinor: 288100,
+      },
     ]);
+  });
+
+  it('uses individual loan amounts, deduplicates a loan recurrence, and excludes paid history', () => {
+    expect(
+      estimateNextMonth({
+        rules: [
+          {
+            name: 'Rata credit ING',
+            amountMinor: 100000,
+            currency: 'RON',
+            frequency: 'monthly',
+            interval: 1,
+            nextDue: timestamp(2026, 10, 10),
+            endAt: null,
+            active: true,
+          },
+        ],
+        loanPayments: [
+          {
+            scheduleId: 1,
+            amountMinor: 102500,
+            currency: 'RON',
+            dueAt: timestamp(2026, 11, 12),
+          },
+          {
+            scheduleId: 1,
+            amountMinor: 87500,
+            currency: 'RON',
+            dueAt: timestamp(2026, 11, 25),
+          },
+        ],
+        transactions: [
+          {
+            amountMinor: 101000,
+            currency: 'RON',
+            occurredAt: timestamp(2026, 10, 10),
+            source: 'manual',
+            status: 'confirmed',
+            type: 'expense',
+            loanPayment: true,
+          },
+          {
+            amountMinor: 30000,
+            currency: 'RON',
+            occurredAt: timestamp(2026, 10, 11),
+            source: 'manual',
+            status: 'confirmed',
+            type: 'expense',
+          },
+        ],
+        targetFrom: timestamp(2026, 11, 1),
+        targetTo: timestamp(2026, 12, 1),
+        historyFrom: timestamp(2026, 8, 1),
+        historyTo: timestamp(2026, 11, 1),
+      }),
+    ).toEqual([
+      {
+        currency: 'RON',
+        obligationsMinor: 190000,
+        variableAverageMinor: 10000,
+        totalMinor: 200000,
+      },
+    ]);
+  });
+
+  it('does not project loan installments outside the target period', () => {
+    expect(
+      estimateNextMonth({
+        rules: [],
+        loanPayments: [
+          { amountMinor: 120000, currency: 'RON', dueAt: timestamp(2026, 10, 10) },
+          { amountMinor: 130000, currency: 'RON', dueAt: timestamp(2026, 12, 10) },
+        ],
+        transactions: [],
+        targetFrom: timestamp(2026, 11, 1),
+        targetTo: timestamp(2026, 12, 1),
+        historyFrom: timestamp(2026, 8, 1),
+        historyTo: timestamp(2026, 11, 1),
+      }),
+    ).toEqual([]);
   });
 });
 
