@@ -36,7 +36,8 @@ import {
   useNextMonthEstimate,
   useRecurringRules,
 } from '@/features/recurring';
-import { desc, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { ratePreferenceOrder } from '@/features/exchange-rates/data/rateOrder';
 import {
   SummaryCard,
   TransactionRow,
@@ -58,7 +59,10 @@ export default function HomeScreen() {
   const { colors } = useTheme();
   const db = useDb();
   const { data: exchangeRates } = useLiveQuery(
-    db.select().from(schema.exchangeRates).orderBy(desc(schema.exchangeRates.effectiveAt)),
+    db
+      .select()
+      .from(schema.exchangeRates)
+      .orderBy(...ratePreferenceOrder()),
   );
   const [now] = useState(() => Date.now());
   const [backupCheckAt, setBackupCheckAt] = useState(now);
@@ -144,23 +148,26 @@ export default function HomeScreen() {
       .sort((left, right) => left.dueAt - right.dueAt || left.key.localeCompare(right.key))
       .slice(0, UPCOMING_COUNT);
   }, [loanSchedules, now, recurringRules, t]);
-  const lastBackupValue = appSettings.find((setting) => setting.key === backupSettingKeys.lastAt)
-    ?.value;
+  const lastBackupValue = appSettings.find(
+    (setting) => setting.key === backupSettingKeys.lastAt,
+  )?.value;
   const lastBackupAt =
     lastBackupValue && Number.isSafeInteger(Number(lastBackupValue))
       ? Number(lastBackupValue)
       : null;
   const priorityBudgets = useMemo(
     () =>
-      [...budgets]
-        .sort((left, right) => right.progress - left.progress)
-        .slice(0, UPCOMING_COUNT),
+      [...budgets].sort((left, right) => right.progress - left.progress).slice(0, UPCOMING_COUNT),
     [budgets],
   );
 
   const latestRates = new Map<string, number>();
   for (const rate of exchangeRates) {
-    if (!latestRates.has(rate.currency) && rate.effectiveAt <= now) {
+    if (
+      !latestRates.has(rate.currency) &&
+      rate.effectiveAt <= now &&
+      (rate.source === 'manual' || rate.source === `frankfurter:ECB:${baseCurrency}`)
+    ) {
       latestRates.set(rate.currency, rate.rateToBase);
     }
   }
@@ -181,11 +188,7 @@ export default function HomeScreen() {
   );
 
   return (
-    <Screen
-      title={t('home.title')}
-      headerAction={<NotificationBellButton />}
-      onRefresh={refresh}
-    >
+    <Screen title={t('home.title')} headerAction={<NotificationBellButton />} onRefresh={refresh}>
       {isBackupStale(lastBackupAt, backupCheckAt) ? (
         <Card>
           <ListRow

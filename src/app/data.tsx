@@ -703,6 +703,7 @@ export default function DataScreen() {
       <Card>
         <TextField
           label={t('data.currencyCode')}
+          accessibilityLabel={t('data.currencyCode')}
           value={currency}
           onChangeText={(value) => setCurrency(value.toUpperCase())}
           maxLength={3}
@@ -710,12 +711,14 @@ export default function DataScreen() {
         />
         <TextField
           label={t('data.rateToBase')}
+          accessibilityLabel={t('data.rateToBase')}
           value={rate}
           onChangeText={setRate}
           keyboardType="decimal-pad"
         />
         <TextField
           label={t('data.rateDate')}
+          accessibilityLabel={t('data.rateDate')}
           value={rateDate}
           onChangeText={setRateDate}
           placeholder="YYYY-MM-DD"
@@ -725,7 +728,7 @@ export default function DataScreen() {
           <ListRow
             key={item.id}
             title={`1 ${item.currency} = ${item.rateToBase} ${baseCurrency}`}
-            subtitle={new Date(item.effectiveAt).toLocaleDateString()}
+            subtitle={`${new Date(item.effectiveAt).toLocaleDateString()} · ${item.source}`}
           />
         ))}
       </Card>

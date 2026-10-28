@@ -1,0 +1,23 @@
+appId: com.cashio.app.e2e
+name: Transfer between synthetic accounts
+---
+- runFlow: ../setup/onboarding.yaml
+- tapOn: 'Add'
+- tapOn: 'Transfer'
+- tapOn:
+    id: 'amount-key-5'
+- tapOn:
+    text: 'Choose an account'
+    index: 0
+- tapOn: 'ING'
+- scrollUntilVisible:
+    element: 'To account'
+- tapOn: 'Choose an account'
+- tapOn: 'Revolut'
+- tapOn: 'Save'
+- tapOn: 'Transactions'
+- assertVisible: 'ING → Revolut'
+- stopApp
+- launchApp
+- tapOn: 'Transactions'
+- assertVisible: 'ING → Revolut'

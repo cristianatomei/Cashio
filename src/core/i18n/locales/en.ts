@@ -650,6 +650,25 @@ export const en: Resources = {
     dismissTitle: 'Delete the payments?',
     dismissBody: '{{count}} captured payments will be deleted. This cannot be undone.',
   },
+  publicFx: {
+    title: 'Optional public exchange rates',
+    enable: 'Allow public exchange-rate requests',
+    privacy:
+      'Opt-in only. Refresh sends a fixed public currency request, never accounts, amounts, transactions or identifiers. The provider can see your IP address. No background requests.',
+    enabled: 'Enabled — use Refresh to download rates.',
+    disabled: 'Disabled — no requests. Previously downloaded rates remain available offline.',
+    source: 'Source: Frankfurter v2 / European Central Bank (ECB). EUR, RON, USD and GBP only.',
+    terms:
+      'Indicative reference rates, not bank execution quotes. Frankfurter software: MIT; ECB data subject to its legal notice. No service guarantee.',
+    asOf: 'Published as of {{date}} (UTC); used only after that day ends.',
+    noRates: 'No downloaded rates for the current base currency.',
+    stale: 'Stale: more than four days old. Refresh or enter a dated manual rate.',
+    refresh: 'Refresh public rates',
+    success: '{{count}} new rates saved. Existing dated/manual rates were kept.',
+    error:
+      'Could not refresh rates. Check connection, provider availability and base currency (RON/EUR/USD/GBP). Previous and manual rates are unchanged.',
+    saveError: 'Could not save your preference. No request was made.',
+  },
   workflows: {
     missingTransaction: 'The transaction does not exist or the link is invalid.',
     select: 'Select',

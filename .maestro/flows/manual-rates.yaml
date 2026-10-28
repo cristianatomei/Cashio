@@ -1,0 +1,39 @@
+appId: com.cashio.app.e2e
+name: Save and preserve a dated manual exchange rate offline
+---
+- runFlow: ../setup/onboarding.yaml
+- tapOn: 'More'
+- scrollUntilVisible:
+    element: 'Data and backup'
+- tapOn: 'Data and backup'
+- scrollUntilVisible:
+    element: 'Currency code.*'
+- tapOn: 'Currency code.*'
+- eraseText
+- inputText: 'EUR'
+- tapOn: 'Value of 1 unit.*'
+- eraseText
+- inputText: '5'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Effective from.*'
+- tapOn: 'Effective from.*'
+- eraseText
+- inputText: '2026-01-02'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Save rate'
+- tapOn: 'Save rate'
+- scrollUntilVisible:
+    element: '1 EUR = 5 RON'
+- assertVisible: '1 EUR = 5 RON'
+- assertVisible: '.*manual.*'
+- stopApp
+- launchApp
+- tapOn: 'More'
+- scrollUntilVisible:
+    element: 'Data and backup'
+- tapOn: 'Data and backup'
+- scrollUntilVisible:
+    element: '1 EUR = 5 RON'
+- assertVisible: '1 EUR = 5 RON'

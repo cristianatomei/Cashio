@@ -1,9 +1,10 @@
-import { and, desc, eq, lte, sql } from 'drizzle-orm';
+import { and, eq, lte, or, sql } from 'drizzle-orm';
 
 import { DEFAULT_CURRENCY } from '@/core/db';
 import type { TransactionType } from '@/core/domain/transaction';
 import { schema, type AppDb } from '@/core/db';
 import { convertToBaseMinor } from '@/core/utils/currency';
+import { ratePreferenceOrder } from '@/features/exchange-rates/data/rateOrder';
 import {
   findRecurringMatch,
   nextDueAfterPayment,
@@ -54,9 +55,13 @@ export function saveTransaction(db: AppDb, input: TransactionInput): number {
             and(
               eq(schema.exchangeRates.currency, input.currency),
               lte(schema.exchangeRates.effectiveAt, input.occurredAt),
+              or(
+                eq(schema.exchangeRates.source, 'manual'),
+                eq(schema.exchangeRates.source, `frankfurter:ECB:${baseCurrency}`),
+              ),
             ),
           )
-          .orderBy(desc(schema.exchangeRates.effectiveAt))
+          .orderBy(...ratePreferenceOrder())
           .limit(1)
           .get()?.rateToBase;
   const values = {

@@ -35,6 +35,7 @@ export function AmountKeypad({ expression, onChange }: Props) {
             return (
               <Pressable
                 key={key}
+                testID={`amount-key-${key}`}
                 accessibilityRole="button"
                 accessibilityLabel={
                   key in KEY_LABELS ? t(KEY_LABELS[key as keyof typeof KEY_LABELS]) : key
