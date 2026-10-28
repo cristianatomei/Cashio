@@ -193,8 +193,8 @@ export const ro = {
       'Scadențarul a fost șters, dar reminderele nu au putut fi reîmprospătate.',
     loanNoUpcoming: 'Nu mai sunt rate viitoare.',
     loanPaymentCheckTitle: 'Verificarea plăților importate',
-    loanPaymentMatched: 'Plată identificată la {{date}} · {{amount}}',
-    loanPaymentConflict: 'Diferență la {{date}} · estimat {{expected}}, plătit {{actual}}',
+    loanPaymentMatched: 'Plată posibilă la {{date}} · {{amount}}',
+    loanPaymentConflict: 'Plată posibilă la {{date}} · estimat {{expected}}, găsit {{actual}}',
   },
   captured: {
     title: 'Notificări captate',
@@ -227,6 +227,7 @@ export const ro = {
     forecast: 'Estimare luna viitoare',
     forecastTotal: 'Estimare totală',
     forecastBreakdown: 'Obligații {{obligations}} · Cheltuieli variabile {{variable}}',
+    forecastLoanWarning: 'Estimarea poate număra de două ori ratele din scadențare, plățile anterioare sau regulile recurente.',
     forecastEmpty: 'Adaugă cheltuieli sau obligații pentru a calcula estimarea.',
     monthlySchedule: 'Plăți programate pe lună',
     monthlyScheduleEmpty: 'Nu sunt plăți programate în luna selectată.',

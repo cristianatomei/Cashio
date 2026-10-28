@@ -57,6 +57,7 @@ export default function DataScreen() {
       .select({
         id: schema.transactions.id,
         type: schema.transactions.type,
+        status: schema.transactions.status,
         amountMinor: schema.transactions.amountMinor,
         currency: schema.transactions.currency,
         occurredAt: schema.transactions.occurredAt,

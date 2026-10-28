@@ -10,6 +10,7 @@ export type LoanScheduleForReconciliation = {
 export type LoanPaymentForReconciliation = {
   id: number;
   type: string;
+  status: string;
   amountMinor: number;
   currency: string;
   occurredAt: number;
@@ -32,8 +33,7 @@ const LOAN_PAYMENT_TERMS =
 
 function localDay(value: number): number {
   const date = new Date(value);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 function isLoanPayment(payment: LoanPaymentForReconciliation): boolean {
@@ -56,6 +56,7 @@ export function reconcileLoanPayments(
       return payments.flatMap((payment) => {
         if (
           payment.type !== 'expense' ||
+          payment.status !== 'confirmed' ||
           payment.currency !== schedule.currency ||
           !isLoanPayment(payment)
         ) {
@@ -69,33 +70,24 @@ export function reconcileLoanPayments(
     }),
   );
 
-  candidates.sort(
-    (left, right) =>
-      left.daysApart - right.daysApart ||
-      left.dueAt - right.dueAt ||
-      left.scheduleId - right.scheduleId,
-  );
-
-  const usedTransactions = new Set<number>();
-  const usedInstallments = new Set<string>();
-  const matches: LoanPaymentMatch[] = [];
+  const paymentCounts = new Map<number, number>();
+  const installmentCounts = new Map<string, number>();
   for (const candidate of candidates) {
-    const installmentKey = `${candidate.scheduleId}:${candidate.dueAt}`;
-    if (
-      usedTransactions.has(candidate.payment.id) ||
-      usedInstallments.has(installmentKey)
-    ) {
-      continue;
-    }
-    usedTransactions.add(candidate.payment.id);
-    usedInstallments.add(installmentKey);
-    matches.push({
+    const key = `${candidate.scheduleId}:${candidate.dueAt}`;
+    paymentCounts.set(candidate.payment.id, (paymentCounts.get(candidate.payment.id) ?? 0) + 1);
+    installmentCounts.set(key, (installmentCounts.get(key) ?? 0) + 1);
+  }
+  return candidates
+    .filter(
+      (candidate) =>
+        paymentCounts.get(candidate.payment.id) === 1 &&
+        installmentCounts.get(`${candidate.scheduleId}:${candidate.dueAt}`) === 1,
+    )
+    .map((candidate) => ({
       scheduleId: candidate.scheduleId,
       dueAt: candidate.dueAt,
       transactionId: candidate.payment.id,
       expectedMinor: candidate.expectedMinor,
       actualMinor: candidate.payment.amountMinor,
-    });
-  }
-  return matches;
+    }));
 }

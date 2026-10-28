@@ -32,3 +32,13 @@ export function matchesCapturedPayment(
     descriptionsMatch(row.description, existing.merchantRaw)
   );
 }
+
+export function findUnusedCapturedPayment<T extends ExistingCapturedPayment & { id: number }>(
+  row: IngTransactionRow,
+  capturedPayments: readonly T[],
+  usedIds: ReadonlySet<number>,
+): T | undefined {
+  return capturedPayments.find(
+    (payment) => !usedIds.has(payment.id) && matchesCapturedPayment(row, payment),
+  );
+}

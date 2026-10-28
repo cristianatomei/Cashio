@@ -25,6 +25,7 @@ describe('reconcileLoanPayments', () => {
       {
         id: 2,
         type: 'expense',
+        status: 'confirmed',
         amountMinor: 101000,
         currency: 'RON',
         occurredAt: new Date(2026, 9, 12).getTime(),
@@ -48,6 +49,7 @@ describe('reconcileLoanPayments', () => {
     const payment = {
       id: 2,
       type: 'expense',
+      status: 'confirmed',
       amountMinor: 101000,
       currency: 'RON',
       occurredAt: new Date(2026, 9, 10).getTime(),
@@ -62,7 +64,7 @@ describe('reconcileLoanPayments', () => {
     ).toEqual([]);
   });
 
-  it('uses a payment at most once across all installments', () => {
+  it('leaves a payment unmatched when several installments could match', () => {
     const overlappingSchedules = [
       schedules[0],
       {
@@ -74,6 +76,7 @@ describe('reconcileLoanPayments', () => {
       {
         id: 2,
         type: 'expense',
+        status: 'confirmed',
         amountMinor: 90000,
         currency: 'RON',
         occurredAt: dueAt,
@@ -82,7 +85,42 @@ describe('reconcileLoanPayments', () => {
       },
     ]);
 
-    expect(matches).toHaveLength(1);
-    expect(matches[0].actualMinor).toBe(90000);
+    expect(matches).toEqual([]);
+  });
+
+  it('leaves an installment unmatched when several payments could match', () => {
+    const payment = {
+      id: 2,
+      type: 'expense',
+      status: 'confirmed',
+      amountMinor: 101000,
+      currency: 'RON',
+      occurredAt: dueAt,
+      merchantRaw: 'Rata credit ING',
+      note: null,
+    };
+    expect(reconcileLoanPayments(schedules, [payment, { ...payment, id: 3 }])).toEqual([]);
+    expect(reconcileLoanPayments(schedules, [{ ...payment, status: 'draft' }])).toEqual([]);
+  });
+
+  it('compares calendar days across daylight saving time', () => {
+    const before = new Date(2026, 9, 23).getTime();
+    const after = new Date(2026, 9, 28).getTime();
+    const schedule = {
+      ...schedules[0],
+      installments: [{ ...schedules[0].installments[0], dueAt: before }],
+    };
+    expect(
+      reconcileLoanPayments([schedule], [{
+        id: 2,
+        type: 'expense',
+        status: 'confirmed',
+        amountMinor: 101000,
+        currency: 'RON',
+        occurredAt: after,
+        merchantRaw: 'Rata credit ING',
+        note: null,
+      }]),
+    ).toHaveLength(1);
   });
 });

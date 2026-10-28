@@ -2,7 +2,7 @@ import { and, desc, eq, gte, lt, lte, or } from 'drizzle-orm';
 
 import { DEFAULT_CURRENCY, schema, type AppDb } from '@/core/db';
 import { convertToBaseMinor } from '@/core/utils/currency';
-import { matchesCapturedPayment } from '../domain/capturedPaymentMatch';
+import { findUnusedCapturedPayment } from '../domain/capturedPaymentMatch';
 import type { IngTransactionRow } from '../domain/ingCsv';
 
 export type IngImportResult = {
@@ -31,6 +31,7 @@ export function importIngTransactions(
     let duplicates = 0;
     let currencyMismatches = 0;
     const occurrences = new Map<string, number>();
+    const usedCapturedPayments = new Set<number>();
 
     for (const row of rows) {
       if (row.currency !== account.currency) {
@@ -44,6 +45,7 @@ export function importIngTransactions(
       dateEnd.setDate(dateEnd.getDate() + 1);
       const capturedPayments = tx
         .select({
+          id: schema.transactions.id,
           type: schema.transactions.type,
           amountMinor: schema.transactions.amountMinor,
           currency: schema.transactions.currency,
@@ -55,6 +57,7 @@ export function importIngTransactions(
             eq(schema.transactions.accountId, accountId),
             eq(schema.transactions.amountMinor, Math.abs(row.amountMinor)),
             eq(schema.transactions.currency, row.currency),
+            eq(schema.transactions.status, 'confirmed'),
             gte(schema.transactions.occurredAt, dateStart.getTime()),
             lt(schema.transactions.occurredAt, dateEnd.getTime()),
             or(
@@ -64,7 +67,9 @@ export function importIngTransactions(
           ),
         )
         .all();
-      if (capturedPayments.some((payment) => matchesCapturedPayment(row, payment))) {
+      const capturedMatch = findUnusedCapturedPayment(row, capturedPayments, usedCapturedPayments);
+      if (capturedMatch) {
+        usedCapturedPayments.add(capturedMatch.id);
         duplicates += 1;
         continue;
       }

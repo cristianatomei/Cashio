@@ -1,4 +1,4 @@
-import { matchesCapturedPayment } from './capturedPaymentMatch';
+import { findUnusedCapturedPayment, matchesCapturedPayment } from './capturedPaymentMatch';
 
 describe('matchesCapturedPayment', () => {
   const imported = {
@@ -44,5 +44,21 @@ describe('matchesCapturedPayment', () => {
         merchantRaw: 'Supermarket',
       }),
     ).toBe(false);
+  });
+
+  it('uses each captured payment at most once for identical imported rows', () => {
+    const captured = {
+      id: 1,
+      type: 'expense',
+      amountMinor: 125000,
+      currency: 'RON',
+      merchantRaw: 'Rata credit ipotecar ING',
+    };
+    const used = new Set<number>();
+    const match = findUnusedCapturedPayment(imported, [captured], used);
+    expect(match?.id).toBe(1);
+    used.add(match!.id);
+    expect(findUnusedCapturedPayment(imported, [captured], used)).toBeUndefined();
+    expect(findUnusedCapturedPayment(imported, [captured, { ...captured, id: 2 }], used)?.id).toBe(2);
   });
 });

@@ -193,8 +193,8 @@ export const en: Resources = {
     loanDeleteReminderError: 'The schedule was deleted, but its reminders could not be refreshed.',
     loanNoUpcoming: 'There are no upcoming instalments.',
     loanPaymentCheckTitle: 'Imported payment check',
-    loanPaymentMatched: 'Payment found for {{date}} · {{amount}}',
-    loanPaymentConflict: 'Amount differs for {{date}} · expected {{expected}}, paid {{actual}}',
+    loanPaymentMatched: 'Possible payment for {{date}} · {{amount}}',
+    loanPaymentConflict: 'Possible payment for {{date}} · expected {{expected}}, found {{actual}}',
   },
   captured: {
     title: 'Captured notifications',
@@ -227,6 +227,7 @@ export const en: Resources = {
     forecast: 'Next month estimate',
     forecastTotal: 'Estimated total',
     forecastBreakdown: 'Obligations {{obligations}} · Variable spending {{variable}}',
+    forecastLoanWarning: 'The estimate may count loan installments, past payments or recurring rules twice.',
     forecastEmpty: 'Add spending or obligations to calculate an estimate.',
     monthlySchedule: 'Scheduled payments by month',
     monthlyScheduleEmpty: 'No payments are scheduled for the selected month.',

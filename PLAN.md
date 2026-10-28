@@ -2,6 +2,13 @@
 
 Aplicație Android-first (Expo), local-first, pentru urmărirea cheltuielilor cu captare automată din notificări. Fără backend, fără abonament.
 
+## Integrare în lucru — 28.10.2026
+
+- Modificările din PR #2 și #5 sunt integrate în branch-ul de lucru, nu încă în `master`.
+- Estimarea include ratele individuale, dar poate număra dublu plățile istorice sau o regulă recurentă pentru același credit. Este necesară asocierea explicită, confirmată, înainte de eliminarea dublurilor; nu considera tichetul #4 finalizat.
+- Potrivirile de plăți afișate sunt doar posibile, nu confirmări persistente. Cazurile cu mai multe potriviri nu sunt asociate automat.
+- Instalarea APK-ului, actualizarea fără pierderi de date și validarea fluxurilor native pe telefon rămân de verificat conform tichetului #3.
+
 ## Actualizare — 19.10.2026
 
 Punctul curent de reluare și jurnalul sesiunii sunt în [README.md](README.md#punct-de-reluare--19102026). Utilizatorul dorește continuarea prin GitHub de pe telefon și utilizarea unui APK autonom.
