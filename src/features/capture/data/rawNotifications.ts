@@ -3,13 +3,17 @@ import { and, desc, eq, gte, lt } from 'drizzle-orm';
 import { schema, type AppDb } from '@/core/db';
 import { NotificationListener } from '@modules/notification-listener';
 
-import { DEFAULT_CAPTURE_SOURCES } from '../domain/sources';
+import { activeCapturePackages } from '../domain/sources';
 
 export type RawNotification = typeof schema.rawNotifications.$inferSelect;
 export type RawNotificationHistoryEntry = RawNotification & { transactionId: number | null };
 
-export function applyCaptureSources(): void {
-  NotificationListener.setAllowedPackages(DEFAULT_CAPTURE_SOURCES.map((s) => s.packageName));
+export function applyCaptureSources(db: AppDb): void {
+  const accounts = db
+    .select({ name: schema.accounts.name, type: schema.accounts.type, archived: schema.accounts.archived })
+    .from(schema.accounts)
+    .all();
+  NotificationListener.setAllowedPackages(activeCapturePackages(accounts));
 }
 
 /** Moves notifications queued by the native service into SQLite. Returns how many were stored. */

@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +28,7 @@ const APP_LOCK_TIMEOUT_KEYS = {
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const { colors, preference, setPreference } = useTheme();
   const db = useDb();
   const sqlite = useSQLiteContext();
@@ -259,6 +261,14 @@ export default function SettingsScreen() {
             onPress={() => void selectLanguage(language)}
           />
         ))}
+      </Card>
+      <AppText variant="heading">{t('onboarding.settingsTitle')}</AppText>
+      <AppText color="textSecondary">{t('onboarding.settingsHint')}</AppText>
+      <Card>
+        <ListRow
+          title={t('onboarding.title')}
+          onPress={() => router.push('/onboarding?revisit=1')}
+        />
       </Card>
     </Screen>
   );

@@ -76,7 +76,7 @@ Planul complet (decizii, schema, biblioteci, verificare) e în [PLAN.md](PLAN.md
 ```
 src/
   app/                     rute expo-router: index (redirect), (tabs)/ (home, transactions, add, stats, more),
-                           add-transaction (formular, și editare cu ?id=), captured, recurring, budgets, data, settings,
+                           add-transaction (formular, și editare cu ?id=), captured, recurring, budgets, data, settings, onboarding,
                            manage/ (accounts, categories, merchants, tags)
   core/
     db/                    schema.ts (Drizzle), migrations.ts, defaults.ts + seed.ts (date inițiale), index.ts (useDb)
@@ -85,7 +85,7 @@ src/
     ui/                    theme/ (paletă, tokeni, ThemeProvider), components/ (AppText, Card, Screen, Button, SheetModal, ...)
     utils/                 money.ts, dates.ts, calculator.ts (+ teste)
   features/                fiecare modul: domain/ (TypeScript pur), data/ (repository-uri, interogări live), ui/, index.ts
-    accounts/  categories/  merchants/  tags/  transactions/  capture/  recurring/
+    accounts/  categories/  merchants/  tags/  transactions/  capture/  onboarding/  recurring/
     stats/  budgets/  backup/  loans/  parsing/
 modules/
   notification-listener/   modul nativ Android (Kotlin) + index.ts
@@ -105,6 +105,7 @@ Datele inițiale se creează la prima inițializare. Migrările ulterioare trebu
 
 ## Ce conține aplicația acum
 
+- **La prima pornire:** ghid RO/EN pentru accesul la notificări, optimizarea bateriei Samsung, conturile active, moneda de bază și limbă; configurarea se poate relua din Setări și este salvată local.
 - **Setări (Mai mult → Setări):** temă Sistem / Deschis / Întunecat și limbă Română / English, persistente; blocare opțională cu biometrie sau codul telefonului la pornire și după un timeout de 0, 1, 5 sau 15 minute în fundal. Dezactivată implicit. Paleta aleasă este albastru ocean + turcoaz; culorile deja personalizate pentru conturi/categorii nu sunt modificate.
 - **Acasă:** sold total, rezumatul lunii, comparație cu luna trecută, conturi cu sold real, ultimele tranzacții și estimarea obligațiilor.
 - **Tranzacții:** lună cu săgetăi, rezumat, căutare (comerciant, categorie, etichetă, notă), filtre pe tip, grupare pe zile cu total pe zi; atingere = editare. La filtrul Cheltuieli este disponibil și importul CSV ING, cu previzualizare și selectarea contului.
