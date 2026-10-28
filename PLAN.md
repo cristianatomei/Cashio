@@ -6,7 +6,7 @@ Aplicație Android-first (Expo), local-first, pentru urmărirea cheltuielilor cu
 
 - [README.md](README.md#progres-și-punct-de-reluare--28102026) păstrează jurnalul curent, starea implementărilor și verificările rămase. Se actualizează la integrarea taskurilor; tichetele parțial implementate nu se închid ca rezolvate.
 - PR #27, cu modificările din PR #2 și #5, este integrat în `master`.
-- Backupul automat (#6 / PR #28), blocarea biometrică (#7 / PR #31) și onboardingul (#8 / PR #29) sunt integrate. Monitorizarea captării (#9 / PR #30) este implementată, dar încă neintegrată.
+- Backupul automat (#6 / PR #28), blocarea biometrică (#7 / PR #31), onboardingul (#8 / PR #29) și monitorizarea captării (#9 / PR #30) sunt integrate.
 - Backupul rulează la deschiderea/revenirea în aplicație, nu garantat în fundal. Blocarea folosește codul dispozitivului ca alternativă la biometrie, nu un PIN separat.
 - Combinația Sprintului 1, inclusiv PR #30, a trecut typecheck, lint și 37 de suite / 197 de teste; validarea pe dispozitiv rămâne deschisă.
 - Estimarea include ratele individuale, dar poate număra dublu plățile istorice sau o regulă recurentă pentru același credit. Este necesară asocierea explicită, confirmată, înainte de eliminarea dublurilor; nu considera tichetul #4 finalizat.
