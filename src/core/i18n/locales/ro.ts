@@ -18,6 +18,59 @@ export const ro = {
     nativeMissing:
       'Widgetul, scurtătura și dala necesită o versiune Android nouă construită cu modulul nativ Cashio.',
   },
+  insights: {
+    title: 'Sugestii de verificat',
+    disclaimer:
+      'Doar sugestii, nu certitudini. Nu creăm automat obligații recurente. Analizăm numai cheltuieli confirmate pozitive, în moneda originală; transferurile, veniturile și rambursările înregistrate ca venit sau sumă negativă sunt excluse.',
+    empty: 'Nu există sugestii cu suficiente dovezi luna aceasta.',
+    subscription: 'Posibil abonament · {{merchant}}',
+    subscriptionReason:
+      'O singură plată de {{amount}} în fiecare dintre ultimele 3 luni consecutive, inclusiv luna curentă, fără regulă recurentă asociată.',
+    priceIncrease: 'Posibilă creștere de preț · {{merchant}}',
+    priceIncreaseReason:
+      'Plata de {{amount}} depășește cu peste 5% valoarea de {{baseline}} plătită o dată lunar în cele 3 luni anterioare. Poate fi și un serviciu diferit.',
+    unusual: 'Cheltuială neobișnuită · {{merchant}}',
+    unusualReason:
+      'Plata de {{amount}} este cel puțin dublul medianei de {{baseline}} la acest comerciant în cele 3 luni anterioare. Nu înseamnă fraudă.',
+    evidence: 'Tranzacții folosite: {{ids}}',
+    review: 'Verifică regulile recurente',
+    drilldown: 'Vezi tranzacțiile: {{label}}',
+    drilldownHint:
+      'Atinge un segment sau un rând pentru tranzacțiile din perioada selectată. Sumele afișate sunt alocări; lista conține tranzacțiile întregi în moneda originală, inclusiv cele fără curs.',
+    sparkline: '{{label}} · evoluția în 6 intervale ale perioadei',
+    reports: 'Raport lunar și comparație anuală',
+    previousMonth: 'Luna anterioară',
+    nextMonth: 'Luna următoare',
+    exportPdf: 'Distribuie PDF',
+    exportCsv: 'Distribuie CSV',
+    privacy:
+      'Generat local. Distribui date financiare numai către aplicația aleasă. Transferurile și ciornele sunt excluse. RON folosește conversiile salvate; pentru alte monede includem numai tranzacțiile în acea monedă.',
+    titleReport: 'Cashio · raport lunar',
+    date: 'Data',
+    type: 'Tip',
+    merchant: 'Comerciant',
+    category: 'Categorii',
+    originalCurrency: 'Moneda originală',
+    originalAmount: 'Suma originală',
+    reportAmount: 'Suma în moneda raportului',
+    currency: 'Moneda raportului',
+    missingRate: 'Lipsește cursul · exclus din total',
+    excluded: 'Tranzacții fără conversie, excluse din total',
+    exclusions:
+      'Fără curs salvat: {{current}} în luna selectată, {{previous}} în luna comparată; excluse din totaluri.',
+    comparison: '{{month}} față de aceeași lună din anul anterior',
+    change: '{{label}}: {{previous}} → {{current}} · diferență {{delta}} ({{percent}})',
+    noPercent: 'procent indisponibil: baza este zero',
+    noHistory:
+      'Nu există tranzacții comparabile în aceeași lună din anul anterior. Zero nu dovedește lipsa cheltuielilor.',
+    partial:
+      'Luna în curs este incompletă; comparația folosește lunile calendaristice întregi disponibile.',
+    emptyReport: 'Nu există tranzacții comparabile pentru luna și moneda selectate.',
+    exportError:
+      'Raportul nu a putut fi generat sau distribuit. Verifică spațiul disponibil și încearcă din nou. PDF necesită un build al aplicației cu modulul de tipărire inclus.',
+    unavailable: 'Distribuirea fișierelor nu este disponibilă pe acest dispozitiv.',
+    unsupported: 'Exportul PDF/CSV este disponibil în aplicația Android/iOS, nu în browser.',
+  },
   tabs: {
     home: 'Acasă',
     transactions: 'Tranzacții',

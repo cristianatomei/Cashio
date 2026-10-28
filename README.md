@@ -38,7 +38,48 @@ These changes are **pending merge**, not part of an integrated/released APK.
 
 Aplicație mobilă (Expo / React Native, Android-first) pentru urmărirea cheltuielilor. Ideea: cheltuielile se captează automat din notificările băncilor (ING, Revolut, Salt Bank), fără introducere manuală și fără abonament. Datele rămân local, în SQLite.
 
-## Punct de reluare — 19.10.2026 (actualizat)
+## Progres și punct de reluare — 28.10.2026
+
+Aceasta este situația curentă; secțiunile din 19.10 de mai jos sunt istorice. Actualizăm acest jurnal la integrarea fiecărui task. „Integrat” înseamnă cod în `master`, nu funcționare confirmată pe telefon. Tichetele se închid după integrarea implementării; verificarea nativă rămâne urmărită separat în #3.
+
+| Funcționalitate | Stare | Referință |
+| --- | --- | --- |
+| Backup JSON zilnic/săptămânal, retenție 5/10/20 copii, ultima copie și avertisment pe Acasă | Integrat | #6, PR #28 |
+| Blocare opțională cu biometrie/codul dispozitivului, timeout și acoperirea interfeței la părăsirea aplicației | Integrat; dezactivată implicit | #7, PR #31 |
+| Ghid inițial RO/EN: acces notificări, baterie Samsung, conturi, monedă și limbă; redeschidere din Setări | Integrat | #8, PR #29 |
+| Banner pentru acces revocat/lipsă notificări și prag de 3/7/14/30 zile | Integrat | #9, PR #30 |
+| Rate individuale în estimări, importuri ING separate și sugestii prudente de asociere a plăților | Integrat parțial; confirmarea persistentă și deduplicarea estimării rămân | #4, PR #27 |
+
+### Limite și verificări rămase
+
+- Backupul automat rulează la deschiderea/revenirea în aplicație, nu la o oră garantată în fundal. Pe Android necesită alegerea unui folder; nu reprezintă sincronizare automată cu Google Drive.
+- Blocarea folosește biometria sau codul telefonului, nu un PIN separat Cashio. Necesită APK nou cu modulul nativ inclus.
+- Estimarea poate număra dublu istoricul sau o regulă recurentă pentru același credit. Potrivirile de plăți sunt sugestii, nu confirmări persistente; #4 rămâne deschis.
+- Combinația celor patru funcții din Sprintul 1 a trecut `npm run typecheck`, `npm run lint` și 37 de suite / 197 de teste înainte de integrare. Aceasta nu este o validare pe dispozitiv sau un export Android nou.
+- Următorul pas de livrare: generarea unui APK nou și verificarea upgrade-ului fără pierderi de date, pornirii fără Metro, permisiunilor, biometriei, backupului/restaurării și reminderelor, conform #3.
+
+### Backlog și închiderea tichetelor
+
+- Sprintul 1: implementările #6–#9 sunt integrate și tichetele închise. Validarea pe telefon este urmărită în #3; #10 este duplicatul său.
+- Sprintul 2: #11–#14 (triere rapidă, reguli, notificări cu acțiuni, filtre salvate/editare în lot) rămân deschise.
+- Sprintul 3: #15 și #17–#19 rămân deschise; integrarea completă a ratelor este urmărită în #4, iar #16 este duplicatul său.
+- Sprintul 4: #20–#26 rămân deschise.
+- Pentru fiecare task: actualizăm jurnalul cu rezultatul, PR-ul și limitele; închidem ca rezolvat numai după integrare. Duplicatele se închid cu trimitere la tichetul păstrat; lucrările parțiale rămân deschise.
+
+### Lucru pornit în paralel
+
+Șase agenți au primit restul backlogului, în worktree-uri separate. Atribuirea nu înseamnă finalizare; rezultatele vor fi verificate împreună înainte de livrare, inclusiv ordinea migrărilor și compatibilitatea backupurilor.
+
+| Grupă | Tichete |
+| --- | --- |
+| Planificare financiară: rate, disponibil până la salariu, economii, patrimoniu | #4, #15, #22, #24 |
+| Fluxuri tranzacții: triere, reguli, filtre, editare în lot și comercianți | #11, #12, #14, #17 |
+| Statistici, sugestii și rapoarte | #18, #21, #23 |
+| Notificări cu acțiuni și integrare Android | #13, #20 |
+| Accesibilitate și componente comune | #19 |
+| Cursuri opționale, teste E2E/migrări și pregătirea validării manuale | #25, #26; checklist pentru #3 |
+
+## Istoric — punct de reluare 19.10.2026
 
 Utilizatorul dorește utilizare zilnică fără laptop/Metro și continuarea dezvoltării coordonate de pe telefon, prin GitHub. Începe cu această secțiune; [PLAN.md](PLAN.md) păstrează planul funcțional și limitările. Nu presupune că un build terminat este și instalat/testat.
 
@@ -85,6 +126,14 @@ Utilizatorul dorește utilizare zilnică fără laptop/Metro și continuarea dez
 - Nu încărca în repository backup-uri, baze SQLite, PDF-uri personale, chei sau parole. Backup-ul JSON conține date financiare și nu este criptat de fluxul de export.
 
 ## Stare pe faze
+
+### În lucru / PR neintegrat — statistici și rapoarte (#18, #21, #23)
+
+- Ramura `feat/insights-reporting`: segmente donut și legendă accesibilă deschid lista filtrată; cardurile de venituri/cheltuieli/sold au sparklines pe cele șase intervale ale perioadei. Contractul de rutare către Tranzacții (`categoryId`/`groupId`, inclusiv `uncategorized`, `from`/`to` locale inclusive, `type=expense`, `currency` opțional) necesită și PR-ul separat pentru fluxurile de tranzacții; nu este încă integrat în `master`.
+- În Statistici, sugestiile sunt locale și numai informative: o plată egală la același comerciant în trei luni consecutive poate sugera abonament; o plată cu peste 5% mai mare decât trei plăți lunare stabile poate semnala prețul; o plată de cel puțin două ori mediana comerciantului din cele trei luni precedente poate semnala cheltuială neobișnuită. Fiecare afișează motivul și ID-urile dovezilor. Nu se creează automat reguli. Monedele nu se amestecă; transferurile, veniturile, ciornele, sumele nepozitive și tranzacțiile viitoare sunt excluse. Rambursările trebuie înregistrate ca venit sau sumă negativă pentru a fi excluse din detecție.
+- Raport lunar PDF **și** CSV, cu selecția lunii și comparație față de aceeași lună din anul anterior. Zero/fără istoric nu produce un procent inventat; luna în curs este marcată incompletă. RON folosește conversiile deja salvate; sumele fără curs rămân vizibile în export, dar sunt excluse explicit din totaluri. Alte monede includ numai tranzacțiile în moneda selectată. Convenția existentă Cashio pentru sume este în sutimi de unitate monetară.
+- Generarea este pe dispozitiv, fără upload automat. Distribuirea se face numai prin aplicația aleasă în foaia sistemului; fișierele cache sunt șterse după închiderea distribuirii. CSV UTF-8 protejează formulele din numele comercianților/categoriilor; HTML-ul PDF escapează datele importate și nu încarcă resurse externe. Notele, conturile și IBAN-urile nu sunt exportate.
+- Dependență nouă: `expo-print`, rezolvată prin `expo install` pentru SDK 57; fără migrări sau date persistente noi. Documentația SDK 57 și indexul Expo nu au fost accesibile (DNS); API-urile au fost verificate în tipurile instalate efectiv. Este necesar un **build nativ nou**, apoi validare Android/iOS a atingerilor, scalării textului, PDF-ului multipagină/diacriticelor, CSV-ului, anulării și erorilor de distribuire. Exportul în browser afișează explicit că nu este suportat. Testele unitare nu substituie aceste verificări pe telefon.
 
 | Fază | Conținut | Stare |
 |---|---|---|

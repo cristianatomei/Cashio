@@ -2,12 +2,17 @@
 
 Aplicație Android-first (Expo), local-first, pentru urmărirea cheltuielilor cu captare automată din notificări. Fără backend, fără abonament.
 
-## Integrare în lucru — 28.10.2026
+## Progres — 28.10.2026
 
-- Modificările din PR #2 și #5 sunt integrate în branch-ul de lucru, nu încă în `master`.
+- [README.md](README.md#progres-și-punct-de-reluare--28102026) păstrează jurnalul curent, starea implementărilor și verificările rămase. Se actualizează la integrarea taskurilor; tichetele parțial implementate nu se închid ca rezolvate.
+- PR #27, cu modificările din PR #2 și #5, este integrat în `master`.
+- Backupul automat (#6 / PR #28), blocarea biometrică (#7 / PR #31), onboardingul (#8 / PR #29) și monitorizarea captării (#9 / PR #30) sunt integrate.
+- Backupul rulează la deschiderea/revenirea în aplicație, nu garantat în fundal. Blocarea folosește codul dispozitivului ca alternativă la biometrie, nu un PIN separat.
+- Combinația Sprintului 1, inclusiv PR #30, a trecut typecheck, lint și 37 de suite / 197 de teste; validarea pe dispozitiv rămâne deschisă.
 - Estimarea include ratele individuale, dar poate număra dublu plățile istorice sau o regulă recurentă pentru același credit. Este necesară asocierea explicită, confirmată, înainte de eliminarea dublurilor; nu considera tichetul #4 finalizat.
 - Potrivirile de plăți afișate sunt doar posibile, nu confirmări persistente. Cazurile cu mai multe potriviri nu sunt asociate automat.
 - Instalarea APK-ului, actualizarea fără pierderi de date și validarea fluxurilor native pe telefon rămân de verificat conform tichetului #3.
+- #10 este duplicatul tichetului #3; #16 este duplicatul tichetului #4. Progresul și criteriile rămase se urmăresc în tichetele originale.
 
 ## Actualizare — 19.10.2026
 
