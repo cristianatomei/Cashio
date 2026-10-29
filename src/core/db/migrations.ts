@@ -315,6 +315,15 @@ export const migrations: readonly string[] = [
     filename TEXT NOT NULL UNIQUE
   );
   `,
+  `
+  CREATE TABLE loan_payment_links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    schedule_id INTEGER NOT NULL REFERENCES loan_schedules (id) ON DELETE CASCADE,
+    due_at INTEGER NOT NULL,
+    transaction_id INTEGER NOT NULL UNIQUE REFERENCES transactions (id) ON DELETE CASCADE,
+    UNIQUE (schedule_id, due_at)
+  );
+  `,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {

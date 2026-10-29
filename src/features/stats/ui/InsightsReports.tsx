@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
@@ -7,6 +6,8 @@ import { formatMinor } from '@/core/utils/money';
 import type { TransactionView } from '@/features/transactions';
 import { exportMonthlyReport, ReportExportError } from '../data/exportReport';
 import { detectSpendingInsights } from '../domain/insights';
+import { SubscriptionSuggestions } from '@/features/recurring/ui/SubscriptionSuggestions';
+import { ConfirmedRecurringTotals } from '@/features/recurring/ui/ConfirmedRecurringTotals';
 import {
   buildMonthlyReport,
   monthRange,
@@ -86,35 +87,8 @@ export function InsightsReports({
       <AppText variant="caption" color="textSecondary">
         {t('insights.disclaimer')}
       </AppText>
-      {insights.length === 0 ? (
-        <Card>
-          <AppText>{t('insights.empty')}</AppText>
-        </Card>
-      ) : (
-        insights.map((insight) => (
-          <Card key={insight.id}>
-            <AppText variant="heading">
-              {t(`insights.${insight.kind}`, { merchant: insight.merchant })}
-            </AppText>
-            <AppText>
-              {t(`insights.${insight.kind}Reason`, {
-                amount: formatMinor(insight.amountMinor, insight.currency, locale),
-                baseline: formatMinor(insight.baselineMinor, insight.currency, locale),
-              })}
-            </AppText>
-            <AppText variant="caption" color="textSecondary">
-              {t('insights.evidence', { ids: insight.transactionIds.join(', ') })}
-            </AppText>
-            {insight.kind === 'subscription' ? (
-              <Button
-                title={t('insights.review')}
-                variant="secondary"
-                onPress={() => router.push('/recurring')}
-              />
-            ) : null}
-          </Card>
-        ))
-      )}
+      <SubscriptionSuggestions insights={insights} rows={rows} />
+      <ConfirmedRecurringTotals now={now} />
       <SectionHeader title={t('insights.reports')} />
       <Card>
         <AppText variant="heading">

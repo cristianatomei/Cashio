@@ -38,6 +38,7 @@ describe('parseCashioBackup', () => {
         saved_transaction_filters: [],
         savings_goals: [],
         investment_valuations: [],
+        loan_payment_links: [],
       },
     });
   });

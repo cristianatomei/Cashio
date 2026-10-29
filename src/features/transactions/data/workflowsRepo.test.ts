@@ -215,7 +215,7 @@ describe('transaction workflows on real SQLite', () => {
     const { db, client } = connection;
     const old = attach(db);
     const backup = parseCashioBackup(JSON.stringify(await createCashioBackup(client)));
-    expect(backup.version).toBe(4);
+    expect(backup.version).toBe(5);
     expect(backup.receipts).toEqual([
       { transactionId: 1, base64: syntheticJpeg.toString('base64') },
     ]);
@@ -320,10 +320,10 @@ describe('transaction workflows on real SQLite', () => {
 
   it('deletes and restores exact rows, tags, allocations, raw state and loan links atomically', () => {
     const { db, native } = connection;
-    // Matches the optional planning feature's additive relation.
-    native.exec(
-      'CREATE TABLE loan_payment_links (id INTEGER PRIMARY KEY, schedule_id INTEGER NOT NULL, due_at INTEGER NOT NULL, transaction_id INTEGER UNIQUE REFERENCES transactions(id) ON DELETE CASCADE, UNIQUE(schedule_id,due_at)); INSERT INTO loan_payment_links VALUES (9,3,100,1);',
-    );
+    db.insert(schema.loanSchedules)
+      .values({ id: 3, name: 'Loan', currency: 'RON', installmentsJson: '[]', createdAt: 1 })
+      .run();
+    native.exec('INSERT INTO loan_payment_links VALUES (9,3,100,1);');
     const before = db.select().from(schema.transactions).all();
     const undo = applyBatch(db, [1, 1], { kind: 'delete' });
     expect(db.select().from(schema.transactions).all()).toEqual([]);
@@ -560,9 +560,7 @@ describe('transaction workflows on real SQLite', () => {
     db.insert(schema.loanSchedules)
       .values({ id: 1, name: 'Loan', currency: 'RON', installmentsJson: '[]', createdAt: 1 })
       .run();
-    native.exec(
-      'CREATE TABLE loan_payment_links (id INTEGER PRIMARY KEY, schedule_id INTEGER NOT NULL REFERENCES loan_schedules(id), due_at INTEGER NOT NULL, transaction_id INTEGER UNIQUE REFERENCES transactions(id) ON DELETE CASCADE); INSERT INTO loan_payment_links VALUES (1,1,100,1);',
-    );
+    native.exec('INSERT INTO loan_payment_links VALUES (1,1,100,1);');
     const input = {
       id: 1,
       type: 'income' as const,

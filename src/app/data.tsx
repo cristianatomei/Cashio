@@ -33,10 +33,11 @@ import {
   updateLoanScheduleSettings,
   deleteLoanSchedule,
   upcomingInstallments,
-  reconcileLoanPayments,
+  suggestLoanPayments,
   type LoanSchedule,
 } from '@/features/loans';
 import { syncLoanScheduleReminders } from '@/features/loans/data/loanReminders';
+import { confirmLoanPayment, unlinkLoanPayment } from '@/features/loans/data/paymentLinks';
 import { extractLoanPdfText } from '@modules/loan-pdf';
 import {
   createCashioBackup,
@@ -57,11 +58,13 @@ export default function DataScreen() {
   const db = useDb();
   const { data: rates } = useLiveQuery(db.select().from(schema.exchangeRates));
   const { data: loanSchedules } = useLiveQuery(db.select().from(schema.loanSchedules));
+  const { data: loanPaymentLinks } = useLiveQuery(db.select().from(schema.loanPaymentLinks));
   const { data: appSettings } = useLiveQuery(db.select().from(schema.appSettings));
   const { data: loanTransactions } = useLiveQuery(
     db
       .select({
         id: schema.transactions.id,
+        recurringId: schema.transactions.recurringId,
         type: schema.transactions.type,
         status: schema.transactions.status,
         amountMinor: schema.transactions.amountMinor,
@@ -101,18 +104,41 @@ export default function DataScreen() {
       ? Number(lastBackupValue)
       : null;
   const lastBackupAge = backupAgeDays(lastBackupAt, renderedAt);
-  const loanPaymentMatches = reconcileLoanPayments(
+  const loanPaymentMatches = suggestLoanPayments(
     loanSchedules.map((schedule) => {
       const stored = parseStoredLoanSchedule(schedule.installmentsJson);
       return {
         id: schedule.id,
+        recurringId: schedule.recurringId,
         currency: schedule.currency,
         includeInsurance: stored.includeInsurance,
         installments: stored.installments,
       };
     }),
-    loanTransactions,
+    loanTransactions.filter((transaction) => transaction.occurredAt <= renderedAt),
+    loanPaymentLinks,
   );
+
+  const confirmPayment = (scheduleId: number, dueAt: number, transactionId: number) => {
+    Alert.alert(
+      t('data.loanConfirmPayment'),
+      t('data.loanConfirmPaymentBody'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.save'),
+          onPress: () => {
+            try {
+              confirmLoanPayment(db, scheduleId, dueAt, transactionId);
+            } catch (error) {
+              console.error('Failed to associate loan payment', error);
+              Alert.alert(t('errors.generic'), t('data.loanAssociationError'));
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const chooseLoanPdf = async () => {
     if (Platform.OS !== 'android') {
@@ -551,8 +577,10 @@ export default function DataScreen() {
             const stored = parseStoredLoanSchedule(schedule.installmentsJson);
             const paymentMatches = loanPaymentMatches
               .filter((match) => match.scheduleId === schedule.id)
-              .sort((left, right) => right.dueAt - left.dueAt)
-              .slice(0, 6);
+              .sort((left, right) => right.dueAt - left.dueAt);
+            const confirmedPayments = loanPaymentLinks.filter(
+              (link) => link.scheduleId === schedule.id,
+            );
             const upcoming = upcomingInstallments(
               { currency: schedule.currency, installments: stored.installments },
               renderedAt,
@@ -633,7 +661,7 @@ export default function DataScreen() {
                     </AppText>
                   </View>
                 ))}
-                {paymentMatches.length > 0 ? (
+                {paymentMatches.length > 0 || confirmedPayments.length > 0 ? (
                   <View style={{ gap: 6 }}>
                     <AppText variant="caption" color="textSecondary">
                       {t('data.loanPaymentCheckTitle')}
@@ -645,25 +673,57 @@ export default function DataScreen() {
                           currency: schedule.currency,
                         }).format(amountMinor / 100)}`;
                       const matched = match.actualMinor === match.expectedMinor;
+                      const transaction = loanTransactions.find(
+                        (payment) => payment.id === match.transactionId,
+                      );
+                      if (!transaction) return null;
                       return (
-                        <AppText
-                          key={`${match.dueAt}-${match.transactionId}`}
-                          variant="caption"
-                          color={matched ? 'income' : 'expense'}
-                        >
-                          {matched
-                            ? t('data.loanPaymentMatched', {
-                                date: new Date(match.dueAt).toLocaleDateString(locale),
-                                amount: amount(match.actualMinor),
-                              })
-                            : t('data.loanPaymentConflict', {
-                                date: new Date(match.dueAt).toLocaleDateString(locale),
-                                expected: amount(match.expectedMinor),
-                                actual: amount(match.actualMinor),
-                              })}
-                        </AppText>
+                        <View key={`${match.dueAt}-${match.transactionId}`} style={{ gap: 4 }}>
+                          <AppText variant="caption" color={matched ? 'income' : 'expense'}>
+                            {matched
+                              ? t('data.loanPaymentMatched', {
+                                  date: new Date(match.dueAt).toLocaleDateString(locale),
+                                  amount: amount(match.actualMinor),
+                                })
+                              : t('data.loanPaymentConflict', {
+                                  date: new Date(match.dueAt).toLocaleDateString(locale),
+                                  expected: amount(match.expectedMinor),
+                                  actual: amount(match.actualMinor),
+                                })}
+                          </AppText>
+                          <AppText variant="caption" color="textSecondary">
+                            {`#${match.transactionId} · ${transaction.merchantRaw ?? transaction.note ?? ''} · ${new Date(transaction.occurredAt).toLocaleDateString(locale)}`}
+                          </AppText>
+                          <Button
+                            title={t('data.loanAssociatePayment')}
+                            onPress={() =>
+                              confirmPayment(schedule.id, match.dueAt, match.transactionId)
+                            }
+                          />
+                        </View>
                       );
                     })}
+                    {confirmedPayments.map((link) => (
+                      <View key={link.id} style={{ gap: 4 }}>
+                        <AppText variant="caption">
+                          {t('data.loanAssociatedPayment', {
+                            id: link.transactionId,
+                            date: new Date(link.dueAt).toLocaleDateString(locale),
+                          })}
+                        </AppText>
+                        <Button
+                          title={t('data.loanUnlinkPayment')}
+                          onPress={() => {
+                            try {
+                              unlinkLoanPayment(db, schedule.id, link.dueAt);
+                            } catch (error) {
+                              console.error('Failed to unlink loan payment', error);
+                              Alert.alert(t('errors.generic'), t('data.loanAssociationError'));
+                            }
+                          }}
+                        />
+                      </View>
+                    ))}
                   </View>
                 ) : null}
                 <SwitchRow

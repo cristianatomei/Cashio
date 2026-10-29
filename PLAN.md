@@ -2,6 +2,17 @@
 
 Aplicație Android-first (Expo), local-first, pentru urmărirea cheltuielilor cu captare automată din notificări. Fără backend, fără abonament.
 
+## Pregătire livrare — 29.10.2026
+
+- Bonurile locale (#41) și exportul în calendarul telefonului (#43) sunt integrate în `master`.
+- Ramura curentă finalizează confirmarea/asocierea ratelor și deduplicarea estimării (#4),
+  plus confirmarea/ignorarea sugestiilor de abonamente și totaluri recurente pe monedă (#42).
+- #3 și #26 rămân deschise până la verificările native reale. Mediul curent nu are dispozitiv,
+  emulator, Android SDK sau Maestro. Nu închide aceste tichete pe baza testelor unitare.
+- APK-ul `preview` este configurat ca autonom, dar generarea este blocată în sesiune de lipsa
+  autentificării Expo și de DNS pentru `api.expo.dev`. Comenzile și precauțiile de upgrade
+  sunt în prima secțiune din README. Nu există un APK nou sau o instalare confirmată.
+
 ## Progres — 28.10.2026
 
 - [README.md](README.md#progres-și-punct-de-reluare--28102026) păstrează jurnalul curent, starea implementărilor și verificările rămase. Se actualizează la integrarea taskurilor; tichetele parțial implementate nu se închid ca rezolvate.

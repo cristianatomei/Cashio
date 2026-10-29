@@ -285,3 +285,19 @@ export const investmentValuations = sqliteTable('investment_valuations', {
   currency: text('currency').notNull(),
   valuedAt: integer('valued_at').notNull(),
 });
+
+export const loanPaymentLinks = sqliteTable(
+  'loan_payment_links',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    scheduleId: integer('schedule_id')
+      .notNull()
+      .references(() => loanSchedules.id, { onDelete: 'cascade' }),
+    dueAt: integer('due_at').notNull(),
+    transactionId: integer('transaction_id')
+      .notNull()
+      .unique()
+      .references(() => transactions.id, { onDelete: 'cascade' }),
+  },
+  (t) => [unique().on(t.scheduleId, t.dueAt)],
+);

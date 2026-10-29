@@ -1,4 +1,4 @@
-import { reconcileLoanPayments } from './reconciliation';
+import { reconcileLoanPayments, suggestLoanPayments } from './reconciliation';
 
 describe('reconcileLoanPayments', () => {
   const dueAt = new Date(2026, 9, 10).getTime();
@@ -147,6 +147,54 @@ describe('reconcileLoanPayments', () => {
     expect(
       reconcileLoanPayments(schedules, [
         { ...withinTolerance, occurredAt: new Date(2026, 9, 16).getTime() },
+      ]),
+    ).toEqual([]);
+  });
+
+  it('offers ambiguous candidates and amount differences only for explicit review', () => {
+    const payment = {
+      id: 2,
+      type: 'expense',
+      status: 'confirmed',
+      amountMinor: 50000,
+      currency: 'RON',
+      occurredAt: dueAt,
+      merchantRaw: 'Rata credit',
+      note: null,
+    };
+    const overlapping = [schedules[0], { ...schedules[0], id: 3 }];
+    expect(suggestLoanPayments(overlapping, [payment])).toHaveLength(2);
+    expect(reconcileLoanPayments(overlapping, [payment])).toEqual([]);
+    expect(
+      suggestLoanPayments(
+        overlapping,
+        [payment],
+        [
+          {
+            scheduleId: 1,
+            dueAt,
+            transactionId: payment.id,
+          },
+        ],
+      ),
+    ).toEqual([]);
+    expect(suggestLoanPayments(schedules, [payment, { ...payment, id: 3 }])).toHaveLength(2);
+  });
+
+  it('never suggests a payment associated with an unrelated recurring rule', () => {
+    expect(
+      suggestLoanPayments(schedules, [
+        {
+          id: 2,
+          type: 'expense',
+          status: 'confirmed',
+          amountMinor: 101000,
+          currency: 'RON',
+          occurredAt: dueAt,
+          merchantRaw: 'Rata credit',
+          note: null,
+          recurringId: 99,
+        },
       ]),
     ).toEqual([]);
   });

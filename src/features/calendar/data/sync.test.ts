@@ -5,7 +5,13 @@ import { newCalendarState } from '../domain/state';
 import { readCalendarState, saveCalendarState, syncCalendar, writableCalendars } from './sync';
 
 jest.mock('@/core/db', () => ({
-  schema: { appSettings: { key: 'key' }, recurringRules: 'rules', loanSchedules: 'loans' },
+  schema: {
+    appSettings: { key: 'key' },
+    recurringRules: 'rules',
+    loanSchedules: 'loans',
+    transactions: 'payments',
+    loanPaymentLinks: 'links',
+  },
 }));
 jest.mock('expo-calendar', () => ({
   requestCalendarPermissions: jest.fn(),
@@ -28,6 +34,8 @@ type MockEvent = {
 let stored: string | null;
 let rules: object[];
 let loans: object[];
+let payments: object[];
+let links: object[];
 let events: Map<string, MockEvent>;
 let failAfterCreate: boolean;
 let failSave: boolean;
@@ -36,7 +44,8 @@ const db = {
   select: () => ({
     from: (table: string) => ({
       where: () => ({ get: () => (stored ? { value: stored } : undefined) }),
-      all: () => (table === 'rules' ? rules : loans),
+      all: () =>
+        ({ rules, loans, payments, links })[table as 'rules' | 'loans' | 'payments' | 'links'],
     }),
   }),
   insert: () => ({
@@ -115,6 +124,8 @@ beforeEach(() => {
     },
   ];
   loans = [];
+  payments = [];
+  links = [];
   failAfterCreate = false;
   failSave = false;
   nextId = 0;
@@ -136,6 +147,52 @@ function enable() {
   saveCalendarState(db, state);
   return state;
 }
+
+it('removes a fully settled managed loan event on the next manual sync, restoring it after unlink', async () => {
+  rules = [];
+  loans = [
+    {
+      id: 2,
+      recurringId: null,
+      currency: 'RON',
+      installmentsJson: JSON.stringify({
+        includeInsurance: true,
+        remindersEnabled: false,
+        installments: [
+          {
+            dueAt,
+            paymentMinor: 10000,
+            interestMinor: 2000,
+            principalMinor: 8000,
+            insuranceMinor: 100,
+            balanceMinor: 50000,
+          },
+        ],
+      }),
+    },
+  ];
+  enable();
+  expect(await syncCalendar(db, () => 'Loan')).toBe(1);
+  const event = [...events.values()][0];
+  payments = [
+    {
+      id: 3,
+      type: 'expense',
+      status: 'confirmed',
+      currency: 'RON',
+      amountMinor: 10100,
+      occurredAt: now,
+      recurringId: null,
+    },
+  ];
+  links = [{ scheduleId: 2, dueAt, transactionId: 3 }];
+  expect(await syncCalendar(db, () => 'Loan')).toBe(0);
+  expect(event.delete).toHaveBeenCalledTimes(1);
+  expect(events.size).toBe(0);
+  links = [];
+  expect(await syncCalendar(db, () => 'Loan')).toBe(1);
+  expect(events.size).toBe(1);
+});
 
 it('does not request permissions or access calendar data before opt-in', async () => {
   expect(await syncCalendar(db, () => 'Payment')).toBe(0);

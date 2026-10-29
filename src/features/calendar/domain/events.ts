@@ -1,6 +1,11 @@
 import { startOfDay } from '@/core/utils/dates';
 import { installmentTotal, type LoanInstallment } from '@/features/loans/domain/ingSchedule';
 import {
+  confirmedLoanSettlements,
+  type LoanSettlementPayment,
+} from '@/features/loans/domain/settlement';
+import type { LoanPaymentLink } from '@/features/loans/domain/reconciliation';
+import {
   recurringPaymentsInRange,
   type ScheduledRecurringRule,
 } from '@/features/recurring/domain/schedule';
@@ -41,7 +46,16 @@ export function projectPayments(
   rules: readonly ExportRule[],
   loans: readonly ExportLoan[],
   range: ExportRange,
+  settlements?: {
+    payments: readonly LoanSettlementPayment[];
+    links: readonly LoanPaymentLink[];
+    now: number;
+  },
 ): CalendarPayment[] {
+  const settled = settlements
+    ? confirmedLoanSettlements(loans, settlements.payments, settlements.links, settlements.now)
+        .settled
+    : new Map<string, number>();
   const linkedRules = new Set(loans.map((loan) => loan.recurringId));
   const selectedRules = rules.filter(
     (rule) => rule.type === 'expense' && !linkedRules.has(rule.id),
@@ -67,10 +81,15 @@ export function projectPayments(
         key: `loan-${loan.id}-${row.dueAt}`,
         kind: 'loan' as const,
         dueAt: row.dueAt,
-        amountMinor: installmentTotal(row, loan.includeInsurance),
+        amountMinor: Math.max(
+          0,
+          installmentTotal(row, loan.includeInsurance) -
+            (settled.get(`${loan.id}:${row.dueAt}`) ?? 0),
+        ),
         currency: loan.currency,
         estimated: false,
-      })),
+      }))
+      .filter((payment) => payment.amountMinor > 0),
   );
   return [...recurring, ...installments].sort(
     (a, b) => a.dueAt - b.dueAt || a.key.localeCompare(b.key),

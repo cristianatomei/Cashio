@@ -33,6 +33,7 @@ import { installmentTotal, parseStoredLoanSchedule } from '@/features/loans';
 import { MonthSwitcher } from '@/features/transactions';
 import { Alert } from 'react-native';
 import { useCaptureRefresh } from '@/features/capture';
+import { ConfirmedRecurringTotals } from '@/features/recurring/ui/ConfirmedRecurringTotals';
 
 export default function RecurringScreen() {
   const { t, i18n } = useTranslation();
@@ -46,6 +47,7 @@ export default function RecurringScreen() {
       .where(eq(schema.appSettings.key, 'recurring_reminders_enabled')),
   );
   const rules = useRecurringRules();
+  const [now] = useState(() => Date.now());
   const estimate = useNextMonthEstimate();
   const [editing, setEditing] = useState<RecurringRule | null | undefined>(undefined);
   const [monthStart, setMonthStart] = useState(() => startOfMonth(Date.now()));
@@ -60,18 +62,21 @@ export default function RecurringScreen() {
     .filter((rule) => rule.active && rule.nextDue <= dueWindow)
     .sort((left, right) => left.nextDue - right.nextDue);
   const scheduledPayments = useMemo(() => {
+    const linkedRules = new Set(loanSchedules.map((schedule) => schedule.recurringId));
     const recurringPayments = recurringPaymentsInRange(
-      rules.map((rule) => ({
-        id: rule.id,
-        name: rule.note || rule.merchantName || rule.categoryName || t('recurring.obligation'),
-        amountMinor: rule.amountMinor,
-        currency: rule.currency,
-        frequency: rule.frequency,
-        interval: rule.interval,
-        nextDue: rule.nextDue,
-        endAt: rule.endAt,
-        active: rule.active,
-      })),
+      rules
+        .filter((rule) => !linkedRules.has(rule.id))
+        .map((rule) => ({
+          id: rule.id,
+          name: rule.note || rule.merchantName || rule.categoryName || t('recurring.obligation'),
+          amountMinor: rule.amountMinor,
+          currency: rule.currency,
+          frequency: rule.frequency,
+          interval: rule.interval,
+          nextDue: rule.nextDue,
+          endAt: rule.endAt,
+          active: rule.active,
+        })),
       monthFrom,
       monthTo,
     ).map((payment) => ({
@@ -144,6 +149,7 @@ export default function RecurringScreen() {
 
   return (
     <Screen onRefresh={refresh}>
+      <ConfirmedRecurringTotals now={now} />
       <Card>
         <SwitchRow
           label={t('recurring.reminders')}

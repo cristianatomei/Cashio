@@ -45,6 +45,26 @@ function seed(native, version) {
       'INSERT INTO transaction_allocations (transaction_id,category_id,amount_minor) VALUES (41,22,1234)',
     );
   if (version >= 8) native.exec("UPDATE accounts SET iban='SYNTHETIC-NOT-AN-IBAN' WHERE id=11");
+  if (version >= 10)
+    native.exec(`
+      INSERT INTO merchant_category_rules VALUES (23,'expense',22,400);
+      INSERT INTO saved_transaction_filters (id,name,filter_json,created_at)
+        VALUES (26,'Synthetic filter','{"type":"expense"}',401);
+    `);
+  if (version >= 11)
+    native.exec(`
+      INSERT INTO savings_goals
+        (id,name,currency,target_minor,current_minor,created_at,updated_at)
+        VALUES (27,'Synthetic goal','RON',10000,2500,402,403);
+      INSERT INTO investment_valuations VALUES ('synthetic-asset',5000,'RON',404);
+    `);
+  if (version >= 12)
+    native.exec("INSERT INTO transaction_receipts VALUES (41,'synthetic-receipt.jpg')");
+  if (version >= 13)
+    native.exec(`
+      INSERT INTO loan_payment_links (schedule_id,due_at,transaction_id)
+        SELECT id,405,41 FROM loan_schedules WHERE name='Synthetic loan'
+    `);
 }
 
 function snapshot(native) {
@@ -81,6 +101,7 @@ for (let version = 0; version <= migrations.length; version++) {
       const after = snapshot(native);
       for (const [table, rows] of Object.entries(before)) {
         if (version === 1 && table !== 'raw_notifications') continue;
+        assert.equal(after[table].length, rows.length, `${table} row count`);
         // Existing columns/values must survive even when migrations add columns.
         for (const [index, row] of rows.entries()) {
           for (const [column, value] of Object.entries(row)) {
@@ -111,7 +132,10 @@ for (let version = 0; version <= migrations.length; version++) {
         `);
         native.exec('DELETE FROM transactions WHERE id=41');
         assert.deepEqual(
-          native.prepare('SELECT * FROM transaction_receipts').all().map((row) => ({ ...row })),
+          native
+            .prepare('SELECT * FROM transaction_receipts')
+            .all()
+            .map((row) => ({ ...row })),
           [{ transaction_id: 42, filename: 'synthetic-42.png' }],
         );
         assert.equal(native.prepare('SELECT count(*) AS n FROM transaction_tags').get().n, 0);
@@ -120,7 +144,46 @@ for (let version = 0; version <= migrations.length; version++) {
           0,
         );
         assert.equal(native.prepare('SELECT count(*) AS n FROM recurring_rules').get().n, 1);
+        if (version >= 13)
+          assert.equal(native.prepare('SELECT count(*) AS n FROM loan_payment_links').get().n, 0);
       }
+    } finally {
+      native.close();
+    }
+  });
+}
+
+for (let target = 2; target <= migrations.length; target++) {
+  if (target === 6) continue;
+  test(`real SQLite interrupted v${target} migration rolls back schema, data and version`, async () => {
+    const { native, adapter } = createDatabase();
+    try {
+      native.exec('PRAGMA foreign_keys=ON');
+      for (let i = 0; i < target - 1; i++) native.exec(migrations[i]);
+      native.exec(`PRAGMA user_version=${target - 1}`);
+      seed(native, target - 1);
+      const before = snapshot(native);
+      const schemaBefore = native
+        .prepare('SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name')
+        .all();
+      const exec = adapter.execAsync;
+      adapter.execAsync = async (sql) => {
+        await exec(sql);
+        if (sql === migrations[target - 1]) throw new Error('synthetic interruption');
+      };
+      await assert.rejects(migrate(adapter), /synthetic interruption/);
+      assert.equal(native.prepare('PRAGMA user_version').get().user_version, target - 1);
+      assert.equal(native.prepare('PRAGMA foreign_keys').get().foreign_keys, 1);
+      assert.deepEqual(snapshot(native), before);
+      assert.deepEqual(
+        native.prepare('SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name').all(),
+        schemaBefore,
+      );
+      assert.deepEqual(native.prepare('PRAGMA foreign_key_check').all(), []);
+      assert.equal(native.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
+      adapter.execAsync = exec;
+      await migrate(adapter);
+      assert.equal(native.prepare('PRAGMA user_version').get().user_version, migrations.length);
     } finally {
       native.close();
     }

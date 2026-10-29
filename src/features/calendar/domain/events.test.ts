@@ -121,6 +121,46 @@ describe('calendar payment projection', () => {
     expect(result.every((row) => row.kind === 'loan')).toBe(true);
   });
 
+  it('exports only the outstanding amount of an explicitly associated installment', () => {
+    const payment = {
+      id: 1,
+      type: 'expense',
+      status: 'confirmed',
+      currency: loan.currency,
+      amountMinor: 12001,
+      occurredAt: range.from,
+      recurringId: null,
+    };
+    const link = { scheduleId: loan.id, dueAt: loan.installments[0].dueAt, transactionId: 1 };
+    const context = { payments: [payment], links: [link], now: range.from };
+    const result = projectPayments([], [loan], range, context);
+    expect(result).toHaveLength(1);
+    expect(result[0].dueAt).toBe(loan.installments[1].dueAt);
+    expect(
+      projectPayments([], [loan], range, {
+        ...context,
+        payments: [{ ...payment, amountMinor: 10000 }],
+      })[0].amountMinor,
+    ).toBe(2001);
+    expect(
+      projectPayments([], [{ ...loan, includeInsurance: true }], range, context)[0].amountMinor,
+    ).toBe(600);
+    expect(projectPayments([], [loan], range, { ...context, links: [] })).toHaveLength(2);
+    for (const change of [
+      { status: 'draft' },
+      { type: 'income' },
+      { currency: 'RON' },
+      { occurredAt: range.to },
+    ]) {
+      expect(
+        projectPayments([], [loan], range, {
+          ...context,
+          payments: [{ ...payment, ...change }],
+        })[0].amountMinor,
+      ).toBe(12001);
+    }
+  });
+
   it('returns nothing for empty data or an empty range', () => {
     expect(projectPayments([], [], range)).toEqual([]);
     expect(projectPayments([rule], [loan], { from: range.to, to: range.to })).toEqual([]);
