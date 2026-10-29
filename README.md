@@ -1,5 +1,49 @@
 # Cashio
 
+## Pregătire APK — 29.10.2026
+
+Această secțiune înlocuiește stările istorice de integrare de mai jos. Codul pentru bonuri
+(#41), calendarul telefonului (#43), planificare, statistici și widget este deja integrat în
+`master`. Implementările noi pentru #4 și #42 sunt pregătite în ramura curentă; un APK
+nou instalat și verificat pe telefon nu este încă confirmat.
+
+- **Abonamente (#42):** în Statistici, plățile justificative pot fi deschise și sugestia poate
+  precompleta un formular revizuibil. Numai confirmarea utilizatorului salvează obligația;
+  istoricul nu este modificat. Regulile existente, inclusiv cele suspendate, nu sunt dublate.
+  Ignorarea este persistentă și reversibilă. Recurente și Statistici afișează echivalente
+  lunare/anuale ale cheltuielilor recurente active, separat pe monedă, nu un calendar de plăți.
+  Starea de verificare este locală, în `app_settings.subscription_reviews`, și inclusă în backup.
+- **Rate (#4):** în Date și backup, o plată sugerată poate fi asociată explicit unei singure
+  scadențe sau disociată. Asocierea nu se deduce din text sau din sume asemănătoare.
+  Estimarea păstrează ratele individuale și asigurarea, scade plata confirmată și păstrează
+  diferențele neacoperite; regulile recurente legate și istoricul confirmat nu dublează ratele.
+  Migrarea v13 adaugă `loan_payment_links`, cu unicitate pe tranzacție și pe scadență.
+  Backupul v5 păstrează asocierile și bonurile; formatele v1–v4 rămân acceptate fără asocieri.
+  Exportul manual în calendar elimină ratele stinse și păstrează sumele parțial neachitate.
+- **Verificări automate:** lint, typecheck, 70 suite Jest / 585 teste și 32 verificări
+  SQLite/migrări/siguranță E2E trec pe combinația finală. Exportul JavaScript Android de
+  producție trece, dar nu compilează modulele native și nu generează un APK.
+- **Validare nativă (#3, #26):** testele SQLite nu înlocuiesc instalarea/upgrade-ul pe telefon
+  sau execuția Maestro. Mediul sesiunii nu are Android SDK, adb, emulator ori Maestro și nu
+  are acces la un dispozitiv. Nu rula fluxurile distructive pe aplicația personală: profilul
+  `e2e` folosește exclusiv `com.cashio.app.e2e` și date sintetice.
+- **Blocaj APK:** EAS CLI este disponibil, dar `whoami` raportează lipsa autentificării;
+  `EXPO_TOKEN` nu este configurat. Încercarea de build `preview --non-interactive` este
+  refuzată fără cont Expo. În plus, `api.expo.dev` nu se rezolvă DNS în acest mediu.
+  Nu a fost generat un build ID sau un APK nou.
+
+Dintr-un terminal autentificat Expo, cu acces la internet și sursa actualizată:
+
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest build --platform android --profile preview
+```
+
+Profilul `preview` produce un APK autonom, fără Metro. Refolosește semnătura EAS existentă
+pentru `com.cashio.app`; nu genera altă cheie și nu dezinstala aplicația pentru a forța
+upgrade-ul. Creează întâi un backup complet, apoi verifică instalarea peste versiunea
+existentă, datele păstrate și checklistul nativ de la finalul acestui document.
+
 ## Pending merge: capture actions and Android productivity (#13, #20)
 
 This branch implements optional captured-payment notifications (off by default), frequent-category

@@ -146,7 +146,21 @@ export const en: Resources = {
     unusualReason:
       'The payment of {{amount}} is at least twice the median of {{baseline}} at this merchant over the previous 3 months. This does not imply fraud.',
     evidence: 'Transactions used: {{ids}}',
-    review: 'Review recurring rules',
+    review: 'Review as recurring obligation',
+    reviewHint: 'Review the payments and correct the suggested fields. Monthly recurrence is only a hypothesis. Confirming saves one obligation with automatic posting off; it does not change or link past transactions.',
+    confirm: 'Confirm and save obligation',
+    openEvidence: 'Payment #{{id}} · {{date}} · {{amount}}',
+    ignore: 'Not a subscription / ignore',
+    ignored: 'Ignored subscription suggestions',
+    restore: 'Allow suggestions again',
+    duplicate: 'A matching obligation already exists, possibly paused. Review it instead of creating another. No amounts or past payments have been changed.',
+    openExisting: 'Review existing obligation',
+    stale: 'The supporting payments changed or are unavailable. Close this form and review the suggestion again.',
+    saveError: 'Could not save your review. Please try again.',
+    confirmedTotals: 'Confirmed recurring expenses',
+    totalsHint: 'Active expense obligations only, separately by currency. Monthly and annual equivalents use the saved amount and interval (365 days/year); variable amounts are estimates. Expired rules are excluded. This is not a payment calendar or a total of detected suggestions.',
+    noConfirmed: 'No active confirmed recurring expenses.',
+    total: '{{currency}} · {{monthly}} / month · {{annual}} / year',
     drilldown: 'View transactions: {{label}}',
     drilldownHint:
       'Tap a slice or row for transactions in the selected period. Amounts shown are allocations; the list contains whole transactions in their original currency, including those without a rate.',
@@ -560,6 +574,14 @@ export const en: Resources = {
     loanPaymentCheckTitle: 'Imported payment check',
     loanPaymentMatched: 'Possible payment for {{date}} · {{amount}}',
     loanPaymentConflict: 'Possible payment for {{date}} · expected {{expected}}, found {{actual}}',
+    loanConfirmPayment: 'Confirm loan payment association?',
+    loanConfirmPaymentBody:
+      'Associate only if this transaction paid the selected installment. Differences remain outstanding.',
+    loanAssociationError:
+      'The payment association could not be changed. Check that the transaction exists and is not already linked to another installment.',
+    loanAssociatePayment: 'Associate payment',
+    loanAssociatedPayment: 'Confirmed payment #{{id}} for {{date}}',
+    loanUnlinkPayment: 'Unlink payment',
   },
   captured: {
     title: 'Captured notifications',

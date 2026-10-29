@@ -10,9 +10,14 @@ test('E2E build is explicit, has a separate app identity and cannot activate tes
   try {
     delete process.env.CASHIO_E2E;
     assert.deepEqual(configure({ config: expo }), expo);
+    for (const value of ['0', 'true', 'false', '']) {
+      process.env.CASHIO_E2E = value;
+      assert.deepEqual(configure({ config: expo }), expo);
+    }
     process.env.CASHIO_E2E = '1';
     const config = configure({ config: expo });
     assert.equal(config.android.package, 'com.cashio.app.e2e');
+    assert.equal(config.ios.bundleIdentifier, 'com.cashio.app.e2e');
     assert.equal(config.scheme, 'cashio-e2e');
     assert.equal(config.extra.disposableSyntheticE2E, true);
     for (const [candidate, expected] of [
@@ -20,6 +25,9 @@ test('E2E build is explicit, has a separate app identity and cannot activate tes
       [expo, false],
       [{ ...config, android: expo.android }, false],
       [{ ...config, extra: {} }, false],
+      [{ ...config, extra: { disposableSyntheticE2E: 'true' } }, false],
+      [{ ...config, android: undefined }, false],
+      [{ ...config, android: { package: 'com.cashio.app.e2e.other' } }, false],
     ]) {
       const { isDisposableTestBuild } = loadTypeScript('src/core/db/testBuild.ts', {
         'expo-constants': { __esModule: true, default: { expoConfig: candidate } },

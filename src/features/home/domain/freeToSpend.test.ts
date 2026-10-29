@@ -233,6 +233,34 @@ describe('homeObligations', () => {
     ).toEqual([expect.objectContaining({ source: 'loan', amountMinor: 2100 })]);
   });
 
+  it('deducts an explicitly confirmed early partial payment without relying on text or recurrence', () => {
+    const outstanding = homeObligations({
+      ...projection,
+      rules: [],
+      loans: [{ ...loan, recurringId: null }],
+      payments: [{ ...payment, recurringId: null, occurredAt: now, amountMinor: 1000 }],
+      loanPaymentLinks: [
+        { scheduleId: loan.id, dueAt: installment.dueAt, transactionId: payment.id },
+      ],
+    });
+    expect(outstanding).toEqual([expect.objectContaining({ source: 'loan', amountMinor: 1100 })]);
+  });
+
+  it('does not apply an explicitly associated transaction to another installment by recurrence', () => {
+    const laterDue = installment.dueAt + 86400000;
+    expect(
+      homeObligations({
+        ...projection,
+        now: installment.dueAt,
+        loans: [{ ...loan, installments: [installment, { ...installment, dueAt: laterDue }] }],
+        payments: [payment],
+        loanPaymentLinks: [{ scheduleId: loan.id, dueAt: laterDue, transactionId: payment.id }],
+      }),
+    ).toEqual([
+      expect.objectContaining({ source: 'loan', dueAt: installment.dueAt, amountMinor: 2100 }),
+    ]);
+  });
+
   it('does not settle two linked loans from one ambiguous payment', () => {
     expect(
       homeObligations({

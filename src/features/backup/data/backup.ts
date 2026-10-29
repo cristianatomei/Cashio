@@ -19,6 +19,10 @@ import {
   type PortableReceipt,
 } from '@/features/receipts/domain/receipt';
 import { CALENDAR_STATE_KEY } from '@/features/calendar/domain/state';
+import {
+  parseSubscriptionReviews,
+  SUBSCRIPTION_REVIEWS_KEY,
+} from '@/features/recurring/domain/subscriptionReview';
 
 const TABLES = [
   'raw_notifications',
@@ -31,6 +35,7 @@ const TABLES = [
   'recurring_rules',
   'loan_schedules',
   'transactions',
+  'loan_payment_links',
   'transaction_allocations',
   'tags',
   'transaction_tags',
@@ -48,14 +53,15 @@ type BackupRow = Record<string, BackupValue>;
 
 export type CashioBackup = {
   format: 'cashio-backup';
-  version: 1 | 2 | 3 | 4;
+  version: 1 | 2 | 3 | 4 | 5;
   schemaVersion: number;
   createdAt: number;
   tables: Record<(typeof TABLES)[number], BackupRow[]>;
   receipts?: PortableReceipt[];
 };
 
-const PRE_PLANNING_TABLES = TABLES.filter(
+const PRE_LOAN_LINK_TABLES = TABLES.filter((table) => table !== 'loan_payment_links');
+const PRE_PLANNING_TABLES = PRE_LOAN_LINK_TABLES.filter(
   (table) => table !== 'savings_goals' && table !== 'investment_valuations',
 );
 const ORIGINAL_TABLES = PRE_PLANNING_TABLES.filter(
@@ -86,7 +92,8 @@ export function parseCashioBackup(json: string): CashioBackup {
   if (
     !isRecord(parsed) ||
     parsed.format !== 'cashio-backup' ||
-    (parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3 && parsed.version !== 4)
+    typeof parsed.version !== 'number' ||
+    ![1, 2, 3, 4, 5].includes(Number(parsed.version))
   ) {
     throw new Error('Unsupported backup format or version.');
   }
@@ -102,12 +109,22 @@ export function parseCashioBackup(json: string): CashioBackup {
   const hasCurrentTables =
     tableNames.length === TABLES.length &&
     TABLES.every((table) => Object.hasOwn(parsed.tables as object, table));
+  const hasPreLoanLinkTables =
+    tableNames.length === PRE_LOAN_LINK_TABLES.length &&
+    PRE_LOAN_LINK_TABLES.every((table) => Object.hasOwn(parsed.tables as object, table));
   const hasPrePlanningTables =
     tableNames.length === PRE_PLANNING_TABLES.length &&
     PRE_PLANNING_TABLES.every((table) => Object.hasOwn(parsed.tables as object, table));
   if (
-    ((parsed.version === 3 || parsed.version === 4) && !hasCurrentTables) ||
-    (parsed.version === 2 && !hasCurrentTables && !hasPrePlanningTables)
+    (parsed.version === 5 && !hasCurrentTables) ||
+    (parsed.version !== 5 &&
+      Object.hasOwn(parsed.tables, 'loan_payment_links') &&
+      (!Array.isArray(parsed.tables.loan_payment_links) ||
+        parsed.tables.loan_payment_links.length !== 0)) ||
+    ((parsed.version === 3 || parsed.version === 4) &&
+      !hasPreLoanLinkTables &&
+      !hasCurrentTables) ||
+    (parsed.version === 2 && !hasPreLoanLinkTables && !hasPrePlanningTables && !hasCurrentTables)
   )
     throw new Error('The backup does not contain the expected Cashio tables.');
   const hasLegacyTables =
@@ -121,6 +138,7 @@ export function parseCashioBackup(json: string): CashioBackup {
     ORIGINAL_TABLES.every((table) => Object.hasOwn(parsed.tables as object, table));
   if (
     !hasCurrentTables &&
+    !hasPreLoanLinkTables &&
     !hasLegacyTables &&
     !hasPreAllocationTables &&
     !hasOriginalTables &&
@@ -137,6 +155,7 @@ export function parseCashioBackup(json: string): CashioBackup {
     saved_transaction_filters: parsed.tables.saved_transaction_filters ?? [],
     savings_goals: parsed.tables.savings_goals ?? [],
     investment_valuations: parsed.tables.investment_valuations ?? [],
+    loan_payment_links: parsed.tables.loan_payment_links ?? [],
   } as CashioBackup['tables'];
 
   for (const table of TABLES) {
@@ -238,7 +257,53 @@ export function parseCashioBackup(json: string): CashioBackup {
     parseStoredLoanSchedule(row.installments_json);
   }
 
+  const linkIds = new Set<number>();
+  const linkedTransactions = new Set<number>();
+  const linkedInstallments = new Set<string>();
+  for (const row of tables.loan_payment_links) {
+    const schedule = tables.loan_schedules.find((item) => item.id === row.schedule_id);
+    const payment = tables.transactions.find((item) => item.id === row.transaction_id);
+    const key = `${row.schedule_id}:${row.due_at}`;
+    if (
+      !Number.isSafeInteger(row.id) ||
+      Number(row.id) <= 0 ||
+      linkIds.has(Number(row.id)) ||
+      !Number.isSafeInteger(row.schedule_id) ||
+      Number(row.schedule_id) <= 0 ||
+      !Number.isSafeInteger(row.transaction_id) ||
+      Number(row.transaction_id) <= 0 ||
+      !Number.isSafeInteger(row.due_at) ||
+      linkedTransactions.has(Number(row.transaction_id)) ||
+      linkedInstallments.has(key) ||
+      !schedule ||
+      !payment ||
+      payment.status !== 'confirmed' ||
+      payment.type !== 'expense' ||
+      payment.currency !== schedule.currency ||
+      !Number.isSafeInteger(payment.amount_minor) ||
+      Number(payment.amount_minor) <= 0 ||
+      !Number.isSafeInteger(payment.occurred_at) ||
+      Number(payment.occurred_at) > Number(parsed.createdAt) ||
+      (payment.recurring_id != null && payment.recurring_id !== schedule.recurring_id) ||
+      !parseStoredLoanSchedule(String(schedule.installments_json)).installments.some(
+        (installment) => installment.dueAt === row.due_at,
+      ) ||
+      tables.loan_schedules.filter((item) => item.id === row.schedule_id).length !== 1 ||
+      tables.transactions.filter((item) => item.id === row.transaction_id).length !== 1
+    ) {
+      throw new Error('The backup contains an invalid loan payment association.');
+    }
+    linkIds.add(Number(row.id));
+    linkedTransactions.add(Number(row.transaction_id));
+    linkedInstallments.add(key);
+  }
+
   const settings = tables.app_settings as BackupRow[];
+  const reviews = settings.find((row) => row.key === SUBSCRIPTION_REVIEWS_KEY)?.value;
+  if (reviews !== undefined) {
+    if (typeof reviews !== 'string') throw new Error('Invalid subscription reviews');
+    parseSubscriptionReviews(reviews);
+  }
   const language = settings.find((row) => row.key === 'language')?.value;
   const theme = settings.find((row) => row.key === 'theme')?.value;
   const investmentAssets = settings.find((row) => row.key === 'investment_assets')?.value;
@@ -255,7 +320,7 @@ export function parseCashioBackup(json: string): CashioBackup {
     parseInvestmentAssets(investmentAssets);
   }
 
-  if (parsed.version === 4) {
+  if (parsed.version === 4 || parsed.version === 5) {
     validatePortableReceipts(
       parsed.receipts,
       new Set(tables.transactions.map((row) => Number(row.id))),
@@ -302,14 +367,16 @@ export async function createCashioBackup(db: SQLiteDatabase): Promise<CashioBack
     }
   });
 
-  return {
-    format: 'cashio-backup',
-    version: 4,
-    schemaVersion: version?.user_version ?? 0,
-    createdAt: Date.now(),
-    tables,
-    receipts,
-  };
+  return parseCashioBackup(
+    JSON.stringify({
+      format: 'cashio-backup',
+      version: 5,
+      schemaVersion: version?.user_version ?? 0,
+      createdAt: Date.now(),
+      tables,
+      receipts,
+    }),
+  );
 }
 
 export function isSupportedBackupSchemaVersion(

@@ -115,7 +115,7 @@ describe('estimateNextMonth', () => {
     ]);
   });
 
-  it('uses individual loan amounts, deduplicates a loan recurrence, and excludes paid history', () => {
+  it('never deduplicates an unlinked recurrence by its name and excludes explicitly paid history', () => {
     expect(
       estimateNextMonth({
         rules: [
@@ -171,9 +171,9 @@ describe('estimateNextMonth', () => {
     ).toEqual([
       {
         currency: 'RON',
-        obligationsMinor: 190000,
+        obligationsMinor: 290000,
         variableAverageMinor: 10000,
-        totalMinor: 200000,
+        totalMinor: 300000,
       },
     ]);
   });

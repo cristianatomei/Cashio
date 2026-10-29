@@ -15,9 +15,20 @@ export function useHomeOverview(now: number) {
   const categories = useLiveQuery(db.select().from(schema.categories));
   const merchants = useLiveQuery(db.select().from(schema.merchants));
   const loans = useLiveQuery(db.select().from(schema.loanSchedules));
+  const loanPaymentLinks = useLiveQuery(db.select().from(schema.loanPaymentLinks));
   const settings = useLiveQuery(db.select().from(schema.appSettings));
   const rates = useLiveQuery(db.select().from(schema.exchangeRates));
-  const queries = [accounts, transactions, rules, categories, merchants, loans, settings, rates];
+  const queries = [
+    accounts,
+    transactions,
+    rules,
+    categories,
+    merchants,
+    loans,
+    loanPaymentLinks,
+    settings,
+    rates,
+  ];
   const loading = queries.some((query) => query.updatedAt === undefined);
   const error = queries.some((query) => query.error !== undefined);
   const baseCurrency =
@@ -51,6 +62,7 @@ export function useHomeOverview(now: number) {
     rules: namedRules,
     loans: schedules,
     payments: transactions.data,
+    loanPaymentLinks: loanPaymentLinks.data,
   });
   const result = freeToSpend({
     now,

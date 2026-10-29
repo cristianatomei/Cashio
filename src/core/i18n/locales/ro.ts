@@ -147,7 +147,21 @@ export const ro = {
     unusualReason:
       'Plata de {{amount}} este cel puțin dublul medianei de {{baseline}} la acest comerciant în cele 3 luni anterioare. Nu înseamnă fraudă.',
     evidence: 'Tranzacții folosite: {{ids}}',
-    review: 'Verifică regulile recurente',
+    review: 'Verifică drept obligație recurentă',
+    reviewHint: 'Verifică plățile și corectează câmpurile sugerate. Recurența lunară este doar o ipoteză. Confirmarea salvează o obligație fără înregistrare automată; nu modifică și nu asociază tranzacțiile din trecut.',
+    confirm: 'Confirmă și salvează obligația',
+    openEvidence: 'Plata #{{id}} · {{date}} · {{amount}}',
+    ignore: 'Nu este abonament / ignoră',
+    ignored: 'Sugestii de abonamente ignorate',
+    restore: 'Permite din nou sugestiile',
+    duplicate: 'Există deja o obligație potrivită, posibil suspendată. Verific-o în loc să creezi alta. Sumele și plățile din trecut nu au fost modificate.',
+    openExisting: 'Verifică obligația existentă',
+    stale: 'Plățile justificative s-au modificat sau nu mai sunt disponibile. Închide formularul și verifică din nou sugestia.',
+    saveError: 'Verificarea nu a putut fi salvată. Încearcă din nou.',
+    confirmedTotals: 'Cheltuieli recurente confirmate',
+    totalsHint: 'Doar obligațiile active de cheltuieli, separat pe monedă. Echivalentele lunare și anuale folosesc suma și intervalul salvate (365 zile/an); sumele variabile sunt estimări. Regulile expirate sunt excluse. Nu reprezintă un calendar de plăți sau totalul sugestiilor detectate.',
+    noConfirmed: 'Nu există cheltuieli recurente confirmate active.',
+    total: '{{currency}} · {{monthly}} / lună · {{annual}} / an',
     drilldown: 'Vezi tranzacțiile: {{label}}',
     drilldownHint:
       'Atinge un segment sau un rând pentru tranzacțiile din perioada selectată. Sumele afișate sunt alocări; lista conține tranzacțiile întregi în moneda originală, inclusiv cele fără curs.',
@@ -565,6 +579,14 @@ export const ro = {
     loanPaymentCheckTitle: 'Verificarea plăților importate',
     loanPaymentMatched: 'Plată posibilă la {{date}} · {{amount}}',
     loanPaymentConflict: 'Plată posibilă la {{date}} · estimat {{expected}}, găsit {{actual}}',
+    loanConfirmPayment: 'Confirmi asocierea plății cu rata?',
+    loanConfirmPaymentBody:
+      'Asociază doar dacă această tranzacție a achitat rata selectată. Diferența neacoperită rămâne de plată.',
+    loanAssociationError:
+      'Asocierea plății nu a putut fi modificată. Verifică dacă tranzacția există și nu este deja asociată altei rate.',
+    loanAssociatePayment: 'Asociază plata',
+    loanAssociatedPayment: 'Plata #{{id}} confirmată pentru {{date}}',
+    loanUnlinkPayment: 'Elimină asocierea plății',
   },
   captured: {
     title: 'Notificări captate',

@@ -91,7 +91,8 @@ export async function syncCalendar(
     const calendar = calendars.find((item) => item.id === state.calendarId);
     if (!calendar) throw new CalendarExportError('noCalendar');
     const api = await calendarApi();
-    const range = exportRange(Date.now());
+    const now = Date.now();
+    const range = exportRange(now);
     const desired = cleanup
       ? []
       : projectPayments(
@@ -112,6 +113,11 @@ export async function syncCalendar(
               ...parseStoredLoanSchedule(row.installmentsJson),
             })),
           range,
+          {
+            payments: db.select().from(schema.transactions).all(),
+            links: db.select().from(schema.loanPaymentLinks).all(),
+            now,
+          },
         );
     if (
       !cleanup &&

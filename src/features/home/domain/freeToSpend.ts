@@ -5,6 +5,7 @@ import {
   type ScheduledRecurringRule,
 } from '@/features/recurring/domain/schedule';
 import type { LoanInstallment } from '@/features/loans/domain/ingSchedule';
+import type { LoanPaymentLink } from '@/features/loans/domain/reconciliation';
 
 type Rule = ScheduledRecurringRule & { type: 'expense' | 'income' };
 type Loan = {
@@ -16,6 +17,7 @@ type Loan = {
   installments: readonly LoanInstallment[];
 };
 type Payment = {
+  id?: number;
   type: string;
   status: string;
   amountMinor: number;
@@ -60,9 +62,14 @@ export function homeObligations(input: {
   rules: readonly Rule[];
   loans: readonly Loan[];
   payments: readonly Payment[];
+  loanPaymentLinks?: readonly LoanPaymentLink[];
 }): Obligation[] {
   const from = startOfDay(input.now);
   const linkedRules = new Set(input.loans.map((loan) => loan.recurringId));
+  const links = input.loanPaymentLinks ?? [];
+  const explicitlyLinkedPayments = new Set(links.map((link) => link.transactionId));
+  const explicitlyLinked = (payment: Payment) =>
+    payment.id !== undefined && explicitlyLinkedPayments.has(payment.id);
   const paid = input.payments.filter(
     (payment) => payment.status === 'confirmed' && payment.type === 'expense',
   );
@@ -74,6 +81,7 @@ export function homeObligations(input: {
           .filter(
             (payment) =>
               payment.recurringId === rule.id &&
+              !explicitlyLinked(payment) &&
               payment.currency === rule.currency &&
               calendarDay(payment.occurredAt) === calendarDay(occurrence.dueAt),
           )
@@ -101,11 +109,19 @@ export function homeObligations(input: {
         const settled = paid
           .filter(
             (payment) =>
-              unambiguous &&
-              loan.recurringId !== null &&
-              payment.recurringId === loan.recurringId &&
               payment.currency === loan.currency &&
-              calendarDay(payment.occurredAt) === calendarDay(installment.dueAt),
+              ((payment.occurredAt <= input.now &&
+                links.some(
+                  (link) =>
+                    link.transactionId === payment.id &&
+                    link.scheduleId === loan.id &&
+                    link.dueAt === installment.dueAt,
+                )) ||
+                (!explicitlyLinked(payment) &&
+                  unambiguous &&
+                  loan.recurringId !== null &&
+                  payment.recurringId === loan.recurringId &&
+                  calendarDay(payment.occurredAt) === calendarDay(installment.dueAt))),
           )
           .reduce((sum, payment) => sum + Math.max(0, payment.amountMinor), 0);
         return {

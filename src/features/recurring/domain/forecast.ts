@@ -11,6 +11,7 @@ export type RecurringProjection = {
 
 export type SpendingSample = {
   loanPayment?: boolean;
+  recurringId?: number | null;
   amountMinor: number;
   currency: string;
   occurredAt: number;
@@ -206,47 +207,7 @@ export function estimateNextMonth({
     }
     return occurrences;
   });
-  const loanRecurringRuleNames = rules.map((rule) =>
-    (rule.name ?? '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLocaleLowerCase('ro-RO'),
-  );
-  const loanRulePattern =
-    /\b(?:rata|rate|credit(?:ului)?|ipotecar(?:a|e)?|rambursare|loan|mortgage)\b/;
-  const loanRecurringCandidates = recurringOccurrences.flatMap((occurrence, occurrenceIndex) => {
-    if (!loanRulePattern.test(loanRecurringRuleNames[occurrence.ruleIndex])) return [];
-    return loanPayments.flatMap((payment, paymentIndex) => {
-      const daysApart =
-        Math.abs(localDay(payment.dueAt) - localDay(occurrence.dueAt)) / (24 * 60 * 60 * 1000);
-      return payment.currency === occurrence.currency && daysApart <= 5
-        ? [{ occurrenceIndex, paymentIndex }]
-        : [];
-    });
-  });
-  const occurrenceCandidateCounts = new Map<number, number>();
-  const paymentCandidateCounts = new Map<number, number>();
-  for (const candidate of loanRecurringCandidates) {
-    occurrenceCandidateCounts.set(
-      candidate.occurrenceIndex,
-      (occurrenceCandidateCounts.get(candidate.occurrenceIndex) ?? 0) + 1,
-    );
-    paymentCandidateCounts.set(
-      candidate.paymentIndex,
-      (paymentCandidateCounts.get(candidate.paymentIndex) ?? 0) + 1,
-    );
-  }
-  const duplicateOccurrenceIndexes = new Set(
-    loanRecurringCandidates
-      .filter(
-        ({ occurrenceIndex, paymentIndex }) =>
-          occurrenceCandidateCounts.get(occurrenceIndex) === 1 &&
-          paymentCandidateCounts.get(paymentIndex) === 1,
-      )
-      .map(({ occurrenceIndex }) => occurrenceIndex),
-  );
-  recurringOccurrences.forEach((occurrence, index) => {
-    if (duplicateOccurrenceIndexes.has(index)) return;
+  recurringOccurrences.forEach((occurrence) => {
     obligations.set(
       occurrence.currency,
       (obligations.get(occurrence.currency) ?? 0) + occurrence.amountMinor,
@@ -276,6 +237,7 @@ export function estimateNextMonth({
       transaction.type !== 'expense' ||
       transaction.status !== 'confirmed' ||
       transaction.source === 'recurring' ||
+      transaction.recurringId != null ||
       transaction.loanPayment === true ||
       transaction.occurredAt < historyFrom ||
       transaction.occurredAt >= historyTo
@@ -300,9 +262,4 @@ export function estimateNextMonth({
       totalMinor: obligationsMinor + variableAverageMinor,
     };
   });
-}
-
-function localDay(value: number): number {
-  const date = new Date(value);
-  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 }

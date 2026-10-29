@@ -18,6 +18,8 @@ export {
 export {
   isLoanPayment,
   reconcileLoanPayments,
+  suggestLoanPayments,
+  type LoanPaymentLink,
   type LoanPaymentMatch,
   type LoanPaymentForReconciliation,
   type LoanScheduleForReconciliation,
