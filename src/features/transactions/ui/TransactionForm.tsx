@@ -27,7 +27,7 @@ import {
 } from '@/core/ui';
 import { combineDateAndTime } from '@/core/utils/dates';
 import { evaluateExpression } from '@/core/utils/calculator';
-import { minorToInput, parseAmountToMinor } from '@/core/utils/money';
+import { minorToInput, minorToKeypadInput, parseAmountToMinor } from '@/core/utils/money';
 import { notifyBudgetThresholds } from '@/features/budgets';
 import { AccountPickerModal, useAccounts } from '@/features/accounts';
 import { CategoryPickerModal, useTaxonomy } from '@/features/categories';
@@ -70,7 +70,9 @@ export function TransactionForm({ transactionId }: Props) {
   );
 
   const [type, setType] = useState<TransactionType>(initial?.type ?? 'expense');
-  const [expression, setExpression] = useState(initial ? minorToInput(initial.amountMinor) : '');
+  const [expression, setExpression] = useState(
+    initial ? minorToKeypadInput(initial.amountMinor) : '',
+  );
   const [accountId, setAccountId] = useState<number | null>(initial?.accountId ?? null);
   const [unassignedCurrency, setUnassignedCurrency] = useState(initial?.currency ?? 'RON');
   const [transferAccountId, setTransferAccountId] = useState<number | null>(

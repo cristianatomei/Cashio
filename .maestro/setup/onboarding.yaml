@@ -9,14 +9,22 @@ appId: com.cashio.app.e2e
 - scrollUntilVisible:
     element: 'Continue'
 - tapOn: 'Continue'
+- scrollUntilVisible:
+    element: 'Choose active accounts'
+    direction: UP
 - assertVisible: 'Choose active accounts'
 - scrollUntilVisible:
     element: 'Continue'
 - tapOn: 'Continue'
+- scrollUntilVisible:
+    element: 'Choose your base currency'
+    direction: UP
 - assertVisible: 'Choose your base currency'
 - scrollUntilVisible:
     element: 'Continue'
 - tapOn: 'Continue'
 - assertVisible: 'You’re all set'
 - tapOn: 'Start using Cashio'
-- assertVisible: 'Total balance'
+- extendedWaitUntil:
+    visible: 'Current balance'
+    timeout: 30000

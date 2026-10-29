@@ -1,4 +1,9 @@
-import { minorToInput, parseAmountToMinor, parseSignedAmountToMinor } from './money';
+import {
+  minorToInput,
+  minorToKeypadInput,
+  parseAmountToMinor,
+  parseSignedAmountToMinor,
+} from './money';
 
 describe('signed amounts', () => {
   it.each([
@@ -33,5 +38,16 @@ describe('parseAmountToMinor', () => {
 
   it('rejects non-numeric input', () => {
     expect(parseAmountToMinor('abc')).toBeNull();
+  });
+});
+
+describe('minorToKeypadInput', () => {
+  it.each([
+    [1200, '12'],
+    [1250, '12,5'],
+    [1205, '12,05'],
+    [5, '0,05'],
+  ])('formats %s minor units for keypad editing', (minor, expected) => {
+    expect(minorToKeypadInput(minor)).toBe(expected);
   });
 });

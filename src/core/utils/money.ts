@@ -31,3 +31,8 @@ export function minorToInput(minor: number): string {
   const abs = Math.abs(minor);
   return `${sign}${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, '0')}`;
 }
+
+/** Formats a saved amount as a keypad expression without insignificant decimal zeros. */
+export function minorToKeypadInput(minor: number): string {
+  return minorToInput(minor).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('.', ',');
+}

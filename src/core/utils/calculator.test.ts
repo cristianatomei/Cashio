@@ -1,4 +1,5 @@
 import { applyKeypadKey, evaluateExpression } from './calculator';
+import { minorToKeypadInput } from './money';
 
 describe('applyKeypadKey', () => {
   const press = (keys: string[]) => keys.reduce(applyKeypadKey, '');
@@ -40,4 +41,10 @@ describe('evaluateExpression', () => {
   it.each([[''], ['+'], ['1÷0'], ['abc']])('rejects %s', (expression) => {
     expect(evaluateExpression(expression)).toBeNull();
   });
+});
+
+it('allows changing a saved whole-number amount with the keypad', () => {
+  const edited = applyKeypadKey(minorToKeypadInput(1200), '3');
+  expect(edited).toBe('123');
+  expect(evaluateExpression(edited)).toBe(12300);
 });

@@ -1,6 +1,54 @@
 # Cashio
 
-## Pregătire APK — 29.10.2026
+## Validare Android locală — 29.10.2026 (#3, #26)
+
+Aceasta este starea actuală; secțiunile de pregătire și blocajele de mediu de mai jos
+sunt istorice. Sursa verificată este `fb4aee5`, identică cu `origin/master` la începutul
+validării. Modificările locale apărute ulterior din altă sesiune nu sunt incluse în APK-uri.
+
+- **Mediu:** Samsung `SM_S731B`, Android 16, `arm64-v8a`; Node 22.23.3, Java 17,
+  Android SDK 36 și Maestro 2.12.0. Dependențele au fost restaurate din lockfile.
+  EAS este autentificat în acest mediu; buildul local a fost ales explicit pentru
+  compatibilitatea cu semnătura instalării existente.
+- **APK personal:** release standalone, `com.cashio.app`, versiune `1.0.0`,
+  versionCode `1`, minSdk 24, targetSdk 36, ARM64. JavaScript-ul este inclus în APK;
+  buildul nu este debuggable. Certificatul SHA-256 coincide exact cu cel instalat.
+  Este cheia debug istorică existentă, nu o cheie nouă și nu o validare pentru publicare
+  în magazin. Compilare locală Gradle `app:assembleRelease`, fără build ID EAS.
+- **Upgrade:** `adb install -r` a reușit fără dezinstalare sau reset. Pornirea,
+  repornirea procesului și navigarea Expo Router au reușit fără Metro/ADB reverse.
+  Înainte de instalare au fost salvate și verificate arhive locale private cu bazele,
+  fișierele și preferințele; baza existentă v7 trece `integrity_check` și
+  `foreign_key_check`. **Comparația exactă a tuturor datelor după upgrade este încă
+  în așteptare**, până la furnizarea locală a exportului JSON post-upgrade.
+  Nu se declară încă demonstrată păstrarea fiecărei înregistrări sau migrarea nativă
+  la v13 pe baza unui simplu mesaj de instalare reușită.
+- **E2E izolat (#26):** APK separat `com.cashio.app.e2e`, instalat alături de aplicația
+  personală. Cele patru fluxuri au trecut pe dispozitiv: cheltuială creare/editare/ștergere
+  și restart, transfer și restart, preferințe/navigare, curs manual datat și restart.
+  Setup-ul folosește eticheta actuală `Current balance`, derulează explicit între pașii
+  onboarding-ului și ascunde tastatura înainte de următorul câmp valutar.
+  Rularea finală comună a trecut **4/4 fluxuri în 5m 49s**.
+  Niciun flux de resetare nu a vizat `com.cashio.app`.
+- **PDF/remindere sintetice (#3):** PDF local generat exclusiv pentru test, trei date
+  neregulate și rate variabile cu asigurare. Extragerea nativă PDFBox, toate datele/sumele/
+  componentele în preview, salvarea și regăsirea după restart au trecut. Android AlarmManager
+  a avut exact trei alarme la ora locală 09:00 în ziua anterioară fiecărei scadențe;
+  după restart s-au refăcut fără duplicate, iar dezactivarea le-a redus la zero.
+  Testul nu demonstrează livrarea efectivă, comportamentul după reboot, refuzul/revocarea
+  permisiunilor sau restaurarea unui backup.
+- **Automat:** lint, typecheck și 32 verificări SQLite/migrări/siguranță E2E trec.
+  În rularea Jest inițială au trecut 69/70 suite, 583/585 teste; cele două timeout-uri
+  de accesibilitate au trecut la rerularea izolată a suitei (16/16).
+- **Rămân pentru #3:** comparația privată post-upgrade; PDF-uri ING reprezentative reale
+  comparate local de proprietar; livrarea/refuzul/revocarea/reboot-ul reminderelor și
+  restaurarea backupului întâi pe varianta sintetică; biometrie, captare, widget/calendar
+  și restul checklistului nativ. Tichetul nu este considerat închis.
+
+APK-urile locale sunt în `dist/native-validation/` (director ignorat de Git).
+Backupurile, PDF-urile personale și logurile private nu sunt incluse în repository.
+
+## Pregătire APK istorică — 29.10.2026
 
 Această secțiune înlocuiește stările istorice de integrare de mai jos. Codul pentru bonuri
 (#41), calendarul telefonului (#43), planificare, statistici și widget este deja integrat în
@@ -664,18 +712,27 @@ Testele suplimentare SQLite verifică salvarea FX, conflictele manuale, eșecuri
 
 Maestro este local, fără cont cloud, token sau serviciu obligatoriu:
 
-1. Folosește **numai un emulator Android de test**, fără date private. Instalează Android SDK/emulator, Java 17+ și Maestro CLI din documentația oficială.
+1. Preferă un emulator Android de test, fără date private. Un telefon fizic autorizat poate fi
+   folosit numai cu APK-ul sintetic separat și după verificarea identității sale; niciun reset
+   nu trebuie să vizeze aplicația personală. Instalează Android SDK, Java 17+ și Maestro CLI
+   din documentația oficială.
 2. Construiește varianta separată: `npx eas-cli@latest build --platform android --profile e2e`. Pentru build local cu SDK disponibil: `CASHIO_E2E=1 npx expo run:android --variant release`. Nu folosi Expo Go.
-3. Confirmă că APK-ul este **Cashio Synthetic E2E**, ID **`com.cashio.app.e2e`**, apoi instalează-l pe emulator. Configul de producție rămâne `com.cashio.app`. Varianta de test are și baza separată `cashio.e2e.synthetic.db`, activată numai dacă ambele marcaje de config coincid.
+3. Confirmă că APK-ul este **Cashio Synthetic E2E**, ID **`com.cashio.app.e2e`**, apoi instalează-l pe dispozitivul de test. Configul de producție rămâne `com.cashio.app`. Varianta de test are și baza separată `cashio.e2e.synthetic.db`, activată numai dacă ambele marcaje de config coincid.
 4. Rulează `npm run test:e2e`. Setup-ul șterge **exclusiv starea aplicației sintetice** și parcurge onboarding-ul în engleză. Nu modifica `appId` în flow-uri și nu rula `clearState`, `pm clear` sau dezinstalare pentru aplicația utilizatorului.
 
 Flow-urile acoperă onboarding fără acord nativ, cheltuială creare/restart/editare/ștergere, transfer/restart, acord FX pornit/oprit fără accesarea rețelei, navigare în inbox/capturi și salvarea/persistența unui curs manual datat. Nu automatizează PDFBox, permisiuni native, picker-ul de backup sau livrarea reminderelor.
 
-**Dovezi locale pe această ramură:** 38 suite Jest / 213 teste trecute; 17 teste Node/SQLite și siguranță E2E trecute (inclusiv backup FX și prioritate manuală cu fus orar); lint/typecheck și exportul JavaScript Android trecute; `expo config --type public` confirmă ID-urile distincte cu/fără `CASHIO_E2E=1`. **Maestro nu a rulat**: `npm run test:e2e` returnează `maestro: not found`; `adb`, emulatorul și Android SDK nu sunt disponibile. Flow-urile sunt pregătite, dar acceptarea E2E rămâne în așteptare. Nu marca #26 finalizat până la rulare.
+**Dovezi actualizate 29.10.2026:** cele patru fluxuri Maestro au trecut pe Samsung Android 16,
+exclusiv în APK-ul sintetic `com.cashio.app.e2e` construit din `fb4aee5`; cele 32 de verificări
+SQLite/migrări/siguranță E2E trec cu Node 22.23.3. Identitățile și bazele sunt separate.
+Consultați secțiunea de validare de la început pentru limitele testării native și starea #3.
 
-### Checklist de validare Android fizică (#3 — deschis, fără dovezi noi)
+### Checklist complet de validare Android fizică (#3 — încă deschis)
 
-Toate punctele de mai jos sunt **în așteptare**. Testele unitare/SQLite, validarea configului și un build EAS nu sunt dovezi de instalare sau teste fizice.
+Lista de mai jos rămâne criteriul complet, nu o listă de puncte integral bifate.
+Rezultatele parțiale pe dispozitiv sunt documentate la început; punctele mixte rămân
+nebifate până la verificarea tuturor subcazurilor. Testele unitare/SQLite și un build
+reușit nu înlocuiesc dovezile native.
 
 - [ ] Înregistrează commitul, EAS build ID, versiunea APK/versionCode, modelul telefonului și versiunea Android. Nu include identificatori ai dispozitivului sau date financiare.
 - [ ] Păstrează un backup local verificat înainte de upgrade. Notează instalarea/versiunea anterioară. Nu șterge datele și nu dezinstala aplicația utilizatorului pentru a „repara” migrarea.

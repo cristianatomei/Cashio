@@ -11,6 +11,9 @@ name: Save and preserve a dated manual exchange rate offline
 - tapOn: 'Currency code.*'
 - eraseText
 - inputText: 'EUR'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Value of 1 unit.*'
 - tapOn: 'Value of 1 unit.*'
 - eraseText
 - inputText: '5'

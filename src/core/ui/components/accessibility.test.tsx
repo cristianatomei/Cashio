@@ -379,4 +379,5 @@ it.each(['en', 'ro'])(
     });
     expect(onClose).toHaveBeenCalledTimes(1);
   },
+  15000,
 );
