@@ -53,6 +53,31 @@ describe('parseIngCsv', () => {
     expect(result.skippedRows).toBe(0);
   });
 
+  it('parses paged Home’Bank exports with preamble, shifted columns and footers', () => {
+    const result = parseIngCsv(
+      'Titular cont: DL Test,,,,,,,,,\n' +
+        '"Str. X\n6\n\n061981, Bucuresti, RO",,,,,,,,,\n' +
+        ',Data,,,Detalii tranzactie,,,Debit,,Credit\n' +
+        '01 octombrie 2026,,,Cumparare POS,,,"112,27",,,\n' +
+        ',,,Numar card:**** 7811,,,,,,\n' +
+        '01 octombrie 2026,,,Incasare,,,,,"19.694,00",\n' +
+        ',,,Detalii:Salariu,,,,,,\n' +
+        ',Roxana Petria,,,,Alexandra Ilie,,,,\n' +
+        ',,ING Bank N.V. Amsterdam,,,ING Bank N.V. Amsterdam,,,,\n' +
+        'Titular cont: DL Test,,,,,,,,\n' +
+        ',Data,,,Detalii tranzactie,,,Debit,Credit\n' +
+        '02 octombrie 2026,,,Cumparare POS,,,"118,42",,\n' +
+        ',,,Tranzactie la:GRAFRELY,,,,,\n' +
+        'Sold iniţial:,,,"1.048,22",\n' +
+        ',,,Detalii:nu apartine,,,\n',
+    );
+    expect(result.rows.map((row) => [row.amountMinor, row.description])).toEqual([
+      [-11227, 'Cumparare POS · Numar card:**** 7811'],
+      [1969400, 'Incasare · Detalii:Salariu'],
+      [-11842, 'Cumparare POS · Tranzactie la:GRAFRELY'],
+    ]);
+  });
+
   it('requires recognizable transaction columns', () => {
     expect(() => parseIngCsv('foo;bar\nx;y')).toThrow('transaction date, amount, and description');
   });
