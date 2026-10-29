@@ -146,47 +146,79 @@ function parseDate(value: string): number | null {
   return null;
 }
 
+type Columns = {
+  date: number;
+  amount: number;
+  debit: number;
+  credit: number;
+  currency: number;
+  description: number;
+};
+
+function resolveColumns(headers: string[]): Columns | null {
+  const columns: Columns = {
+    date: findColumn(headers, HEADER_ALIASES.date),
+    amount: findColumn(headers, HEADER_ALIASES.amount),
+    debit: findColumn(headers, HEADER_ALIASES.debit),
+    credit: findColumn(headers, HEADER_ALIASES.credit),
+    currency: findColumn(headers, HEADER_ALIASES.currency),
+    description: findColumn(headers, HEADER_ALIASES.description),
+  };
+  if (
+    columns.date < 0 ||
+    columns.description < 0 ||
+    (columns.amount < 0 && columns.debit < 0 && columns.credit < 0)
+  ) {
+    return null;
+  }
+  // Home'Bank PDF-style exports start the header with an empty cell, but transaction rows start at column 0.
+  if (!(headers[0] ?? '').trim() && columns.date === 1) {
+    for (const key of Object.keys(columns) as (keyof Columns)[]) {
+      if (columns[key] > 0) columns[key] -= 1;
+    }
+  }
+  return columns;
+}
+
 export function parseIngCsv(csv: string): IngCsvResult {
   const records = parseCsvRecords(csv);
   if (records.length < 2) throw new Error('The CSV does not contain transaction rows.');
 
-  const headers = records[0];
-  const dateColumn = findColumn(headers, HEADER_ALIASES.date);
-  const amountColumn = findColumn(headers, HEADER_ALIASES.amount);
-  const debitColumn = findColumn(headers, HEADER_ALIASES.debit);
-  const creditColumn = findColumn(headers, HEADER_ALIASES.credit);
-  const currencyColumn = findColumn(headers, HEADER_ALIASES.currency);
-  const descriptionColumn = findColumn(headers, HEADER_ALIASES.description);
-
-  if (
-    dateColumn < 0 ||
-    descriptionColumn < 0 ||
-    (amountColumn < 0 && debitColumn < 0 && creditColumn < 0)
-  ) {
-    throw new Error('The CSV must include transaction date, amount, and description columns.');
-  }
-
   const rows: IngTransactionRow[] = [];
   let skippedRows = 0;
-  for (const values of records.slice(1)) {
+  let columns: Columns | null = null;
+  let current: IngTransactionRow | null = null;
+  let sawHeader = false;
+
+  for (const values of records) {
+    const header = resolveColumns(values);
+    if (header) {
+      columns = header;
+      current = null;
+      sawHeader = true;
+      continue;
+    }
+    if (!columns) continue;
+
+    const { date: dateColumn, amount: amountColumn, debit: debitColumn } = columns;
+    const { credit: creditColumn, currency: currencyColumn, description: descriptionColumn } = columns;
     const date = parseDate(values[dateColumn] ?? '');
-    if (date === null && !(values[dateColumn] ?? '').trim() && rows.length > 0) {
-      const detail = values
-        .filter(
-          (value, index) =>
-            index !== amountColumn &&
-            index !== debitColumn &&
-            index !== creditColumn &&
-            index !== currencyColumn,
-        )
-        .map((value) => value.trim())
-        .filter(Boolean)
-        .join(' · ');
-      if (detail) {
-        rows[rows.length - 1].description += ` · ${detail}`;
+
+    if (date === null && !(values[dateColumn] ?? '').trim()) {
+      const detail = (values[descriptionColumn] ?? '').trim();
+      if (current && detail) {
+        current.description += ` · ${detail}`;
         continue;
       }
     }
+
+    // Anything that is not a transaction or its detail line (signatures, balances) ends the block.
+    current = null;
+    if (date === null) {
+      skippedRows += 1;
+      continue;
+    }
+
     const description = (values[descriptionColumn] ?? '').trim();
     let amountMinor: number | null = null;
     if (amountColumn >= 0) {
@@ -200,18 +232,22 @@ export function parseIngCsv(csv: string): IngCsvResult {
       }
     }
 
-    if (date === null || amountMinor === null || amountMinor === 0 || !description) {
+    if (amountMinor === null || amountMinor === 0 || !description) {
       skippedRows += 1;
       continue;
     }
-    rows.push({
+    current = {
       date,
       amountMinor,
       currency: (currencyColumn < 0 ? 'RON' : values[currencyColumn] || 'RON').trim().toUpperCase(),
       description,
-    });
+    };
+    rows.push(current);
   }
 
+  if (!sawHeader) {
+    throw new Error('The CSV must include transaction date, amount, and description columns.');
+  }
   if (rows.length === 0) throw new Error('No valid transactions were found in the CSV.');
   return { rows, skippedRows };
 }
